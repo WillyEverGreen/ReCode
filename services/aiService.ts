@@ -74,22 +74,23 @@ problemOverview:
 - 2–3 lines explaining the problem goal clearly.
 
 testCases:
-- Return a Markdown list of 3 minimal test cases.
-- Format: "- **Input:** \`...\` → **Output:** \`...\`"
+- Return an Array of strings.
+- Format: "Input: \`...\` → Output: \`...\`" (No bullets)
 
 coreLogic:
-- **Pattern:** Name the pattern (e.g., Sliding Window, BFS).
-- **Trick:** 15-second revision trick (bold key parts).
-- **Approach:** Step-by-step approach (max 5 bullets).
-- **Why it works:** 2 lines explaining the intuition.
+- Return a Nested JSON Object with these keys:
+  - "Pattern": Name the pattern.
+  - "Trick": 15-second revision trick.
+  - "Approach": Array of strings (Step-by-step).
+  - "WhyItWorks": Intuition.
 
 edgeCases:
-- Return a Markdown list of 6 high-yield edge cases.
-- Format: "- **Case:** Result/Behavior"
+- Return an Array of strings (No bullets).
+- Format: "**Condition:** Result/Behavior" (e.g., "**Empty Input:** Returns 0")
 
 syntaxNotes:
-- Return a Markdown list of 6 language-specific syntax tips/cheats.
-- Format: "- \`Code snippet\`: Explanation"
+- Return an Array of strings (No bullets).
+- Format: "\`Code snippet\`: Explanation"
 
 improvementMarkdown:
 - Possible improvements (if any).

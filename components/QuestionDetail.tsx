@@ -18,6 +18,7 @@ import {
   Code2,
   Activity,
   BrainCircuit,
+  Crown,
 } from "lucide-react";
 
 interface QuestionDetailProps {
@@ -47,18 +48,28 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     // Handle array content by joining with newlines
     let markdownContent = "";
     
+    // Helper: Strip leading bullets/numbers to allow consistent auto-numbering
+    const formatListItem = (item: any, index: number) => {
+      // Removes: "- ", "* ", "1. ", "• " but preserves "**Bold**"
+      const clean = String(item).replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "");
+      return `${index + 1}. ${clean}`;
+    };
+
     if (Array.isArray(content)) {
-      markdownContent = content.join("\n");
+      markdownContent = content.map(formatListItem).join("\n");
     } else if (typeof content === "object" && content !== null) {
       // Handle object content (like coreLogic)
       markdownContent = Object.entries(content)
         .map(([key, value]) => {
-          const formattedValue = Array.isArray(value) ? value.map(v => `- ${v}`).join("\n") : value;
+          const formattedValue = Array.isArray(value) 
+            ? value.map(formatListItem).join("\n") 
+            : value;
           return `### ${key}\n${formattedValue}`;
         })
         .join("\n\n");
     } else {
-      markdownContent = content as string;
+      // Ensure newlines are respected in markdown by converting distinct lines to paragraphs
+      markdownContent = (content as string).replace(/\n/g, "\n\n");
     }
 
     return (
@@ -444,14 +455,33 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
         {/* SUGGESTIONS TAB */}
         {activeTab === "suggestions" && (
           <div className="animate-in fade-in custom-markdown text-[#cccccc]">
-            <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-xl mb-8 flex items-start gap-4">
-              <Lightbulb className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-base text-blue-200/80 leading-relaxed">
-                This section contains suggested improvements and the final
-                polished code.
-              </p>
-            </div>
-            <MarkdownRenderer content={question.improvementMarkdown} />
+            {!question.improvementMarkdown ||
+            question.improvementMarkdown.length < 50 ||
+            question.improvementMarkdown.toLowerCase().includes("no major improvements") ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-800 rounded-2xl bg-gray-900/20">
+                <div className="bg-yellow-500/10 p-4 rounded-full mb-6 ring-1 ring-yellow-500/20">
+                  <Crown className="w-12 h-12 text-yellow-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Stellar Solution!
+                </h3>
+                <p className="text-gray-400 max-w-md mx-auto leading-relaxed">
+                  Your code is already optimal. No major improvements needed. Keep
+                  up the great work!
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-xl mb-8 flex items-start gap-4">
+                  <Lightbulb className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-base text-blue-200/80 leading-relaxed">
+                    This section contains suggested improvements and the final
+                    polished code.
+                  </p>
+                </div>
+                <MarkdownRenderer content={question.improvementMarkdown} />
+              </>
+            )}
           </div>
         )}
       </div>
