@@ -12,6 +12,7 @@ import {
   Lock,
   ArrowLeft,
 } from "lucide-react";
+import AppLogo from "./Logo-With-Name cropped.png";
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -21,7 +22,6 @@ interface Stats {
   totalUsers: number;
   totalQuestions: number;
   cache: {
-    memory: { size: number };
     mongo: { count: number };
     redis: { connected: boolean; keys?: number };
   };
@@ -221,8 +221,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
           <div className="bg-[#111318] border border-gray-800 rounded-2xl p-8">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="bg-yellow-500/10 p-3 rounded-xl">
-                <Shield className="w-8 h-8 text-yellow-500" />
+              <div className="h-12 rounded-lg overflow-hidden">
+                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
               </div>
             </div>
             
@@ -289,10 +289,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               Back
             </button>
             <div className="flex items-center gap-3">
-              <div className="bg-yellow-500/10 p-2 rounded-lg">
-                <Shield className="w-6 h-6 text-yellow-500" />
+              <div className="h-8 rounded-lg overflow-hidden">
+                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
               </div>
-              <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+              <span className="text-gray-500">|</span>
+              <h1 className="text-xl font-bold text-white">Admin</h1>
             </div>
           </div>
           
@@ -315,7 +316,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-[#111318] border border-gray-800 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-3">
               <Users className="w-5 h-5 text-blue-400" />
@@ -333,16 +334,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             </div>
             <div className="text-3xl font-bold text-white">
               {stats?.totalQuestions ?? "-"}
-            </div>
-          </div>
-
-          <div className="bg-[#111318] border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <Database className="w-5 h-5 text-purple-400" />
-              <span className="text-gray-400 text-sm">Memory Cache</span>
-            </div>
-            <div className="text-3xl font-bold text-white">
-              {stats?.cache?.memory?.size ?? "-"}
             </div>
           </div>
 
@@ -399,7 +390,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           </div>
           
           <p className="text-gray-500 text-sm mt-3">
-            This will clear Redis, MongoDB, and in-memory caches.
+            This will clear both Redis and MongoDB caches.
           </p>
         </div>
 

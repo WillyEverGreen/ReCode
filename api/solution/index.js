@@ -164,18 +164,25 @@ export default async function handler(req, res) {
       }
     }
 
-    // Try MongoDB
+    // Try MongoDB - ignore problemDescription for cache matching (most problems are well-known)
+    const normalizedName = normalizeQuestionName(questionName);
+    const normalizedLang = language.toLowerCase().trim();
+    console.log("[MONGO DEBUG] Looking for:", { questionName: normalizedName, language: normalizedLang });
+    
     const mongoCached = await SolutionCache.findOne({
-      questionName: normalizeQuestionName(questionName),
-      language: language.toLowerCase().trim()
+      questionName: normalizedName,
+      language: normalizedLang
     });
+    
     if (mongoCached) {
+      console.log("[MONGO DEBUG] ✓ HIT! hitCount:", mongoCached.hitCount);
       // Backfill Redis
       const rc = getRedis();
       if (rc) rc.set(cacheKey, JSON.stringify(mongoCached.solution), { ex: 7 * 24 * 60 * 60 });
       await SolutionCache.findByIdAndUpdate(mongoCached._id, { $inc: { hitCount: 1 } });
       return res.json({ success: true, fromCache: true, data: { ...mongoCached.solution, tier: "mongodb", hits: mongoCached.hitCount + 1 } });
     }
+    console.log("[MONGO DEBUG] ✗ MISS");
 
     // Generate fresh
     const solution = await generateFromQubrid(questionName, language, problemDescription);

@@ -246,7 +246,12 @@ export const generateSolution = async (
       console.log("[QUBRID] Fresh solution generated and cached on server");
     }
 
-    return data.data as SolutionResult;
+    // Include fromCache and tier in the returned result for UI display
+    return {
+      ...data.data,
+      fromCache: data.fromCache,
+      tier: data.data.tier
+    } as SolutionResult;
   } catch (error) {
     console.error("Solution API Error:", error);
     throw mapQubridError(error);

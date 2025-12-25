@@ -38,9 +38,9 @@ const SolutionCacheSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for fast lookups
+// Compound index for fast lookups (just questionName + language for caching)
 SolutionCacheSchema.index(
-  { questionName: 1, language: 1, problemDescription: 1 },
+  { questionName: 1, language: 1 },
   { unique: true }
 );
 
