@@ -12,13 +12,14 @@ const questionSchema = new mongoose.Schema({
   dsaCategory: String,
   pattern: String,
   timeComplexity: String,
+  timeComplexityReason: String,
   spaceComplexity: String,
+  spaceComplexityReason: String,
   problemOverview: String,
-  testCases: String,
-  visualization: String,
-  coreLogic: String,
-  edgeCases: String,
-  syntaxNotes: String,
+  testCases: mongoose.Schema.Types.Mixed, // Can be string or array
+  coreLogic: mongoose.Schema.Types.Mixed, // Can be string or object
+  edgeCases: mongoose.Schema.Types.Mixed, // Can be string or array
+  syntaxNotes: mongoose.Schema.Types.Mixed, // Can be string or array
   improvementMarkdown: String,
   revisionNotes: [String],
 

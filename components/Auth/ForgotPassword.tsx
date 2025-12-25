@@ -179,7 +179,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
         )}
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-emerald-900/20 border border-emerald-800/50 rounded-lg text-emerald-200 text-sm flex items-center gap-2">
+          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg text-yellow-200 text-sm flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             {successMessage}
           </div>
@@ -197,7 +197,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all"
                   placeholder="you@example.com"
                   required
                   disabled={isLoading}
@@ -208,7 +208,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
               {isLoading ? "Sending..." : "Send OTP"}
             </button>
@@ -225,7 +225,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-center text-2xl tracking-widest"
+                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all text-center text-2xl tracking-widest"
                   placeholder="000000"
                   required
                   maxLength={6}
@@ -241,7 +241,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
             <button
               type="submit"
               disabled={isLoading || otp.length !== 6}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
               {isLoading ? "Verifying..." : "Verify OTP"}
             </button>
@@ -258,7 +258,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -277,7 +277,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                  className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -289,7 +289,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
             <button
               type="submit"
               disabled={isLoading || !!successMessage}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
               {isLoading ? "Resetting..." : "Reset Password"}
             </button>

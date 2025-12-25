@@ -2,9 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   DESIGN SYSTEM - Consistent Dark Theme
+   ============================================ */
+:root {
+  /* Background colors (darkest to lightest) */
+  --bg-base: #0b0f19;        /* Page background */
+  --bg-card: #111318;        /* Card/Panel background */
+  --bg-elevated: #161a24;    /* Elevated surfaces */
+  --bg-input: #0d1117;       /* Input fields */
+  --bg-hover: #1a1f2e;       /* Hover states */
+
+  /* Accent colors */
+  --accent-primary: #CA8A04;  /* Gold/Yellow - primary accent */
+  --accent-hover: #EAB308;    /* Lighter gold for hover */
+  --accent-muted: #A16207;    /* Darker gold for pressed */
+
+  /* Text colors */
+  --text-primary: #e5e7eb;    /* Primary text */
+  --text-secondary: #9ca3af;  /* Secondary text */
+  --text-muted: #6b7280;      /* Muted/disabled text */
+
+  /* Border colors */
+  --border-default: #1f2937;  /* Default borders */
+  --border-hover: #374151;    /* Hover borders */
+  --border-accent: rgba(230, 200, 136, 0.3);  /* Accent borders */
+
+  /* Status colors */
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+}
+
 body {
-  background-color: #0b0f19;
-  color: #e5e7eb;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
 }
 
 /* Custom scrollbar for code blocks */
@@ -21,4 +53,27 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+/* Custom scrollbar for flashcard content */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Line clamp utility */
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

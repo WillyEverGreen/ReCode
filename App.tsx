@@ -6,6 +6,9 @@ import LandingPage from "./components/LandingPage";
 import Login from "./components/Auth/Login";
 import Signup from "./components/Auth/Signup";
 import ForgotPassword from "./components/Auth/ForgotPassword";
+import GetSolution from "./components/GetSolution";
+import AdminPanel from "./components/AdminPanel";
+
 import { API_BASE_URL } from "./config/api";
 import {
   SubmissionData,
@@ -13,15 +16,15 @@ import {
   ViewState,
   UserSettings,
 } from "./types";
-import { analyzeSubmission } from "./services/geminiService";
+import { analyzeSubmission } from "./services/aiService";
 import {
-  BrainCircuit,
   LayoutDashboard,
   PlusCircle,
   AlertCircle,
-  Home,
   LogOut,
+  Sparkles,
 } from "lucide-react";
+import AppLogo from "./components/Logo-With-Name cropped.png";
 
 const App: React.FC = () => {
   // --- State ---
@@ -34,6 +37,17 @@ const App: React.FC = () => {
   >("login");
 
   const [showLanding, setShowLanding] = useState<boolean>(!token);
+  const [showAdmin, setShowAdmin] = useState<boolean>(false);
+
+  // Check for admin route on mount and hash change
+  useEffect(() => {
+    const checkAdminRoute = () => {
+      setShowAdmin(window.location.hash === "#admin");
+    };
+    checkAdminRoute();
+    window.addEventListener("hashchange", checkAdminRoute);
+    return () => window.removeEventListener("hashchange", checkAdminRoute);
+  }, []);
 
   const [questions, setQuestions] = useState<SavedQuestion[]>([]);
 
@@ -42,7 +56,6 @@ const App: React.FC = () => {
     const defaults = {
       showEdgeCases: true,
       showSyntaxNotes: true,
-      showVisualization: true,
       showTestCases: true,
     };
     return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
@@ -134,7 +147,8 @@ const App: React.FC = () => {
         { ...savedQuestion, id: savedQuestion._id },
         ...prev,
       ]);
-      setView("dashboard");
+      setSelectedQuestionId(savedQuestion._id);
+      setView("detail");
     } catch (err: any) {
       setError(err.message || "Failed to analyze submission");
     } finally {
@@ -167,7 +181,25 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateQuestion = (updatedQuestion: SavedQuestion) => {
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q))
+    );
+  };
+
   const renderContent = () => {
+    // Admin panel (accessible without auth via hash route)
+    if (showAdmin) {
+      return (
+        <AdminPanel
+          onBack={() => {
+            window.location.hash = "";
+            setShowAdmin(false);
+          }}
+        />
+      );
+    }
+
     if (showLanding && !token) {
       return <LandingPage onGetStarted={handleGetStarted} />;
     }
@@ -230,8 +262,13 @@ const App: React.FC = () => {
           onUpdateSettings={setUserSettings}
           onBack={() => setView("dashboard")}
           onDelete={handleDelete}
+          onUpdateQuestion={handleUpdateQuestion}
         />
       );
+    }
+
+    if (view === "solution") {
+      return <GetSolution />;
     }
 
     return (
@@ -247,29 +284,35 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#0b0f19] text-gray-100 font-sans overflow-hidden">
-      {(!token && showLanding) || !token ? (
+    <div className="flex h-screen bg-[#0c0c0c] text-gray-100 font-sans overflow-hidden">
+      {showAdmin ? (
+        <div className="w-full h-full overflow-y-auto">
+          <AdminPanel
+            onBack={() => {
+              window.location.hash = "";
+              setShowAdmin(false);
+            }}
+          />
+        </div>
+      ) : (!token && showLanding) || !token ? (
         <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
       ) : (
         <>
           {/* Sidebar */}
-          <aside className="w-64 bg-gray-900/50 border-r border-gray-800 flex flex-col hidden md:flex shrink-0">
+          <aside className="w-64 bg-[#0e0e0e] border-r border-gray-800 flex flex-col hidden md:flex shrink-0">
             <div className="p-6 border-b border-gray-800 flex items-center gap-3">
-              <div className="bg-emerald-500/10 p-2 rounded-lg">
-                <BrainCircuit className="w-6 h-6 text-emerald-500" />
+              <div className="h-10 rounded-lg overflow-hidden">
+                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
               </div>
-              <span className="font-bold text-lg text-gray-100">
-                Revision Architect
-              </span>
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
               <button
                 onClick={() => setView("dashboard")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
                   view === "dashboard" || view === "detail"
-                    ? "bg-emerald-600/10 text-emerald-400 border border-emerald-600/20"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
                 }`}
               >
                 <LayoutDashboard className="w-5 h-5" />
@@ -278,15 +321,28 @@ const App: React.FC = () => {
 
               <button
                 onClick={() => setView("add")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
                   view === "add"
-                    ? "bg-emerald-600/10 text-emerald-400 border border-emerald-600/20"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
                 }`}
               >
                 <PlusCircle className="w-5 h-5" />
                 Add Solution
               </button>
+
+              <button
+                onClick={() => setView("solution")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
+                  view === "solution"
+                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
+                }`}
+              >
+                <Sparkles className="w-5 h-5" />
+                Get Solution
+              </button>
+
             </nav>
 
             <div className="p-6 border-t border-gray-800">
@@ -313,22 +369,33 @@ const App: React.FC = () => {
           <main className="flex-1 overflow-y-auto relative">
             {/* Mobile Header */}
             <div className="md:hidden p-4 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-[#0b0f19]/90 backdrop-blur-md z-20">
-              <div className="flex items-center gap-2">
-                <BrainCircuit className="w-6 h-6 text-emerald-500" />
-                <span className="font-bold">Rev. Architect</span>
+              <div className="h-8 rounded-lg overflow-hidden">
+                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setView("dashboard")}
-                  className="p-2 bg-gray-800 rounded-md"
+                  className={`p-2 rounded-md ${view === "dashboard" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
                 >
                   <LayoutDashboard className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setView("add")}
-                  className="p-2 bg-gray-800 rounded-md"
+                  className={`p-2 rounded-md ${view === "add" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
                 >
                   <PlusCircle className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setView("solution")}
+                  className={`p-2 rounded-md ${view === "solution" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-md bg-gray-800 text-red-400 hover:bg-red-900/30"
+                >
+                  <LogOut className="w-5 h-5" />
                 </button>
               </div>
             </div>

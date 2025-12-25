@@ -1,44 +1,60 @@
-# Revision Architect 🧠
+# ReCode - DSA Solution Generator & Revision Tracker
 
-An AI-powered LeetCode revision management system that helps developers master coding problems with structured insights, complexity analysis, and intelligent spaced repetition.
+A modern web application that helps developers master Data Structures and Algorithms through AI-powered solution generation and smart revision tracking.
+
+![ReCode](https://img.shields.io/badge/ReCode-DSA%20Solutions-yellow)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features
 
-- **AI-Powered Analysis**: Paste your code and get instant structured insights with complexity analysis
-- **Smart Revision System**: Spaced repetition algorithm to optimize your learning
-- **Authentication**: Secure signup/login with email verification
-- **Password Recovery**: OTP-based password reset system
-- **Question Management**: Add, view, and organize your LeetCode solutions
-- **Beautiful UI**: Modern, responsive design with smooth animations
+🚀 **AI-Powered Solution Generation**
+- Get brute force, better, and optimal solutions for any DSA problem
+- Powered by Qubrid AI with multi-tier caching (Redis → MongoDB)
+- Supports multiple programming languages
+
+📚 **Smart Revision Tracking**
+- Save and organize your solved problems
+- Track patterns and categories
+- Review time/space complexity
+
+🔐 **Secure Authentication**
+- Email verification with OTP
+- Password reset functionality
+- JWT-based session management
+
+📊 **Admin Dashboard**
+- User analytics
+- Cache management
+- Solution statistics
 
 ## Tech Stack
 
-### Frontend
-- React 19 + TypeScript
+**Frontend:**
+- React 18 + TypeScript
 - Vite
-- Tailwind CSS
-- Lucide Icons
+- TailwindCSS
 
-### Backend
-- Node.js + Express
-- MongoDB
-- JWT Authentication
-- Nodemailer (Email service)
-- Google Gemini AI
+**Backend (Serverless):**
+- Vercel Serverless Functions
+- MongoDB (Mongoose)
+- Upstash Redis
 
-## Setup
+**AI:**
+- Qubrid AI (Qwen3-Coder)
+
+## Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB Atlas account or local MongoDB
-- Gmail account for email service
-- Google Gemini API key
+- Node.js 18+
+- MongoDB database
+- Upstash Redis (optional, for faster caching)
+- Qubrid API key
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/WillyEverGreen/ReCode.git
    cd ReCode
    ```
 
@@ -48,79 +64,103 @@ An AI-powered LeetCode revision management system that helps developers master c
    ```
 
 3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
    
-   Create a `.env` file in the root directory:
+   Fill in your `.env` file:
    ```env
    # MongoDB
-   MONGO_URI=your_mongodb_connection_string
+   MONGO_URI=mongodb+srv://...
    
-   # JWT
-   JWT_SECRET=your_secure_jwt_secret
+   # JWT Secret
+   JWT_SECRET=your-secret-key
    
-   # Server
-   PORT=5000
+   # Qubrid AI
+   QUBRID_API_KEY=your-qubrid-api-key
    
-   # Email (Gmail App Password)
-   EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_gmail_app_password
+   # Admin
+   ADMIN_PASSWORD=your-admin-password
    
-   # Frontend API URL
-   VITE_API_URL=http://localhost:5000
-   
-   # Gemini AI
-   GEMINI_API_KEY=your_gemini_api_key
+   # Redis (Optional - for faster caching)
+   UPSTASH_REDIS_REST_URL=https://...
+   UPSTASH_REDIS_REST_TOKEN=...
    ```
 
-4. **Start the backend server**
+4. **Run development server**
    ```bash
-   node server/index.js
-   ```
-
-5. **Start the frontend (in a new terminal)**
-   ```bash
+   # Using Vercel CLI (recommended - tests serverless functions)
+   vercel dev
+   
+   # Or using Vite only (frontend only)
    npm run dev
    ```
 
-6. **Open your browser**
-   Navigate to `http://localhost:5173`
+5. **Open http://localhost:3000**
 
-## Environment Variables
+## Deployment
 
-### Backend (.env)
-- `MONGO_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT token generation
-- `PORT`: Backend server port (default: 5000)
-- `EMAIL_USER`: Gmail address for sending emails
-- `EMAIL_PASS`: Gmail app password ([How to generate](https://support.google.com/accounts/answer/185833))
+### Vercel (Recommended)
 
-### Frontend (.env)
-- `VITE_API_URL`: Backend API URL
-- `GEMINI_API_KEY`: Google Gemini API key ([Get one here](https://ai.google.dev/))
+1. Push code to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Deploy!
 
-## Production Deployment
+### Environment Variables for Production
 
-### Frontend (Vercel/Netlify)
-Set environment variable:
-- `VITE_API_URL=https://your-backend-domain.com`
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGO_URI` | ✓ | MongoDB connection string |
+| `JWT_SECRET` | ✓ | Secret for JWT tokens |
+| `QUBRID_API_KEY` | ✓ | Qubrid AI API key |
+| `ADMIN_PASSWORD` | ✓ | Admin panel password |
+| `UPSTASH_REDIS_REST_URL` | | Upstash Redis URL |
+| `UPSTASH_REDIS_REST_TOKEN` | | Upstash Redis token |
 
-### Backend (Render/Railway/AWS)
-Set all backend environment variables from the `.env` file
+## API Endpoints
 
-## Security Notes
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/auth/signup` | POST | User registration |
+| `/api/auth/login` | POST | User login |
+| `/api/auth/verify-email` | POST | Verify email OTP |
+| `/api/auth/forgot-password` | POST | Request password reset |
+| `/api/auth/reset-password` | POST | Reset password |
+| `/api/solution` | POST | Generate DSA solution |
+| `/api/questions` | GET/POST | User's saved questions |
+| `/api/admin/stats` | GET | Admin statistics |
 
-⚠️ **Important**: Never commit `.env` file to version control
-- `.env` is already in `.gitignore`
-- Use `.env.example` as a template for team members
-- Rotate secrets regularly in production
+## Project Structure
 
-## Features Roadmap
+```
+ReCode/
+├── api/                    # Vercel Serverless Functions
+│   ├── _lib/               # Shared utilities
+│   ├── admin/              # Admin endpoints
+│   ├── auth/               # Authentication endpoints
+│   ├── questions/          # Questions CRUD
+│   └── solution/           # Solution generation
+├── components/             # React components
+├── models/                 # MongoDB models
+├── services/               # Frontend services
+├── config/                 # Configuration
+└── types/                  # TypeScript types
+```
 
-- [ ] OAuth provider integration (Google, GitHub)
-- [ ] Advanced filtering and search
-- [ ] Performance analytics dashboard
-- [ ] Mobile app version
-- [ ] Team collaboration features
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
-Private Repository - All Rights Reserved
+This project is licensed under the MIT License.
+
+---
+
+Made with ❤️ by [WillyEverGreen](https://github.com/WillyEverGreen)
