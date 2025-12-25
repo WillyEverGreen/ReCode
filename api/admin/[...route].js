@@ -8,7 +8,20 @@ import { Redis } from "@upstash/redis";
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  const { route } = req.query;
+  // Get route from query or parse from URL
+  let { route } = req.query;
+  
+  // Fallback: parse from URL path if route is not set
+  if (!route || route.length === 0) {
+    const urlPath = req.url.split('?')[0]; // Remove query string
+    const pathParts = urlPath.split('/').filter(Boolean);
+    // URL is like /api/admin/login, so we need the part after "admin"
+    const adminIndex = pathParts.indexOf('admin');
+    if (adminIndex !== -1 && adminIndex < pathParts.length - 1) {
+      route = pathParts.slice(adminIndex + 1);
+    }
+  }
+  
   const action = route?.[0];
   const subId = route?.[1]; // For routes like /admin/solutions/[id]
 
@@ -62,12 +75,16 @@ export default async function handler(req, res) {
       }
 
       return res.json({
-        totalUsers,
-        totalQuestions,
-        cache: {
-          memory: { size: 0 },
-          mongo: { solutions: cachedSolutions },
-          redis: redisStatus,
+        success: true,
+        stats: {
+          totalUsers,
+          totalQuestions,
+          cache: {
+            memory: { size: 0 },
+            mongo: { count: cachedSolutions },
+            redis: redisStatus,
+          },
+          recentUsers: [],
         },
       });
     }
@@ -102,8 +119,8 @@ export default async function handler(req, res) {
       return res.json({ success: true, solutions });
     }
 
-    // ==================== SOLUTIONS/[ID] (Delete specific) ====================
-    if (action === "solutions" && subId) {
+    // ==================== CACHED-SOLUTIONS/[ID] (Delete specific) ====================
+    if (action === "cached-solutions" && subId) {
       if (req.method !== "DELETE") return res.status(405).json({ error: "Method not allowed" });
 
       const result = await SolutionCache.findByIdAndDelete(subId);

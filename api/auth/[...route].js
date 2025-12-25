@@ -12,8 +12,22 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  const { route } = req.query;
+  // Get route from query or parse from URL
+  let { route } = req.query;
+  
+  // Fallback: parse from URL path if route is not set
+  if (!route || route.length === 0) {
+    const urlPath = req.url.split('?')[0]; // Remove query string
+    const pathParts = urlPath.split('/').filter(Boolean);
+    // URL is like /api/auth/login, so we need the part after "auth"
+    const authIndex = pathParts.indexOf('auth');
+    if (authIndex !== -1 && authIndex < pathParts.length - 1) {
+      route = pathParts.slice(authIndex + 1);
+    }
+  }
+  
   const action = route?.[0];
+  console.log("[AUTH DEBUG] URL:", req.url, "| Route:", route, "| Action:", action);
 
   try {
     await connectDB();
@@ -53,7 +67,7 @@ export default async function handler(req, res) {
 
       // Send verification email
       try {
-        await sendVerificationEmail(email, username, otp);
+        await sendVerificationEmail(email, otp);
         console.log("[EMAIL] Verification email sent to:", email);
       } catch (emailErr) {
         console.error("[EMAIL ERROR]", emailErr);
@@ -143,7 +157,7 @@ export default async function handler(req, res) {
       await Otp.create({ email, otp });
 
       try {
-        await sendPasswordResetEmail(email, user.username, otp);
+        await sendPasswordResetEmail(email, otp);
         console.log("[EMAIL] Password reset email sent to:", email);
       } catch (emailErr) {
         console.error("[EMAIL ERROR]", emailErr);
@@ -216,7 +230,7 @@ export default async function handler(req, res) {
       await Otp.create({ email, otp });
 
       try {
-        await sendVerificationEmail(email, user.username, otp);
+        await sendVerificationEmail(email, otp);
         console.log("[EMAIL] OTP resent to:", email);
       } catch (emailErr) {
         console.error("[EMAIL ERROR]", emailErr);
