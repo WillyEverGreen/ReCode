@@ -93,7 +93,8 @@ export default async function handler(req, res) {
     if (action === "users") {
       if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-      const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 }).limit(100);
+      // Only show verified users
+      const users = await User.find({ isVerified: true }, { password: 0 }).sort({ createdAt: -1 }).limit(100);
       const usersWithCounts = await Promise.all(
         users.map(async (user) => {
           const questionCount = await Question.countDocuments({ userId: user._id });

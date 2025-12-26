@@ -234,8 +234,11 @@ const App: React.FC = () => {
       return (
         <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white">Add New Solution</h2>
-            <p className="text-gray-400">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <PlusCircle className="w-6 h-6 text-yellow-500" />
+              Add New Solution
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
               Paste your code. We will auto-detect the problem and extract
               patterns.
             </p>

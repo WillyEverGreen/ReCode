@@ -90,7 +90,10 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Header with Search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-gray-800 pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">My Library</h2>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <LayoutGrid className="w-6 h-6 text-yellow-500" />
+            My Library
+          </h2>
           <p className="text-gray-400 text-sm mt-1">
             {filteredQuestions.length} Questions •{" "}
             {Object.keys(groupedQuestions).length} Categories

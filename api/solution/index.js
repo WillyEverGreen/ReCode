@@ -156,6 +156,21 @@ export default async function handler(req, res) {
         if (cached) {
           console.log("[REDIS DEBUG] ✓ HIT!");
           const data = typeof cached === "string" ? JSON.parse(cached) : cached;
+          
+          // Also increment MongoDB hitCount for accurate tracking
+          const normalizedName = normalizeQuestionName(questionName);
+          const normalizedLang = language.toLowerCase().trim();
+          try {
+            const updateResult = await SolutionCache.findOneAndUpdate(
+              { questionName: normalizedName, language: normalizedLang },
+              { $inc: { hitCount: 1 } },
+              { new: true }
+            );
+            console.log("[MONGO] Hit count updated:", updateResult?.hitCount);
+          } catch (e) {
+            console.error("[MONGO] Hit count update error:", e.message);
+          }
+          
           return res.json({ success: true, fromCache: true, data: { ...data, tier: "redis" } });
         }
         console.log("[REDIS DEBUG] ✗ MISS");
