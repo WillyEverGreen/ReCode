@@ -39,14 +39,26 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
 
   useEffect(() => {
     fetchUsage();
+    // Refresh every 30 seconds
     const interval = setInterval(fetchUsage, 30000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
+    // Refresh on window focus
     const handleFocus = () => fetchUsage();
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  // Listen for custom event to refresh usage immediately after API calls
+  useEffect(() => {
+    const handleUsageUpdate = () => {
+      console.log("[UsageDisplay] Refreshing usage...");
+      fetchUsage();
+    };
+    window.addEventListener("usage-updated", handleUsageUpdate);
+    return () => window.removeEventListener("usage-updated", handleUsageUpdate);
   }, []);
 
   if (loading) {

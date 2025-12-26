@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Check, BookOpen, RotateCcw } from 'lucide-react';
+import ProBadge from './ProBadge';
 
 interface AnalysisResultProps {
   markdown: string;
@@ -24,7 +25,8 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ markdown, onReset }) =>
         <div className="p-4 border-b border-gray-800 bg-gray-850 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2 text-white font-semibold">
             <BookOpen className="text-yellow-500" />
-            <span>Revision Notes</span>
+            <span>AI Revision Notes</span>
+            <ProBadge />
           </div>
           
           <div className="flex gap-2">

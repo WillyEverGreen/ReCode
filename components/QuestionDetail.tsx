@@ -20,6 +20,7 @@ import {
   BrainCircuit,
   Crown,
 } from "lucide-react";
+import ProBadge from "./ProBadge";
 
 interface QuestionDetailProps {
   question: SavedQuestion;
@@ -317,6 +318,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             }`}
           >
             <Lightbulb className="w-4 h-4" /> AI Suggestions
+            <ProBadge showLabel={false} />
           </button>
         </div>
       </div>
@@ -382,6 +384,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                   <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall
                   Checklist
+                  <ProBadge />
                 </h3>
                 <ul className="space-y-4">
                   {question.revisionNotes.map((note, idx) => (
@@ -400,6 +403,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             <div className="custom-markdown">
               <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
                 <BrainCircuit className="w-5 h-5" /> Core Logic & Approach
+                <ProBadge />
               </h2>
               <MarkdownRenderer content={question.coreLogic} />
             </div>

@@ -19,6 +19,7 @@ import {
   Check,
   Database,
 } from "lucide-react";
+import ProBadge from "./ProBadge";
 
 const LANGUAGES = ["Python", "JavaScript", "Java", "C++", "TypeScript", "Go"];
 
@@ -125,6 +126,7 @@ const GetSolution: React.FC = () => {
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-yellow-500" />
           Get Solution
+          <ProBadge />
         </h2>
         <p className="text-gray-400 text-sm mt-1">
           Get brute force, better, and optimal solutions with step-by-step explanations.

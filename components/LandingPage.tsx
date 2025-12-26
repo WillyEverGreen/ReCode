@@ -19,6 +19,8 @@ import {
   Globe,
 } from "lucide-react";
 import AppLogo from "./Logo-With-Name cropped.png";
+import ProBadge from "./ProBadge";
+
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -311,36 +313,42 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 title: "Smart Code Analysis",
                 desc: "Paste any solution. We identify the algorithm, time complexity, and space complexity instantly.",
                 color: "blue",
+                isPro: true,
               },
               {
                 icon: <BookOpen className="w-6 h-6 text-yellow-500" />,
                 title: "Auto-Generated Notes",
                 desc: "Get structured revision notes with edge cases and key takeaways without typing a word.",
                 color: "yellow",
+                isPro: false,
               },
               {
                 icon: <Zap className="w-6 h-6 text-orange-400" />,
                 title: "Pattern Recognition",
                 desc: "We group your problems by pattern (e.g., Sliding Window, DFS) to help you spot trends.",
                 color: "orange",
+                isPro: true,
               },
               {
                 icon: <Shield className="w-6 h-6 text-purple-400" />,
                 title: "Privacy First",
                 desc: "Your code never leaves your browser. All data is stored locally on your device.",
                 color: "purple",
+                isPro: false,
               },
               {
                 icon: <Terminal className="w-6 h-6 text-pink-400" />,
                 title: "Multi-Language Support",
                 desc: "Python, Java, C++, JavaScript, Go - we understand and analyze them all.",
                 color: "pink",
+                isPro: false,
               },
               {
                 icon: <Cpu className="w-6 h-6 text-cyan-400" />,
                 title: "Interview Mode",
                 desc: "Simulate interview conditions with our distraction-free focused view.",
                 color: "cyan",
+                isPro: true,
               },
             ].map((feature, idx) => (
               <div
@@ -352,9 +360,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 >
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-100">
-                  {feature.title}
-                </h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-xl font-bold text-gray-100">
+                    {feature.title}
+                  </h3>
+                  {feature.isPro && <ProBadge />}
+                </div>
                 <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
               </div>
             ))}

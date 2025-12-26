@@ -10,7 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
-// Helper function to increment usage counter
+// Helper function to increment usage counter and trigger UI refresh
 const incrementUsage = async (type: 'addSolution') => {
   try {
     const token = localStorage.getItem("token");
@@ -23,6 +23,9 @@ const incrementUsage = async (type: 'addSolution') => {
       body: JSON.stringify({ type })
     });
     console.log(`[USAGE] Incremented ${type} counter`);
+    
+    // Dispatch event to refresh UsageDisplay component
+    window.dispatchEvent(new Event("usage-updated"));
   } catch (e) {
     // Non-blocking - usage tracking shouldn't break the feature
     console.error("[USAGE] Failed to increment:", e);
@@ -371,6 +374,8 @@ export const generateSolution = async (
       console.log(`[${data.data.tier?.toUpperCase() || "CACHE"} HIT] Solution served from cache`);
     } else {
       console.log("[QUBRID] Fresh solution generated and cached on server");
+      // Trigger usage display refresh for non-cached (AI-generated) responses
+      window.dispatchEvent(new Event("usage-updated"));
     }
 
     // Include fromCache and tier in the returned result for UI display
