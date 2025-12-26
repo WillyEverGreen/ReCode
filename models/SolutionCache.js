@@ -14,11 +14,16 @@ const SolutionCacheSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  problemDescription: {
-    type: String,
-    default: "",
-    lowercase: true,
-    trim: true
+  
+  // Is this a variant (description-specific) solution?
+  isVariant: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Original question name as entered by user
+  originalName: {
+    type: String
   },
   
   // The cached solution data
@@ -38,9 +43,9 @@ const SolutionCacheSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for fast lookups (just questionName + language for caching)
+// Compound index for fast lookups (questionName + language + isVariant)
 SolutionCacheSchema.index(
-  { questionName: 1, language: 1 },
+  { questionName: 1, language: 1, isVariant: 1 },
   { unique: true }
 );
 

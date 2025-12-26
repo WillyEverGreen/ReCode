@@ -10,6 +10,25 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
+// Helper function to increment usage counter
+const incrementUsage = async (type: 'addSolution') => {
+  try {
+    const token = localStorage.getItem("token");
+    await fetch(`${API_BASE_URL}/api/usage/increment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ type })
+    });
+    console.log(`[USAGE] Incremented ${type} counter`);
+  } catch (e) {
+    // Non-blocking - usage tracking shouldn't break the feature
+    console.error("[USAGE] Failed to increment:", e);
+  }
+};
+
 // ============================================
 // RESPONSE CACHING
 // ============================================
@@ -106,12 +125,50 @@ export const analyzeSubmission = async (
   data: SubmissionData
 ): Promise<AIAnalysisResult> => {
 
+  // ==================== INPUT LIMITS (prevent abuse) ====================
+  const LIMITS = {
+    code: 10000,        // Max 10,000 chars (~300-400 lines of code)
+    problemUrl: 500     // Max 500 chars for URL
+  };
+  
+  if (!data.code || data.code.trim().length === 0) {
+    throw new Error("Code is required for analysis.");
+  }
+  
+  if (data.code.length > LIMITS.code) {
+    throw new Error(`Code too long. Maximum ${LIMITS.code} characters allowed (yours: ${data.code.length}).`);
+  }
+  
+  if (data.problemUrl && data.problemUrl.length > LIMITS.problemUrl) {
+    throw new Error(`Problem URL too long. Maximum ${LIMITS.problemUrl} characters allowed.`);
+  }
+
   // FIX: Check cache BEFORE in-flight guard (fixes race condition)
   const cacheKey = createCacheKey(data.code + (data.problemUrl || ""));
   const cached = analysisCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     console.log("[CACHE HIT] Returning cached analysis result");
     return cached.value;
+  }
+
+  // Check usage limit BEFORE making expensive API call
+  try {
+    const token = localStorage.getItem("token");
+    const usageRes = await fetch(`${API_BASE_URL}/api/usage`, {
+      headers: token ? { "Authorization": `Bearer ${token}` } : {}
+    });
+    if (usageRes.ok) {
+      const usageData = await usageRes.json();
+      if (usageData.addSolution?.left === 0) {
+        throw new Error(`Daily limit reached (${usageData.addSolution.limit}/day). Try again tomorrow or upgrade to Pro!`);
+      }
+    }
+  } catch (limitError) {
+    // If it's our limit error, rethrow. Otherwise continue (usage check failed)
+    if (limitError instanceof Error && limitError.message.includes("Daily limit")) {
+      throw limitError;
+    }
+    console.warn("[USAGE] Could not check limit:", limitError);
   }
 
   // Now check in-flight guard
@@ -150,65 +207,135 @@ OUTPUT FORMAT (JSON):
 
 Return ONLY valid JSON, no markdown fences.`;
 
-    // Call Qubrid API (OpenAI-compatible format)
-    const response = await fetch(QUBRID_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_QUBRID_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: QUBRID_MODEL,
-        messages: [
-          {
-            role: "system",
-            content: "You are a DSA revision assistant. Return concise, structured JSON only."
+    // Retry up to 3 times for empty responses (known Qwen3-Coder issue)
+    const MAX_RETRIES = 3;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`[QUBRID] Attempt ${attempt}/${MAX_RETRIES}...`);
+      
+      // Add 30s timeout to prevent hung requests
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        // Call Qubrid API (OpenAI-compatible format)
+        const response = await fetch(QUBRID_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_QUBRID_API_KEY}`
           },
-          {
-            role: "user",
-            content: prompt
+          body: JSON.stringify({
+            model: QUBRID_MODEL,
+            messages: [
+              {
+                role: "system",
+                content: "You are a DSA revision assistant. Return concise, structured JSON only. Do not include any text outside the JSON."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            max_tokens: 6000,
+            temperature: 0.5 + (attempt * 0.1),  // Slightly vary temperature on retries
+            stream: false
+          }),
+          signal: controller.signal
+        }).finally(() => clearTimeout(timeout));
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("[QUBRID] API error response:", response.status, errorData);
+          throw new Error(errorData.error?.message || `Qubrid API error: ${response.status}`);
+        }
+
+        const responseJson = await response.json();
+        console.log("[QUBRID DEBUG] Full response:", JSON.stringify(responseJson).slice(0, 500));
+        
+        // Handle BOTH response formats:
+        // 1. Qubrid format: { content: "...", metrics: {...}, model: "..." }
+        // 2. OpenAI format: { choices: [{ message: { content: "..." } }] }
+        let text = "";
+        
+        if (responseJson.content && typeof responseJson.content === "string") {
+          // Qubrid's direct format
+          console.log("[QUBRID] Using Qubrid direct format (content at root)");
+          text = responseJson.content;
+        } else if (responseJson.choices?.[0]?.message?.content) {
+          // OpenAI-compatible format
+          console.log("[QUBRID] Using OpenAI-compatible format (choices array)");
+          text = responseJson.choices[0].message.content;
+        } else {
+          console.error("[QUBRID] Unknown response structure:", responseJson);
+          throw new Error("Unknown API response format");
+        }
+        
+        console.log("[QUBRID DEBUG] Raw response length:", text.length);
+        
+        // Clean up markdown code fences from JSON response
+        if (text.startsWith("```json")) text = text.slice(7);
+        if (text.startsWith("```")) text = text.slice(3);
+        if (text.endsWith("```")) text = text.slice(0, -3);
+        text = text.trim();
+
+        if (!text || text.length < 50) {
+          console.warn(`[QUBRID] Attempt ${attempt}: Empty or too short response, retrying...`);
+          lastError = new Error("Empty response");
+          continue;  // Retry
+        }
+
+        // Parse JSON with error recovery
+        let result: AIAnalysisResult;
+        try {
+          result = JSON.parse(text) as AIAnalysisResult;
+        } catch (parseError) {
+          console.error("[QUBRID] JSON parse error, trying recovery:", text.slice(0, 200));
+          const lastBrace = text.lastIndexOf("}");
+          if (lastBrace > 0) {
+            try {
+              result = JSON.parse(text.slice(0, lastBrace + 1)) as AIAnalysisResult;
+              console.log("[QUBRID] Recovered from truncated JSON");
+            } catch {
+              lastError = new Error("Failed to parse response");
+              continue;  // Retry
+            }
+          } else {
+            lastError = new Error("Invalid JSON response");
+            continue;  // Retry
           }
-        ],
-        max_tokens: 4096,
-        temperature: 0.7,
-        stream: false  // IMPORTANT: Disable streaming to get JSON response
-      })
-    });
+        }
+        
+        // Clean up improvementMarkdown code blocks if needed
+        if (result.improvementMarkdown) {
+          result.improvementMarkdown = result.improvementMarkdown.replace(/```typescript\s*```typescript/g, '```typescript');
+          result.improvementMarkdown = result.improvementMarkdown.replace(/```\s*```/g, '```');
+        }
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `Qubrid API error: ${response.status}`);
+        // Cache the result
+        analysisCache.set(cacheKey, { value: result, timestamp: Date.now() });
+        console.log("[CACHE STORE] Cached analysis result");
+        
+        // Increment usage counter (non-blocking)
+        incrementUsage('addSolution');
+        
+        return result;
+        
+      } catch (attemptError) {
+        console.error(`[QUBRID] Attempt ${attempt} failed:`, attemptError);
+        lastError = attemptError instanceof Error ? attemptError : new Error(String(attemptError));
+        
+        if (attempt < MAX_RETRIES) {
+          // Wait 1s before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
-
-    const responseJson = await response.json();
-    let text = responseJson.choices?.[0]?.message?.content || "";
-
-    console.log("[QUBRID DEBUG] Raw response type:", typeof text);
     
-    // Clean up markdown code fences from JSON response
-    if (text.startsWith("```json")) text = text.slice(7);
-    if (text.startsWith("```")) text = text.slice(3);
-    if (text.endsWith("```")) text = text.slice(0, -3);
-    text = text.trim();
-
-    if (!text) {
-      throw new Error("No response generated from Qubrid. Check console for details.");
-    }
-
-    const result = JSON.parse(text) as AIAnalysisResult;
+    // All retries exhausted
+    throw lastError || new Error("All retries failed. Please try again later.");
     
-    // Clean up improvementMarkdown code blocks if needed
-    if (result.improvementMarkdown) {
-      // Remove any double-wrapped backticks if they appear
-      result.improvementMarkdown = result.improvementMarkdown.replace(/```typescript\s*```typescript/g, '```typescript');
-      result.improvementMarkdown = result.improvementMarkdown.replace(/```\s*```/g, '```');
-    }
-
-    // Cache the result
-    analysisCache.set(cacheKey, { value: result, timestamp: Date.now() });
-    console.log("[CACHE STORE] Cached analysis result");
-    
-    return result;
   } catch (error) {
     console.error("Qubrid API Error:", error);
     throw mapQubridError(error);

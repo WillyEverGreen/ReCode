@@ -60,15 +60,36 @@ export default async function handler(req, res) {
       const totalQuestions = await Question.countDocuments();
       const cachedSolutions = await SolutionCache.countDocuments();
 
-      // Check Redis
-      let redisStatus = { connected: false, keys: 0 };
+      // Check Redis with breakdown
+      let redisStatus = { connected: false, keys: 0, breakdown: {} };
       const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
       const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
       if (redisUrl && redisToken) {
         try {
           const redis = new Redis({ url: redisUrl, token: redisToken });
-          const keys = await redis.dbsize();
-          redisStatus = { connected: true, keys };
+          
+          // Get breakdown of key types
+          const allKeys = await redis.keys("*");
+          const breakdown = {
+            baseSolutions: 0,   // problem:xxx:lang
+            variants: 0,        // variant:xxx:lang:hash
+            legacy: 0           // solution:hash (old format)
+          };
+          
+          for (const key of allKeys) {
+            if (key.startsWith("problem:") && !key.includes("canonical")) {
+              breakdown.baseSolutions++;
+            } else if (key.startsWith("variant:")) {
+              breakdown.variants++;
+            } else if (key.startsWith("solution:")) {
+              breakdown.legacy++;
+            }
+            // Ignore "other" keys like problem:canonical-ids (internal use)
+          }
+          
+          // Only count actual solutions (base + variants), not internal helpers
+          const solutionCount = breakdown.baseSolutions + breakdown.variants;
+          redisStatus = { connected: true, keys: solutionCount, breakdown };
         } catch (e) {
           redisStatus = { connected: false, error: e.message };
         }
@@ -80,7 +101,6 @@ export default async function handler(req, res) {
           totalUsers,
           totalQuestions,
           cache: {
-            memory: { size: 0 },
             mongo: { count: cachedSolutions },
             redis: redisStatus,
           },
@@ -105,10 +125,33 @@ export default async function handler(req, res) {
       return res.json({ success: true, users: usersWithCounts });
     }
 
-    // ==================== CACHED-SOLUTIONS ====================
-    if (action === "cached-solutions") {
-      if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+    // ==================== CACHED-SOLUTIONS/[ID] (Delete specific) ====================
+    // This must come BEFORE the GET route to avoid 405 error
+    if (action === "cached-solutions" && subId && req.method === "DELETE") {
+      const result = await SolutionCache.findByIdAndDelete(subId);
+      if (!result) {
+        return res.status(404).json({ error: "Cached solution not found" });
+      }
+      
+      // Also delete from Redis
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+      if (redisUrl && redisToken && result.questionName && result.language) {
+        try {
+          const redis = new Redis({ url: redisUrl, token: redisToken });
+          const redisKey = `problem:${result.questionName}:${result.language}`;
+          await redis.del(redisKey);
+          console.log("[DELETE] Also deleted from Redis:", redisKey);
+        } catch (e) {
+          console.error("[DELETE] Redis delete error:", e.message);
+        }
+      }
+      
+      return res.json({ success: true, message: "Cached solution deleted" });
+    }
 
+    // ==================== CACHED-SOLUTIONS (GET list) ====================
+    if (action === "cached-solutions" && req.method === "GET") {
       const solutions = await SolutionCache.find({}, {
         questionName: 1,
         originalName: 1,
@@ -118,17 +161,6 @@ export default async function handler(req, res) {
       }).sort({ hitCount: -1 }).limit(100);
 
       return res.json({ success: true, solutions });
-    }
-
-    // ==================== CACHED-SOLUTIONS/[ID] (Delete specific) ====================
-    if (action === "cached-solutions" && subId) {
-      if (req.method !== "DELETE") return res.status(405).json({ error: "Method not allowed" });
-
-      const result = await SolutionCache.findByIdAndDelete(subId);
-      if (!result) {
-        return res.status(404).json({ error: "Cached solution not found" });
-      }
-      return res.json({ success: true, message: "Cached solution deleted" });
     }
 
     // ==================== CACHE (Clear all) ====================
@@ -157,6 +189,57 @@ export default async function handler(req, res) {
           mongodb: mongoResult.deletedCount,
           redis: redisCleared ? "cleared" : "not configured",
         },
+      });
+    }
+
+    // ==================== SYNC-CACHE (Migrate MongoDB → Redis) ====================
+    if (action === "sync-cache") {
+      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+      
+      if (!redisUrl || !redisToken) {
+        return res.status(500).json({ error: "Redis not configured" });
+      }
+      
+      const redis = new Redis({ url: redisUrl, token: redisToken });
+      const results = { deleted: 0, synced: 0 };
+      
+      // Step 1: Delete all legacy keys (solution:xxx format)
+      const allKeys = await redis.keys("*");
+      for (const key of allKeys) {
+        if (key.startsWith("solution:")) {
+          await redis.del(key);
+          results.deleted++;
+        }
+      }
+      
+      // Step 2: Sync MongoDB to Redis with new format
+      const solutions = await SolutionCache.find({});
+      const canonicalIds = new Set();
+      
+      for (const sol of solutions) {
+        const baseKey = `problem:${sol.questionName}:${sol.language}`;
+        try {
+          await redis.set(baseKey, JSON.stringify(sol.solution), { ex: 7 * 24 * 60 * 60 });
+          canonicalIds.add(sol.questionName);
+          results.synced++;
+        } catch (e) {
+          console.error(`Sync error for ${baseKey}:`, e.message);
+        }
+      }
+      
+      // Step 3: Update canonical IDs
+      if (canonicalIds.size > 0) {
+        await redis.del("problem:canonical-ids");
+        await redis.sadd("problem:canonical-ids", ...canonicalIds);
+      }
+      
+      return res.json({
+        success: true,
+        message: `Synced ${results.synced} solutions, deleted ${results.deleted} legacy keys`,
+        results
       });
     }
 

@@ -8,6 +8,7 @@ import Signup from "./components/Auth/Signup";
 import ForgotPassword from "./components/Auth/ForgotPassword";
 import GetSolution from "./components/GetSolution";
 import AdminPanel from "./components/AdminPanel";
+import UsageDisplay from "./components/UsageDisplay";
 
 import { API_BASE_URL } from "./config/api";
 import {
@@ -348,8 +349,8 @@ const App: React.FC = () => {
 
             </nav>
 
-            <div className="p-6 border-t border-gray-800">
-              <div className="bg-gray-950 p-4 rounded-lg border border-gray-800 mb-4">
+            <div className="p-6 border-t border-gray-800 space-y-4">
+              <div className="bg-gray-950 p-4 rounded-lg border border-gray-800">
                 <div className="text-xs text-gray-500 mb-1">
                   Total Questions
                 </div>
@@ -357,6 +358,9 @@ const App: React.FC = () => {
                   {questions.length}
                 </div>
               </div>
+
+              {/* Usage Display */}
+              <UsageDisplay />
 
               <button
                 onClick={handleLogout}

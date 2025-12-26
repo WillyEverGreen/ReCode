@@ -249,7 +249,7 @@ const GetSolution: React.FC = () => {
                   {cacheStatus.fromCache ? (
                     <>
                       <Database className="w-3 h-3" />
-                      ⚡ Cached {cacheStatus.tier && `(${cacheStatus.tier})`}
+                      ⚡ Cached
                     </>
                   ) : (
                     <>

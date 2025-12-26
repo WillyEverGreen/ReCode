@@ -23,7 +23,15 @@ interface Stats {
   totalQuestions: number;
   cache: {
     mongo: { count: number };
-    redis: { connected: boolean; keys?: number };
+    redis: { 
+      connected: boolean; 
+      keys?: number;
+      breakdown?: {
+        baseSolutions: number;
+        variants: number;
+        legacy: number;
+      };
+    };
   };
   recentUsers: Array<{ email: string; createdAt: string }>;
 }
@@ -189,6 +197,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     }
   };
 
+  const handleSyncCache = async () => {
+    const token = sessionStorage.getItem("adminToken");
+    if (!token) return;
+
+    setCacheClearing(true);
+    setCacheMessage("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/sync-cache`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setCacheMessage(`✅ ${data.message}`);
+        fetchStats(token);
+      } else {
+        setCacheMessage("❌ " + (data.error || "Failed to sync cache"));
+      }
+    } catch (err) {
+      setCacheMessage("❌ Connection error");
+    } finally {
+      setCacheClearing(false);
+    }
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("adminToken");
     setIsAuthenticated(false);
@@ -200,6 +235,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const handleRefresh = () => {
     const token = sessionStorage.getItem("adminToken");
     if (token) {
+      setCacheMessage(""); // Clear any previous messages
       fetchStats(token);
       fetchUsers(token);
       fetchCachedSolutions(token);
@@ -345,6 +381,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <div className="text-3xl font-bold text-white">
               {stats?.cache?.mongo?.count ?? "-"}
             </div>
+            <div className="text-xs text-gray-500 mt-1">Base solutions stored</div>
           </div>
 
           <div className="bg-[#111318] border border-gray-800 rounded-xl p-6">
@@ -355,9 +392,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <div className="text-3xl font-bold text-white">
               {stats?.cache?.redis?.connected ? (stats?.cache?.redis?.keys ?? 0) : "N/A"}
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {stats?.cache?.redis?.connected ? "✓ Connected" : "✗ Not connected"}
-            </div>
+            {stats?.cache?.redis?.connected && stats?.cache?.redis?.breakdown && (
+              <div className="text-xs text-gray-500 mt-2 space-y-0.5">
+                <div>✓ {stats.cache.redis.breakdown.baseSolutions} base solutions</div>
+                {stats.cache.redis.breakdown.variants > 0 && (
+                  <div>✓ {stats.cache.redis.breakdown.variants} variants</div>
+                )}
+                {stats.cache.redis.breakdown.legacy > 0 && (
+                  <div className="text-yellow-500">⚠ {stats.cache.redis.breakdown.legacy} legacy (run sync to fix)</div>
+                )}
+              </div>
+            )}
+            {!stats?.cache?.redis?.connected && (
+              <div className="text-xs text-red-400 mt-1">✗ Not connected</div>
+            )}
           </div>
         </div>
 
@@ -368,7 +416,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             Cache Management
           </h2>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={handleClearCache}
               disabled={cacheClearing}
@@ -382,6 +430,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               Clear All Caches
             </button>
             
+            <button
+              onClick={handleSyncCache}
+              disabled={cacheClearing}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 rounded-lg font-medium text-white transition-colors"
+            >
+              {cacheClearing ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Sync MongoDB → Redis
+            </button>
+            
             {cacheMessage && (
               <span className={cacheMessage.includes("✅") ? "text-green-400" : "text-red-400"}>
                 {cacheMessage}
@@ -390,7 +451,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           </div>
           
           <p className="text-gray-500 text-sm mt-3">
-            This will clear both Redis and MongoDB caches.
+            Clear: Deletes all caches. Sync: Migrates MongoDB to Redis (removes legacy keys).
           </p>
         </div>
 
@@ -414,7 +475,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               </thead>
               <tbody>
                 {cachedSolutions.length === 0 ? (
-                  <tr>
+                  <tr key="empty-cached">
                     <td colSpan={5} className="py-8 text-center text-gray-500">
                       No cached solutions found
                     </td>
@@ -476,7 +537,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               </thead>
               <tbody>
                 {users.length === 0 ? (
-                  <tr>
+                  <tr key="empty-users">
                     <td colSpan={3} className="py-8 text-center text-gray-500">
                       No users found
                     </td>
