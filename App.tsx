@@ -53,6 +53,27 @@ const App: React.FC = () => {
     return () => window.removeEventListener("hashchange", checkAdminRoute);
   }, []);
 
+  // Handle OAuth callback (GitHub redirect with token in URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    const urlUser = params.get('user');
+    
+    if (urlToken && urlUser) {
+      try {
+        const parsedUser = JSON.parse(decodeURIComponent(urlUser));
+        localStorage.setItem('token', urlToken);
+        setToken(urlToken);
+        setUser(parsedUser);
+        setShowLanding(false);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        console.error('[OAuth] Failed to parse user data:', err);
+      }
+    }
+  }, []);
+
   const [questions, setQuestions] = useState<SavedQuestion[]>([]);
 
   const [userSettings, setUserSettings] = useState<UserSettings>(() => {

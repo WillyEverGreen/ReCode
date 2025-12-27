@@ -10,14 +10,18 @@ import User from "../../../models/User.js";
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  if (req.method !== "POST") {
+  // GitHub redirects with GET, but we also support POST for flexibility
+  if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     await connectDB();
 
-    const { code, access_token: providedToken } = req.body;
+    // GET: code from query params (GitHub redirect)
+    // POST: code from body (front-end calling directly)
+    const code = req.method === "GET" ? req.query.code : req.body?.code;
+    const providedToken = req.body?.access_token;
 
     if (!code && !providedToken) {
       return res.status(400).json({ message: "Authorization code or access token is required" });
@@ -34,7 +38,7 @@ export default async function handler(req, res) {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          client_id: process.env.GITHUB_CLIENT_ID,
+          client_id: process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID,
           client_secret: process.env.GITHUB_CLIENT_SECRET,
           code,
         }),
@@ -122,6 +126,19 @@ export default async function handler(req, res) {
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
+    // If GET request (GitHub redirect), redirect back to the app with token
+    if (req.method === "GET") {
+      const redirectUrl = `${req.headers.origin || 'http://localhost:3000'}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify({
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        provider: user.provider,
+      }))}`;
+      return res.redirect(302, redirectUrl);
+    }
+
+    // If POST request (front-end calling directly), return JSON
     return res.json({
       token,
       user: {

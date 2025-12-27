@@ -40,15 +40,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state === 'github_oauth') {
-      handleGitHubCallback(code);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
+
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +109,11 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
           } catch (err: any) { setError(err.message); }
           finally { setOauthLoading(null); }
         },
+        error_callback: (error: any) => {
+          // User cancelled or other error occurred
+          console.log('[GOOGLE AUTH] User cancelled or error:', error);
+          setOauthLoading(null);
+        },
       }).requestAccessToken();
     } catch (err: any) { setError(err.message); setOauthLoading(null); }
   };
@@ -124,24 +121,11 @@ const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
   const handleGitHubLogin = () => {
     if (!GITHUB_CLIENT_ID) { setError("GitHub login not configured"); return; }
     setOauthLoading('github');
-    const redirectUri = `${window.location.origin}/login`;
+    const redirectUri = `${window.location.origin}/api/auth/github/callback`;
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user user:email')}&state=github_oauth`;
   };
 
-  const handleGitHubCallback = async (code: string) => {
-    setOauthLoading('github');
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/github/callback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "GitHub login failed");
-      onSignup(data.token, data.user);
-    } catch (err: any) { setError(err.message); }
-    finally { setOauthLoading(null); }
-  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0b0f19] px-4">
