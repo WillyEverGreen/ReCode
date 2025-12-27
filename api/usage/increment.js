@@ -1,8 +1,13 @@
 import { connectDB } from "../_lib/mongodb.js";
 import { handleCors } from "../_lib/auth.js";
+import { getUserId } from "../_lib/userId.js";
 import UserUsage from "../../models/UserUsage.js";
-import jwt from "jsonwebtoken";
 
+/**
+ * POST /api/usage/increment
+ * Increment usage count for a specific action type
+ * STRICT: Returns 429 if limit exceeded
+ */
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
@@ -13,56 +18,94 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Validate input
+    // ═══════════════════════════════════════════════════════════════
     const { type } = req.body;
     
-    if (!type || !['addSolution', 'getSolution', 'variant'].includes(type)) {
-      return res.status(400).json({ error: "Invalid usage type" });
-    }
-
-    // Get user from token (optional - for logged in users)
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret");
-        userId = decoded.userId;
-      } catch (e) {
-        // Invalid token - treat as anonymous
-      }
-    }
-
-    // For anonymous users, use IP + User-Agent (matches solution API)
-    if (!userId) {
-      const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anonymous';
-      const userAgent = req.headers['user-agent'] || '';
-      const uniqueStr = clientIp + userAgent;
-      userId = `anon_${Buffer.from(uniqueStr).toString('base64').slice(0, 30)}`;
-    }
-
-    // Check if user can make this request
-    const canContinue = await UserUsage.canMakeRequest(userId, type);
-    if (!canContinue) {
-      const usage = await UserUsage.getTodayUsage(userId);
-      return res.status(429).json({ 
-        error: "Daily limit reached",
-        usage
+    if (!type) {
+      return res.status(400).json({ 
+        error: "Missing required field: type",
+        validTypes: ['getSolution', 'addSolution', 'variant']
       });
     }
 
-    // Increment usage
-    await UserUsage.incrementUsage(userId, type);
+    if (!['addSolution', 'getSolution', 'variant'].includes(type)) {
+      return res.status(400).json({ 
+        error: "Invalid usage type",
+        provided: type,
+        validTypes: ['getSolution', 'addSolution', 'variant']
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2: Get userId (logged in or anonymous)
+    // ═══════════════════════════════════════════════════════════════
+    const userId = await getUserId(req);
+    console.log(`[USAGE INCREMENT] Type: ${type}, User: ${userId}`);
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: STRICT CHECK - Can user make this request?
+    // ═══════════════════════════════════════════════════════════════
+    const canContinue = await UserUsage.canMakeRequest(userId, type);
     
-    // Get updated usage
+    if (!canContinue) {
+      const usage = await UserUsage.getTodayUsage(userId);
+      const limitInfo = {
+        getSolution: { used: usage.getSolutionUsed, limit: usage.getSolutionLimit },
+        addSolution: { used: usage.addSolutionUsed, limit: usage.addSolutionLimit },
+        variant: { used: usage.variantUsed, limit: usage.variantLimit }
+      };
+
+      console.warn(`[USAGE INCREMENT] ❌ Limit reached for ${type}: ${JSON.stringify(limitInfo[type])}`);
+      
+      return res.status(429).json({ 
+        error: "Daily limit reached",
+        message: `You've used all ${limitInfo[type].limit} ${type} requests for today. Limit resets at midnight UTC.`,
+        currentUsage: limitInfo[type],
+        resetsAt: usage.resetsAt,
+        upgradeMessage: "Upgrade to Pro for unlimited access!"
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 4: Increment usage (atomic operation)
+    // ═══════════════════════════════════════════════════════════════
+    await UserUsage.incrementUsage(userId, type);
+    console.log(`[USAGE INCREMENT] ✓ Incremented ${type} for user ${userId}`);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 5: Return updated usage
+    // ═══════════════════════════════════════════════════════════════
     const usage = await UserUsage.getTodayUsage(userId);
 
     return res.json({
       success: true,
-      usage
+      message: `${type} usage incremented`,
+      usage: {
+        getSolution: {
+          used: usage.getSolutionUsed,
+          limit: usage.getSolutionLimit,
+          left: usage.getSolutionLeft
+        },
+        addSolution: {
+          used: usage.addSolutionUsed,
+          limit: usage.addSolutionLimit,
+          left: usage.addSolutionLeft
+        },
+        variant: {
+          used: usage.variantUsed,
+          limit: usage.variantLimit,
+          left: usage.variantLeft
+        }
+      },
+      resetsAt: usage.resetsAt
     });
   } catch (error) {
-    console.error("Usage Increment Error:", error);
-    return res.status(500).json({ error: "Failed to increment usage" });
+    console.error("[USAGE INCREMENT] Error:", error);
+    return res.status(500).json({ 
+      error: "Failed to increment usage",
+      message: error.message
+    });
   }
 }

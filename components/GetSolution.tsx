@@ -126,7 +126,6 @@ const GetSolution: React.FC = () => {
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-yellow-500" />
           Get Solution
-          <ProBadge />
         </h2>
         <p className="text-gray-400 text-sm mt-1">
           Get brute force, better, and optimal solutions with step-by-step explanations.
@@ -358,6 +357,16 @@ const GetSolution: React.FC = () => {
                     {currentApproach.name}
                   </h4>
                 </div>
+                
+                {/* Complexity Note - Only shown when explaining missing approaches or why brute=optimal */}
+                {(currentApproach as any).complexityNote && (
+                  <div className="mb-4 bg-gradient-to-r from-amber-500/5 to-transparent border-l-4 border-amber-500/50 p-3 rounded-r-lg">
+                    <p className="text-sm text-amber-100/90 leading-relaxed flex items-start gap-2">
+                      <span className="text-amber-400">💡</span>
+                      <span>{(currentApproach as any).complexityNote}</span>
+                    </p>
+                  </div>
+                )}
                 
                 {/* Complexity Cards */}
                 <div className="grid grid-cols-2 gap-4">

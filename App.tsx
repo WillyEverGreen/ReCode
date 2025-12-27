@@ -24,6 +24,7 @@ import {
   AlertCircle,
   LogOut,
   Sparkles,
+  DollarSign,
 } from "lucide-react";
 import AppLogo from "./components/Logo-With-Name cropped.png";
 
@@ -274,6 +275,8 @@ const App: React.FC = () => {
     if (view === "solution") {
       return <GetSolution />;
     }
+
+
 
     return (
       <Dashboard

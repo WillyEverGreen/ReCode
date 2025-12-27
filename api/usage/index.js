@@ -1,8 +1,13 @@
 import { connectDB } from "../_lib/mongodb.js";
 import { handleCors } from "../_lib/auth.js";
+import { getUserId } from "../_lib/userId.js";
 import UserUsage from "../../models/UserUsage.js";
-import jwt from "jsonwebtoken";
 
+/**
+ * GET /api/usage
+ * Returns current usage stats for authenticated or anonymous user
+ * Properly linked to user accounts with strict tracking
+ */
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
@@ -13,30 +18,20 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Get user from token (optional - for logged in users)
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret");
-        userId = decoded.userId;
-      } catch (e) {
-        // Invalid token - treat as anonymous
-      }
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Get userId (logged in or anonymous)
+    // ═══════════════════════════════════════════════════════════════
+    const userId = await getUserId(req);
+    console.log("[USAGE API] Fetching usage for user:", userId);
 
-    // For anonymous users, use IP + User-Agent for better uniqueness (matches solution API)
-    if (!userId) {
-      const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anonymous';
-      const userAgent = req.headers['user-agent'] || '';
-      const uniqueStr = clientIp + userAgent;
-      userId = `anon_${Buffer.from(uniqueStr).toString('base64').slice(0, 30)}`;
-    }
-
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2: Get today's usage from database
+    // ═══════════════════════════════════════════════════════════════
     const usage = await UserUsage.getTodayUsage(userId);
 
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: Return formatted response
+    // ═══════════════════════════════════════════════════════════════
     return res.json({
       success: true,
       usage: {
@@ -57,18 +52,14 @@ export default async function handler(req, res) {
         }
       },
       plan: "free",
-      resetsAt: getNextMidnight()
+      resetsAt: usage.resetsAt,
+      userId: userId.startsWith("anon_") ? "anonymous" : userId  // Don't leak full anon ID
     });
   } catch (error) {
-    console.error("Usage API Error:", error);
-    return res.status(500).json({ error: "Failed to get usage" });
+    console.error("[USAGE API] Error:", error);
+    return res.status(500).json({ 
+      error: "Failed to get usage",
+      message: error.message
+    });
   }
-}
-
-function getNextMidnight() {
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  return tomorrow.toISOString();
 }

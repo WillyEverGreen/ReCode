@@ -1,5 +1,9 @@
 import { SubmissionData, AIAnalysisResult, SolutionResult } from "../types";
 
+// Import Complexity Analysis Engine (for validating/correcting AI output)
+// @ts-ignore - JS module
+import { getCorrectedComplexity } from "../utils/complexityEngine.js";
+
 // In-flight request guard (only for analyzeSubmission - backend handles solution)
 let analyzeInFlight = false;
 
@@ -9,6 +13,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 // Qubrid AI API Configuration
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
+
 
 // Helper function to increment usage counter and trigger UI refresh
 const incrementUsage = async (type: 'addSolution') => {
@@ -118,10 +123,22 @@ improvementMarkdown:
 - Possible improvements (if any).
 - Final polished code (only if improvement exists).
 
+
+improvementMarkdown:
+- **CRITICAL:** Analyze code critically for improvements
+- **DO NOT** say "stellar" or "excellent" unless code is TRULY optimal
+- **CHECK:**
+  1. Time Complexity: Can it be reduced?
+  2. Space Complexity: Can it be reduced?
+  3. Code quality: Readability, edge cases, best practices
+- **IF IMPROVEMENTS:** Provide detailed optimization suggestions with code
+- **IF PERFECT:** Return empty string (don't praise unnecessarily)
+
 RULES:
 - Infer problem title and language from code.
 - Use **Bold** for key terms to make them scannable.
-- Keep descriptions concise but informative.`;
+- Keep descriptions concise but informative.
+- BE CRITICAL: Only praise if truly optimal in time AND space complexity.`;
 };
 
 export const analyzeSubmission = async (
@@ -316,6 +333,33 @@ Return ONLY valid JSON, no markdown fences.`;
           result.improvementMarkdown = result.improvementMarkdown.replace(/```\s*```/g, '```');
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // COMPLEXITY ENGINE: Validate/correct AI-generated TC & SC
+        // ═══════════════════════════════════════════════════════════════
+        try {
+          const corrected = getCorrectedComplexity(
+            result.timeComplexity,
+            result.spaceComplexity,
+            data.code,
+            data.language || 'python'
+          );
+          
+          if (corrected.corrected) {
+            console.log(`[COMPLEXITY ENGINE] Corrected TC: ${result.timeComplexity} → ${corrected.timeComplexity}`);
+            console.log(`[COMPLEXITY ENGINE] Corrected SC: ${result.spaceComplexity} → ${corrected.spaceComplexity}`);
+            result.timeComplexity = corrected.timeComplexity;
+            result.spaceComplexity = corrected.spaceComplexity;
+            if (corrected.timeComplexityReason) {
+              result.timeComplexityReason = corrected.timeComplexityReason;
+            }
+            if (corrected.spaceComplexityReason) {
+              result.spaceComplexityReason = corrected.spaceComplexityReason;
+            }
+          }
+        } catch (engineError) {
+          console.warn("[COMPLEXITY ENGINE] Error (using AI values):", engineError);
+        }
+
         // Cache the result
         analysisCache.set(cacheKey, { value: result, timestamp: Date.now() });
         console.log("[CACHE STORE] Cached analysis result");
@@ -324,6 +368,7 @@ Return ONLY valid JSON, no markdown fences.`;
         incrementUsage('addSolution');
         
         return result;
+
         
       } catch (attemptError) {
         console.error(`[QUBRID] Attempt ${attempt} failed:`, attemptError);
@@ -356,10 +401,19 @@ export const generateSolution = async (
 ): Promise<SolutionResult> => {
 
   try {
+    // Get token for authentication
+    const token = localStorage.getItem("token");
+    const headers: HeadersInit = {
+      "Content-Type": "application/json"
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     // Call backend API (has multi-tier cache: Redis → MongoDB → Memory → AI)
     const response = await fetch(`${API_BASE_URL}/api/solution`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ questionName, language, problemDescription }),
     });
 

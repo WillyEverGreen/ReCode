@@ -1,13 +1,16 @@
 import { connectDB } from "../_lib/mongodb.js";
 import { handleCors } from "../_lib/auth.js";
+import { getUserId } from "../_lib/userId.js";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 import levenshtein from "fast-levenshtein";
-import jwt from "jsonwebtoken";
 
 // Import models
 import SolutionCache from "../../models/SolutionCache.js";
 import UserUsage from "../../models/UserUsage.js";
+
+// Import Complexity Analysis Engine (for validating/correcting AI output)
+import { getCorrectedComplexity } from "../../utils/complexityEngine.js";
 
 // Qubrid AI Configuration
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
@@ -258,48 +261,180 @@ async function saveCanonicalId(canonicalId, redis) {
 }
 
 // Generate from Qubrid
-async function generateFromQubrid(questionName, language, problemDescription) {
-  const prompt = `You are a DSA problem solver. Solve this problem with multiple approaches.
+async function generateFromQubrid(questionName, language, problemDescription, temperature = 0.8) {
+  const prompt = `You are a DSA problem solver. Solve this problem with ALL possible approaches.
 
 PROBLEM: ${questionName}
 LANGUAGE: ${language}
 ${problemDescription ? `DESCRIPTION: ${problemDescription}` : "If problem name is ambiguous, state your interpretation before solving."}
 
-TASK: Provide Brute Force, Better (if exists), and Optimal solutions.
+TASK: Provide Brute Force, Better (if exists), and Optimal solutions with DISTINCT implementations.
 
-CRITICAL RULES:
-- BRUTE FORCE = OPTIMAL only if they have the EXACT SAME time complexity (e.g., both O(n)). 
-- If brute force is O(n²) and a better O(n) or O(n log n) solution exists, they are DIFFERENT.
-- When brute ≠ optimal, the "note" field should be null.
-- When brute = optimal, copy the brute force content to optimal and explain in "note" why no better solution exists.
-- If no intermediate "better" approach exists between brute and optimal, set better to null.
-- Code must be clean ${language} without markdown fences.
-- Add minimal inline comments in code.
-- Be comprehensive but concise.
-- DO NOT say "brute force is optimal" if you then provide a different optimal solution with better complexity.
+═══════════════════════════════════════════════════════════════
+🚨 ABSOLUTE REQUIREMENTS (MUST FOLLOW OR RESPONSE IS INVALID):
+═══════════════════════════════════════════════════════════════
 
-REQUIRED JSON OUTPUT:
+1. **NEVER DUPLICATE CODE** (CRITICAL - WILL BE VALIDATED): 
+   - Each approach MUST have COMPLETELY DIFFERENT code
+   - Don't just rename variables - use DIFFERENT algorithm/data structure
+   - Example: Brute (nested loops) ≠ Better (sorting) ≠ Optimal (hash map)
+   - ❌ INVALID: Same logic with different variable names
+   - ❌ INVALID: 90% same code with 1 line different
+   - ✅ VALID: fundamentally different approach/algorithm
+   - If you can't find truly DIFFERENT code, set that approach to null
+
+2. **PROVIDE ALL POSSIBLE APPROACHES**:
+   - If 3 distinct approaches exist, provide all 3
+   - Set "better" to null ONLY if no middle ground exists
+   - Never skip an approach just because it's "not interesting"
+
+═══════════════════════════════════════════════════════════════
+📋 WHEN TO USE "complexityNote" FIELD:
+═══════════════════════════════════════════════════════════════
+
+✅ **Include complexityNote for BRUTE FORCE when:**
+   - Better approach is null (explain why jump is direct to optimal)
+   - Brute = Optimal (explain why brute is already optimal)
+
+✅ **Include complexityNote for OPTIMAL when:**
+   - Better approach is null (explain why no middle ground)
+   - Brute = Optimal (explain why no better solution exists)
+
+❌ **Skip complexityNote when:**
+   - All 3 approaches exist (brute, better, optimal all provided)
+   - No need to explain missing approaches
+
+EXAMPLES:
+- **All 3 exist (Two Sum):** No complexityNote needed
+- **Better is null:** complexityNote in brute: "No O(n log n) option exists. Jump from O(n²) to O(n) is direct via hash map."
+- **Brute = Optimal:** complexityNote in both: "Linear scan is already optimal for unsorted data."
+
+═══════════════════════════════════════════════════════════════
+🎯 WHEN TO SET "better" TO null:
+═══════════════════════════════════════════════════════════════
+
+SET TO NULL when:
+✅ Brute force IS optimal (both O(n), no improvement possible)
+✅ Direct jump with no middle (O(n²) → O(n), no O(n log n) exists)
+✅ Problem has only 2 distinct algorithmic approaches
+✅ BOTH time AND space complexity are identical between brute and optimal
+
+KEEP IT (provide better) when:
+❌ You can show sorting (O(n log n)) between O(n²) and O(n)
+❌ You can show DP (O(n²)) between O(2^n) and O(n log n)
+❌ You can show different data structure (heap, BST, etc.)
+❌ **CRITICAL:** Time complexity same but space improves (e.g., O(n) time: O(n) space → O(1) space)
+
+🚨 MANDATORY RULE - SPACE COMPLEXITY IMPROVEMENT:
+If time complexity stays the same BUT space complexity improves, you MUST include a "better" approach.
+Example: Fibonacci - Brute O(n)/O(n), Better O(n)/O(1), Optimal same as Better
+This is a REQUIRED educational pattern - DO NOT skip it!
+
+
+═══════════════════════════════════════════════════════════════
+📐 APPROACH DEFINITIONS:
+═══════════════════════════════════════════════════════════════
+
+**Brute Force**: The most naive solution
+- Use: Basic loops, recursion without memoization
+- No preprocessing, no clever tricks
+- Typically: O(n²), O(n³), O(2^n) or worse
+
+**Better**: Intermediate optimization (if exists)
+- Use: Sorting, two pointers, basic DP, heaps, BST
+- Examples: O(n²) → O(n log n), O(2^n) → O(n²)
+- Must be DISTINCTLY different from brute AND optimal
+
+**Optimal**: Best known solution
+- Use: Hash maps, optimized DP, greedy, advanced algorithms
+- Lowest possible time/space complexity
+- Must be DISTINCTLY different from better
+
+═══════════════════════════════════════════════════════════════
+📊 EDGE CASE COVERAGE:
+═══════════════════════════════════════════════════════════════
+
+Your prompt must handle these scenarios:
+
+**Scenario 1: Three distinct approaches exist (COMMON)**
+- Example: Two Sum, 3Sum, Longest Substring
+- Result: Provide brute, better, optimal (all different)
+- complexityNote: Not needed (all 3 exist)
+
+**Scenario 2: Only 2 approaches exist (COMMON)**
+- Example: Valid Parentheses, Reverse Linked List
+- Result: Provide brute, optimal (better = null)
+- complexityNote: In brute/optimal explaining why no middle ground
+
+**Scenario 3: Brute IS optimal (RARE)**
+- Example: Linear search in unsorted array
+- Result: Provide brute, optimal (same TC but different code style)
+- complexityNote: In both explaining why they're the same complexity
+- note: "Brute force is optimal for this problem"
+
+**Scenario 4: Multiple "better" approaches possible (CHOOSE ONE)**
+- Example: Could use sorting OR heap
+- Result: Pick the MOST EDUCATIONAL middle approach
+- complexityNote: Not needed if all 3 provided
+
+═══════════════════════════════════════════════════════════════
+📝 REQUIRED JSON OUTPUT:
+═══════════════════════════════════════════════════════════════
+
 {
   "problemStatement": "2-3 sentence problem explanation",
   "difficulty": "Easy|Medium|Hard",
   "bruteForce": {
-    "name": "Approach name",
-    "intuition": "3-4 sentences explaining why this works",
-    "steps": ["Step 1...", "Step 2...", "...6-8 detailed steps"],
-    "code": "Clean ${language} code with comments",
+    "name": "Descriptive name (e.g., Nested Loops, Recursive Backtracking)",
+    "intuition": "3-4 sentences explaining the naive thought process",
+    "steps": ["Step 1...", "Step 2...", "...6-8 detailed algorithmic steps"],
+    "complexityNote": "ONLY if better=null OR brute=optimal. 1-2 sentences explaining why.",
+    "code": "Clean ${language} code - MUST differ from better/optimal",
     "timeComplexity": "O(...)",
     "timeComplexityReason": "2-3 sentences",
     "spaceComplexity": "O(...)",
     "spaceComplexityReason": "2-3 sentences"
   },
-  "better": null | same structure,
-  "optimal": same structure as bruteForce,
-  "note": "ONLY set if brute=optimal with same complexity, else null",
+  "better": null | {
+    "name": "Descriptive name (e.g., Sorting + Two Pointers, DP Memoization)",
+    "intuition": "3-4 sentences",
+    "steps": ["...6-8 steps"],
+    "code": "COMPLETELY DIFFERENT code - different algorithm/data structure",
+    "timeComplexity": "O(...)",
+    "timeComplexityReason": "...",
+    "spaceComplexity": "O(...)",
+    "spaceComplexityReason": "..."
+  },
+  "optimal": {
+    "name": "Descriptive name (e.g., Hash Map, Kadane's Algorithm)",
+    "intuition": "3-4 sentences",
+    "steps": ["...6-8 steps"],
+    "complexityNote": "ONLY if better=null OR brute=optimal. 1-2 sentences.",
+    "code": "MUST BE DIFFERENT from brute/better",
+    "timeComplexity": "O(...)",
+    "timeComplexityReason": "...",
+    "spaceComplexity": "O(...)",
+    "spaceComplexityReason": "..."
+  },
+  "note": "Set ONLY if brute=optimal (same TC/SC). Explain why no improvement exists. Else null.",
   "edgeCases": ["5-6 specific edge cases with brief explanations"],
-  "dsaCategory": "Arrays & Hashing | Trees | Graphs | DP | etc.",
-  "pattern": "Two Pointers | Sliding Window | BFS | Monotonic Stack | etc.",
-  "keyInsights": ["5-6 key insights including pattern recognition and common mistakes"]
-}`;
+  "dsaCategory": "Arrays & Hashing | Trees | Graphs | DP | Greedy | etc.",
+  "pattern": "Two Pointers | Sliding Window | BFS/DFS | Monotonic Stack | etc.",
+  "keyInsights": ["5-6 key takeaways, common mistakes, pattern recognition tips"]
+}
+
+═══════════════════════════════════════════════════════════════
+✅ FINAL VALIDATION CHECKLIST (BEFORE RESPONDING):
+═══════════════════════════════════════════════════════════════
+
+- [ ] All approaches have DIFFERENT code (not just variable renames)
+- [ ] If 3 distinct approaches exist, all 3 are provided
+- [ ] If better is null, complexityNote explains why in brute/optimal
+- [ ] If brute=optimal, complexityNote in both + "note" field set
+- [ ] timeComplexity values match the actual code implementation
+- [ ] No contradictions (e.g., saying same TC but providing different code without reason)
+- [ ] Code is clean ${language} without markdown fences
+- [ ] Each approach uses different algorithm or data structure`;
 
   // FIX 4: Add 30s timeout to prevent hung requests
   const controller = new AbortController();
@@ -314,11 +449,11 @@ REQUIRED JSON OUTPUT:
     body: JSON.stringify({
       model: QUBRID_MODEL,
       messages: [
-        { role: "system", content: "You are an expert DSA tutor. Provide comprehensive, educational solutions. Always output valid JSON only. Be logically consistent - if brute force and optimal have different complexities, they are NOT the same." },
+        { role: "system", content: "You are an expert DSA tutor. Your goal is to teach students by showing them MULTIPLE solution approaches whenever possible. Always aim to provide THREE solutions (Brute Force, Better, Optimal) to help students understand the progression of optimizations. Be educational, comprehensive, and logically consistent. Always output valid JSON only. If brute force and optimal have different complexities, they are NOT the same - show the intermediate 'better' approach if one exists." },
         { role: "user", content: prompt }
       ],
       max_tokens: 6000,
-      temperature: 0.7,
+      temperature: temperature,  // Use parameter (default 0.8, retry with 0.3)
       stream: false
     }),
     signal: controller.signal
@@ -386,28 +521,151 @@ REQUIRED JSON OUTPUT:
     }
   }
 
-  // ==================== VALIDATION: Fix contradictions ====================
-  // If brute force and optimal have DIFFERENT time complexities, clear the note
+  // ==================== COMPREHENSIVE VALIDATION ====================
+  // Fixes 4 critical gaps to ensure production-grade quality
+  
+  const extractComplexity = (c) => c.replace(/o\(|\)/gi, "").trim();
+  
+  // Extract all complexities
   const bruteTC = parsed.bruteForce?.timeComplexity?.toLowerCase() || "";
+  const bruteSC = parsed.bruteForce?.spaceComplexity?.toLowerCase() || "";
+  const betterTC = parsed.better?.timeComplexity?.toLowerCase() || "";
+  const betterSC = parsed.better?.spaceComplexity?.toLowerCase() || "";
   const optimalTC = parsed.optimal?.timeComplexity?.toLowerCase() || "";
+  const optimalSC = parsed.optimal?.spaceComplexity?.toLowerCase() || "";
   
-  // Extract the complexity (e.g., "O(n²)" -> "n²", "O(n)" -> "n")
-  const extractComplexity = (tc) => tc.replace(/o\(|\)/gi, "").trim();
-  const bruteC = extractComplexity(bruteTC);
-  const optimalC = extractComplexity(optimalTC);
+  const bruteTC_clean = extractComplexity(bruteTC);
+  const bruteSC_clean = extractComplexity(bruteSC);
+  const betterTC_clean = extractComplexity(betterTC);
+  const betterSC_clean = extractComplexity(betterSC);
+  const optimalTC_clean = extractComplexity(optimalTC);
+  const optimalSC_clean = extractComplexity(optimalSC);
   
-  // If complexities are different, ensure note is null (they're not the same)
-  if (bruteC !== optimalC && parsed.note) {
+  // ═══════════════════════════════════════════════════════════════
+  // GAP 1 FIX: Remove "better" if TC AND SC same as optimal (FALSE BETTER)
+  // ═══════════════════════════════════════════════════════════════
+  if (
+    parsed.better &&
+    betterTC_clean === optimalTC_clean &&
+    betterSC_clean === optimalSC_clean
+  ) {
+    console.log(`[VALIDATION] ❌ Removing false 'better': TC=${betterTC}, SC=${betterSC} same as optimal`);
+    parsed.better = null;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // GAP 2 FIX: If brute = optimal (TC AND SC), enforce same code or reject
+  // ═══════════════════════════════════════════════════════════════
+  if (
+    bruteTC_clean === optimalTC_clean &&
+    bruteSC_clean === optimalSC_clean
+  ) {
+    console.log(`[VALIDATION] ℹ️  Brute = Optimal detected: TC=${bruteTC}, SC=${bruteSC}`);
+    
+    // Check if codes are actually different
+    const bruteCode = (parsed.bruteForce?.code || "").replace(/\s+/g, "");
+    const optimalCode = (parsed.optimal?.code || "").replace(/\s+/g, "");
+    const codeSimilarity = bruteCode.length > 0 && optimalCode.length > 0
+      ? (bruteCode === optimalCode ? 1.0 : 0.0) // Simple exact match for now
+      : 0;
+    
+    if (codeSimilarity < 0.8 && bruteCode !== optimalCode) {
+      // Different code but same complexity - pedagogically confusing
+      console.log(`[VALIDATION] ⚠️  Brute=Optimal but different code. Enforcing consistency.`);
+      // Use brute code as the canonical one
+      parsed.optimal.code = parsed.bruteForce.code;
+    }
+    
+    // Ensure note and better are set correctly
+    if (!parsed.note) {
+      parsed.note = `The brute force approach is already optimal with ${bruteTC} time and ${bruteSC} space complexity. No improvement is possible.`;
+    }
+    parsed.better = null;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // BASIC VALIDATION: Fix contradictions
+  // ═══════════════════════════════════════════════════════════════
+  
+  // If TC different, ensure note is null (they're not the same)
+  if (bruteTC_clean !== optimalTC_clean && parsed.note) {
     console.log(`[VALIDATION] Clearing contradictory note. Brute: ${bruteTC}, Optimal: ${optimalTC}`);
     parsed.note = null;
   }
   
-  // If complexities are same but note says they're different, also fix
-  if (bruteC === optimalC && !parsed.note) {
-    parsed.note = `The brute force solution is already optimal with ${bruteTC} time complexity.`;
+  // ═══════════════════════════════════════════════════════════════
+  // GAP 4 FIX: Hard rejection of INVALID responses
+  // ═══════════════════════════════════════════════════════════════
+  const validationErrors = [];
+  
+  // Check 1: Required fields exist
+  if (!parsed.bruteForce || !parsed.optimal) {
+    validationErrors.push("Missing required approaches (bruteForce or optimal)");
   }
+  
+  // Check 2: All approaches have code
+  if (parsed.bruteForce && !parsed.bruteForce.code) {
+    validationErrors.push("Brute force missing code");
+  }
+  if (parsed.better && !parsed.better.code) {
+    validationErrors.push("Better approach missing code");
+  }
+  if (parsed.optimal && !parsed.optimal.code) {
+    validationErrors.push("Optimal approach missing code");
+  }
+  
+  // Check 3: Detect duplicate code (GAP 4 - prevent caching bad responses)
+  const codes = [
+    parsed.bruteForce?.code,
+    parsed.better?.code,
+    parsed.optimal?.code
+  ].filter(Boolean);
+  
+  const normalizedCodes = codes.map(c => c.replace(/\s+/g, "").toLowerCase());
+  const uniqueCodes = new Set(normalizedCodes);
+  
+  // If brute ≠ optimal but codes are identical, that's a problem
+  if (
+    bruteTC_clean !== optimalTC_clean &&
+    normalizedCodes.length > 1 &&
+    uniqueCodes.size < normalizedCodes.length
+  ) {
+    validationErrors.push("Duplicate code detected across different complexity approaches");
+  }
+  
+  // Check 4: Time complexity must be valid
+  const validTCs = [bruteTC, betterTC, optimalTC].filter(Boolean);
+  for (const tc of validTCs) {
+    if (!tc.includes("o(") && !tc.includes("O(")) {
+      validationErrors.push(`Invalid time complexity format: ${tc}`);
+    }
+  }
+  
+  // Check 5: Code length sanity check (prevent empty or trivial code)
+  if (parsed.bruteForce?.code && parsed.bruteForce.code.length < 20) {
+    validationErrors.push("Brute force code suspiciously short (< 20 chars)");
+  }
+  if (parsed.optimal?.code && parsed.optimal.code.length < 20) {
+    validationErrors.push("Optimal code suspiciously short (< 20 chars)");
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // REJECT if validation fails (GAP 4)
+  // ═══════════════════════════════════════════════════════════════
+  if (validationErrors.length > 0) {
+    console.error("[VALIDATION] ❌ INVALID AI RESPONSE:");
+    validationErrors.forEach(err => console.error(`  - ${err}`));
+    throw new Error(
+      `Invalid AI response detected. Validation failed:\n${validationErrors.join("\n")}\n\n` +
+      `This prevents low-quality responses from being cached. Please retry the request.`
+    );
+  }
+  
+  console.log("[VALIDATION] ✅ All checks passed");
 
+  // ═══════════════════════════════════════════════════════════════
   // Clean code fields
+  // ═══════════════════════════════════════════════════════════════
   const cleanCode = (code) => {
     if (!code) return code;
     return code.replace(/^```\w*\n?/gm, '').replace(/\n?```$/gm, '').trim();
@@ -417,6 +675,86 @@ REQUIRED JSON OUTPUT:
   if (parsed.better?.code) parsed.better.code = cleanCode(parsed.better.code);
   if (parsed.optimal?.code) parsed.optimal.code = cleanCode(parsed.optimal.code);
 
+  // ═══════════════════════════════════════════════════════════════
+  // LAYER 5: DETERMINISTIC COMPLEXITY CORRECTION
+  // Validate AI-generated TC/SC against actual code analysis
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    console.log("[COMPLEXITY ENGINE] Validating AI-generated complexity values...");
+    
+    // Correct bruteForce complexity
+    if (parsed.bruteForce?.code) {
+      const corrected = getCorrectedComplexity(
+        parsed.bruteForce.timeComplexity,
+        parsed.bruteForce.spaceComplexity,
+        parsed.bruteForce.code,
+        language
+      );
+      if (corrected.corrected) {
+        console.log(`[COMPLEXITY ENGINE] Corrected bruteForce: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        parsed.bruteForce.timeComplexity = corrected.timeComplexity;
+        parsed.bruteForce.spaceComplexity = corrected.spaceComplexity;
+        if (corrected.timeComplexityReason) {
+          parsed.bruteForce.timeComplexityReason = corrected.timeComplexityReason;
+        }
+        if (corrected.spaceComplexityReason) {
+          parsed.bruteForce.spaceComplexityReason = corrected.spaceComplexityReason;
+        }
+      }
+    }
+    
+    // Correct better complexity
+    if (parsed.better?.code) {
+      const corrected = getCorrectedComplexity(
+        parsed.better.timeComplexity,
+        parsed.better.spaceComplexity,
+        parsed.better.code,
+        language
+      );
+      if (corrected.corrected) {
+        console.log(`[COMPLEXITY ENGINE] Corrected better: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        parsed.better.timeComplexity = corrected.timeComplexity;
+        parsed.better.spaceComplexity = corrected.spaceComplexity;
+        if (corrected.timeComplexityReason) {
+          parsed.better.timeComplexityReason = corrected.timeComplexityReason;
+        }
+        if (corrected.spaceComplexityReason) {
+          parsed.better.spaceComplexityReason = corrected.spaceComplexityReason;
+        }
+      }
+    }
+    
+    // Correct optimal complexity
+    if (parsed.optimal?.code) {
+      const corrected = getCorrectedComplexity(
+        parsed.optimal.timeComplexity,
+        parsed.optimal.spaceComplexity,
+        parsed.optimal.code,
+        language
+      );
+      if (corrected.corrected) {
+        console.log(`[COMPLEXITY ENGINE] Corrected optimal: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        parsed.optimal.timeComplexity = corrected.timeComplexity;
+        parsed.optimal.spaceComplexity = corrected.spaceComplexity;
+        if (corrected.timeComplexityReason) {
+          parsed.optimal.timeComplexityReason = corrected.timeComplexityReason;
+        }
+        if (corrected.spaceComplexityReason) {
+          parsed.optimal.spaceComplexityReason = corrected.spaceComplexityReason;
+        }
+      }
+      
+      // Add detected pattern to response
+      if (corrected.pattern) {
+        parsed.detectedPattern = corrected.pattern;
+      }
+    }
+    
+    console.log("[COMPLEXITY ENGINE] ✓ Complexity validation complete");
+  } catch (engineError) {
+    // Don't fail the request if engine fails, just log
+    console.warn("[COMPLEXITY ENGINE] ⚠️ Engine error (using AI values):", engineError.message);
+  }
 
   return parsed;
 }
@@ -617,27 +955,9 @@ export default async function handler(req, res) {
     }
 
     // ==================== STEP 5: Check Daily Limit (before AI call) ====================
-    // Get user ID from token or use anonymous ID
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret");
-        userId = decoded.userId;
-      } catch (e) {
-        // Invalid token - treat as anonymous
-      }
-    }
-    
-    // For anonymous users, use IP + User-Agent for better uniqueness
-    // This prevents collision behind proxies/NAT/college networks
-    if (!userId) {
-      const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anonymous';
-      const userAgent = req.headers['user-agent'] || '';
-      const uniqueStr = clientIp + userAgent;
-      userId = `anon_${Buffer.from(uniqueStr).toString('base64').slice(0, 30)}`;
-    }
+    // Get user ID from shared helper (ensures consistency across ALL APIs)
+    const userId = await getUserId(req);
+    console.log("[SOLUTION API] User ID:", userId);
     
     // Check if user can make this request (cache hits don't count, only AI calls)
     const canContinue = await UserUsage.canMakeRequest(userId, 'getSolution');
@@ -685,9 +1005,33 @@ export default async function handler(req, res) {
       }
     }
 
-    // ==================== STEP 6: Generate Fresh Solution ====================
+    // ══════════════════════════════════════════════════════════════════
+    // STEP 6: Generate Fresh Solution (with automatic retry)
+    // ══════════════════════════════════════════════════════════════════
     console.log("[AI] Generating fresh solution...");
-    const solution = await generateFromQubrid(questionName, language, problemDescription);
+    
+    let solution;
+    try {
+      // First attempt with creative temperature (0.8)
+      solution = await generateFromQubrid(questionName, language, problemDescription, 0.8);
+    } catch (firstError) {
+      // Validation failed - retry once with conservative temperature (0.3)
+      console.warn("[AI] ⚠️  First attempt failed, retrying with temperature=0.3...");
+      console.warn("[AI] Error:", firstError.message);
+      
+      try {
+        // Second attempt with deterministic temperature (0.3)
+        solution = await generateFromQubrid(questionName, language, problemDescription, 0.3);
+        console.log("[AI] ✅ Retry successful!");
+      } catch (secondError) {
+        // Both attempts failed - show error to user
+        console.error("[AI] ❌ Both attempts failed");
+        throw new Error(
+          `Failed to generate valid solution after 2 attempts. ` +
+          `Please try again or rephrase your question. Error: ${secondError.message}`
+        );
+      }
+    }
     
     // FIX 8: Add metadata to solution for traceability
     solution._meta = {

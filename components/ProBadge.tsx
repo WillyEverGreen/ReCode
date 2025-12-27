@@ -1,34 +1,26 @@
 import React from "react";
+import { Crown } from "lucide-react";
 
 interface ProBadgeProps {
-  unlocked?: boolean;
   className?: string;
-  showLabel?: boolean;
+  size?: number;
 }
 
 /**
  * Pro Badge Component
- * Shows 🔓 (unlocked) during trial period, 🔒 (locked) after
- * Used to mark premium features throughout the app
+ * Crown icon to mark premium features
  */
-const ProBadge: React.FC<ProBadgeProps> = ({ 
-  unlocked = true, 
-  className = "",
-  showLabel = true 
-}) => {
+const ProBadge: React.FC<ProBadgeProps> = ({ className = "", size = 16 }) => {
   return (
-    <span className={`inline-flex items-center gap-1 ${className}`}>
-      <span className="text-amber-400 text-xs">
-        {unlocked ? "🔓" : "🔒"}
-      </span>
-      {showLabel && (
-        <span className="bg-gradient-to-r from-amber-500/20 to-amber-600/20 
-                        text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold
-                        border border-amber-500/30 uppercase tracking-wide">
-          Pro
-        </span>
-      )}
-    </span>
+    <Crown 
+      className={`inline-block text-amber-400 ${className}`}
+      size={size}
+      style={{ 
+        verticalAlign: 'middle',
+        marginLeft: '6px'
+      }}
+      aria-label="Pro Feature"
+    />
   );
 };
 

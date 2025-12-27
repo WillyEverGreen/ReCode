@@ -19,6 +19,7 @@ import {
   Activity,
   BrainCircuit,
   Crown,
+  Download,
 } from "lucide-react";
 import ProBadge from "./ProBadge";
 
@@ -43,6 +44,107 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     "revise" | "code" | "suggestions"
   >("revise");
   const [showSettings, setShowSettings] = useState(false);
+
+  const handleExport = () => {
+    // Helper to format array content
+    const formatSection = (title: string, content?: string | string[]) => {
+      if (!content || (Array.isArray(content) && content.length === 0)) return "";
+      let text = `## ${title}\n\n`;
+      if (Array.isArray(content)) {
+        content.forEach((item) => {
+          text += `- ${item}\n`;
+        });
+      } else {
+        text += `${content}\n`;
+      }
+      text += `\n`;
+      return text;
+    };
+
+    // Construct the comprehensive markdown content
+    let content = `# ${question.title}\n\n`;
+    content += `**Category:** ${question.dsaCategory}\n`;
+    content += `**Pattern:** ${question.pattern}\n`;
+    content += `**Language:** ${question.language}\n`;
+    content += `**Date:** ${new Date().toLocaleDateString()}\n\n`;
+
+    if (question.problemUrl) {
+      content += `[Original Problem](${question.problemUrl})\n\n`;
+    }
+
+    content += `---\n\n`;
+
+    // 1. Problem Overview
+    content += formatSection("Problem Overview", question.problemOverview);
+
+    // 2. Core Logic
+    if (question.coreLogic) {
+      content += `## Core Logic & Approach\n\n`;
+      if (typeof question.coreLogic === 'string') {
+        content += `${question.coreLogic}\n\n`;
+      } else if (Array.isArray(question.coreLogic)) {
+        question.coreLogic.forEach(item => content += `- ${item}\n`);
+        content += `\n`;
+      } else {
+        Object.entries(question.coreLogic).forEach(([key, val]) => {
+            content += `### ${key}\n${Array.isArray(val) ? val.join('\n') : val}\n\n`;
+        });
+      }
+    }
+
+    // 3. Complexity Analysis
+    content += `## Complexity Analysis\n\n`;
+    content += `**Time Complexity:** ${question.timeComplexity}\n`;
+    if (question.timeComplexityReason) content += `> ${question.timeComplexityReason}\n\n`;
+    
+    content += `**Space Complexity:** ${question.spaceComplexity}\n`;
+    if (question.spaceComplexityReason) content += `> ${question.spaceComplexityReason}\n\n`;
+
+    // 4. Fast Recall Checklist
+    if (question.revisionNotes && question.revisionNotes.length > 0) {
+      content += `## Fast Recall Checklist\n\n`;
+      question.revisionNotes.forEach((note, idx) => {
+        content += `${idx + 1}. ${note}\n`;
+      });
+      content += `\n`;
+    }
+
+    // 5. Code
+    if (question.code) {
+      content += `## My Solution\n\n`;
+      content += "```" + (question.language?.toLowerCase() || "") + "\n";
+      content += question.code;
+      content += "\n```\n\n";
+    }
+
+    // 6. Edge Cases
+    content += formatSection("Edge Cases to Consider", question.edgeCases);
+
+    // 7. Test Cases
+    content += formatSection("Test Cases", question.testCases);
+    
+    // 8. Syntax Notes
+    content += formatSection("Language Specific Syntax Notes", question.syntaxNotes);
+
+    // 9. AI Suggestions
+    if (question.improvementMarkdown) {
+       content += `## AI Suggestions & Improvements\n\n`;
+       content += `${question.improvementMarkdown}\n\n`;
+    }
+    
+    content += `\n---\n*Exported from ReCode - Your DSA Revision Companion*`;
+
+    // Trigger download
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${question.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}-notes.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Helper to render markdown with syntax highlighting
   const MarkdownRenderer = ({ content }: { content: string | string[] | Record<string, any> }) => {
@@ -69,8 +171,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
         })
         .join("\n\n");
     } else {
-      // Ensure newlines are respected in markdown by converting distinct lines to paragraphs
-      markdownContent = (content as string).replace(/\n/g, "\n\n");
+      // Use content as-is, ReactMarkdown will handle parsing
+      markdownContent = content as string;
     }
 
     return (
@@ -179,6 +281,13 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             </div>
           </div>
           <div className="flex gap-2">
+            <button
+                onClick={handleExport}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-800 hover:text-white transition-colors"
+                title="Export Notes"
+            >
+                <Download className="w-5 h-5" />
+            </button>
             {/* Settings Toggle (Only visible in Revise tab) */}
             {activeTab === "revise" && (
               <div className="relative">
@@ -317,8 +426,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 : "border-transparent text-gray-400 hover:text-white"
             }`}
           >
-            <Lightbulb className="w-4 h-4" /> AI Suggestions
-            <ProBadge showLabel={false} />
+            <Lightbulb className="w-4 h-4" /> AI Suggestions<ProBadge />
           </button>
         </div>
       </div>
@@ -382,9 +490,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             {question.revisionNotes && question.revisionNotes.length > 0 && (
               <div className="bg-[#0c0c0c] p-8 rounded-xl border border-gray-800">
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall
-                  Checklist
-                  <ProBadge />
+                  <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall Checklist<ProBadge />
                 </h3>
                 <ul className="space-y-4">
                   {question.revisionNotes.map((note, idx) => (
@@ -402,8 +508,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             {/* Core Logic */}
             <div className="custom-markdown">
               <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5" /> Core Logic & Approach
-                <ProBadge />
+                <BrainCircuit className="w-5 h-5" /> Core Logic & Approach<ProBadge />
               </h2>
               <MarkdownRenderer content={question.coreLogic} />
             </div>
