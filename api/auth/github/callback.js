@@ -128,7 +128,12 @@ export default async function handler(req, res) {
 
     // If GET request (GitHub redirect), redirect back to the app with token
     if (req.method === "GET") {
-      const redirectUrl = `${req.headers.origin || 'http://localhost:3000'}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify({
+      // Build the correct redirect URL based on the request
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      const redirectUrl = `${baseUrl}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify({
         id: user._id,
         username: user.username,
         email: user.email,
