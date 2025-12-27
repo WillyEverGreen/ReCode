@@ -1,13 +1,24 @@
-import React, { useState } from "react";
-import {
-  Mail,
-  Lock,
-  ArrowRight,
-  Loader2,
-  ShieldCheck,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "../../config/api";
 import AppLogo from "../Logo-With-Name cropped.png";
+
+// Google Icon
+const GoogleIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+  </svg>
+);
+
+// GitHub Icon
+const GitHubIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+  </svg>
+);
 
 interface LoginProps {
   onLogin: (token: string, user: any) => void;
@@ -15,35 +26,39 @@ interface LoginProps {
   onForgotPassword: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({
-  onLogin,
-  onSwitchToSignup,
-  onForgotPassword,
-}) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, onForgotPassword }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state === 'github_oauth') {
+      handleGitHubCallback(code);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
+      if (!res.ok) throw new Error(data.message || "Login failed");
       onLogin(data.token, data.user);
     } catch (err: any) {
       setError(err.message);
@@ -52,93 +67,154 @@ const Login: React.FC<LoginProps> = ({
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!GOOGLE_CLIENT_ID) { setError("Google login not configured"); return; }
+    setOauthLoading('google');
+    setError("");
+    try {
+      if (!(window as any).google?.accounts?.oauth2) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Google'));
+          document.head.appendChild(script);
+        });
+      }
+      await new Promise(r => setTimeout(r, 100));
+      (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'email profile',
+        callback: async (response: any) => {
+          if (response.error) { setError(response.error); setOauthLoading(null); return; }
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/auth/google/callback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ access_token: response.access_token }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Google login failed");
+            onLogin(data.token, data.user);
+          } catch (err: any) { setError(err.message); }
+          finally { setOauthLoading(null); }
+        },
+      }).requestAccessToken();
+    } catch (err: any) { setError(err.message); setOauthLoading(null); }
+  };
+
+  const handleGitHubLogin = () => {
+    if (!GITHUB_CLIENT_ID) { setError("GitHub login not configured"); return; }
+    setOauthLoading('github');
+    const redirectUri = `${window.location.origin}/login`;
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user user:email')}&state=github_oauth`;
+  };
+
+  const handleGitHubCallback = async (code: string) => {
+    setOauthLoading('github');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/github/callback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "GitHub login failed");
+      onLogin(data.token, data.user);
+    } catch (err: any) { setError(err.message); }
+    finally { setOauthLoading(null); }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0b0f19] px-4 relative overflow-hidden">
-      {/* Optional Side Illustration / Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-yellow-500/5 rounded-full blur-[100px]"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#0b0f19] px-4">
+      {/* Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[80px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[80px]" />
       </div>
 
-      <div className="w-full max-w-md bg-[#0f1420] border border-white/10 rounded-2xl p-8 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.45)] relative z-10">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 rounded-lg overflow-hidden">
-              <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
-            </div>
+      <div className="w-full max-w-sm bg-[#0f1420] border border-[#1f2937] rounded-2xl p-6 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-5">
+          <div className="flex justify-center mb-3">
+            <img src={AppLogo} alt="ReCode" className="h-10 object-contain" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-          <p className="text-gray-400">
-            Sign in to continue your revision journey
-          </p>
+          <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
+          <p className="text-[#6b7280] text-xs mt-1">Sign in to continue your revision journey</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+          <div className="mb-4 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-center">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* OAuth - Side by Side */}
+        <div className="flex gap-2 mb-5">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={!!oauthLoading}
+            className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-medium h-10 rounded-lg text-sm transition-all disabled:opacity-50"
+          >
+            {oauthLoading === 'google' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><GoogleIcon /> Google</>}
+          </button>
+          <button
+            type="button"
+            onClick={handleGitHubLogin}
+            disabled={!!oauthLoading}
+            className="flex-1 flex items-center justify-center gap-2 bg-[#111318] hover:bg-[#1a1f2e] text-white font-medium h-10 rounded-lg text-sm transition-all disabled:opacity-50 border border-[#1f2937]"
+          >
+            {oauthLoading === 'github' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><GitHubIcon /> GitHub</>}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/[0.06]" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-3 bg-[#0f1420] text-[#4b5563] text-[10px] uppercase tracking-wider">or</span>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Email
-            </label>
-            <div className="relative group">
-              <Mail
-                className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-all duration-300 ${
-                  focusedInput === "email"
-                    ? "text-yellow-500 -translate-y-3/4"
-                    : "text-gray-500"
-                }`}
-              />
+            <div className="relative">
+              <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${focusedInput === "email" ? "text-[#e6c888]" : "text-[#4b5563]"}`} />
               <input
                 type="email"
                 value={email}
                 onFocus={() => setFocusedInput("email")}
                 onBlur={() => setFocusedInput(null)}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#0b0f19] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all shadow-inner"
-                placeholder="you@example.com"
+                className="w-full bg-[#0d1117] border border-[#1f2937] rounded-lg py-2.5 pl-9 pr-3 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#e6c888]/50 transition-all"
+                placeholder="Email"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Password
-            </label>
-            <div className="relative group">
-              <Lock
-                className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-all duration-300 ${
-                  focusedInput === "password"
-                    ? "text-yellow-500 -translate-y-3/4"
-                    : "text-gray-500"
-                }`}
-              />
+            <div className="relative">
+              <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${focusedInput === "password" ? "text-[#e6c888]" : "text-[#4b5563]"}`} />
               <input
                 type="password"
                 value={password}
                 onFocus={() => setFocusedInput("password")}
                 onBlur={() => setFocusedInput(null)}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#0b0f19] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all shadow-inner"
-                placeholder="••••••••"
+                className="w-full bg-[#0d1117] border border-[#1f2937] rounded-lg py-2.5 pl-9 pr-3 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-[#e6c888]/50 transition-all"
+                placeholder="Password"
                 required
               />
             </div>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
-              <ShieldCheck className="w-3 h-3 text-green-500/70" />
-              <span>Your data is encrypted and secure.</span>
-            </div>
-          </div>
-
-          <div className="text-right pt-1">
             <button
               type="button"
               onClick={onForgotPassword}
-              className="text-xs text-gray-400 hover:text-white hover:underline transition-all"
+              className="text-[10px] text-[#6b7280] hover:text-white mt-1.5 float-right transition-colors"
             >
               Forgot password?
             </button>
@@ -146,29 +222,20 @@ const Login: React.FC<LoginProps> = ({
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group active:scale-[0.98] focus:ring-2 focus:ring-yellow-500/50 focus:outline-none"
+            disabled={loading || !!oauthLoading}
+            className="w-full bg-[#CA8A04] hover:bg-[#EAB308] active:bg-[#A16207] text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-6"
           >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                Sign In{" "}
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Sign In <ArrowRight className="w-4 h-4" /></>}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-400">
+        {/* Footer */}
+        <p className="mt-5 text-center text-xs text-[#4b5563]">
           Don't have an account?{" "}
-          <button
-            onClick={onSwitchToSignup}
-            className="text-yellow-400 hover:text-yellow-300 font-medium hover:underline"
-          >
+          <button onClick={onSwitchToSignup} className="text-[#e6c888] hover:text-[#EAB308] font-medium">
             Sign up
           </button>
-        </div>
+        </p>
       </div>
     </div>
   );
