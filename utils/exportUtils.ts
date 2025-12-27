@@ -177,7 +177,7 @@ export const exportAsPDF = (data: ExportData): void => {
     console.log('[EXPORT] Starting premium PDF generation...', data.title);
     const pdf = new jsPDF();
     let yPos = 20;
-    const lineHeight = 6;
+    const lineHeight = 6.5; // Slightly increased for better readability
     const pageHeight = pdf.internal.pageSize.height;
     const pageWidth = pdf.internal.pageSize.width;
     const margin = 15;
@@ -215,7 +215,10 @@ export const exportAsPDF = (data: ExportData): void => {
     };
 
     const addSectionHeader = (text: string) => {
-      checkPageBreak(20);
+      // Add extra top margin if not at start of page
+      if (yPos > 30) yPos += 12; 
+      
+      checkPageBreak(25);
       yPos += 8;
       setFillColor(colors.gold);
       pdf.rect(margin, yPos - 4, 3, 12, 'F');
@@ -225,7 +228,7 @@ export const exportAsPDF = (data: ExportData): void => {
       pdf.text(text.toUpperCase(), margin + 8, yPos + 4);
       setDrawColor(colors.borderDefault);
       pdf.line(margin + 8, yPos + 8, margin + contentWidth, yPos + 8);
-      yPos += 16;
+      yPos += 18; // More breathing room after header
     };
 
     const addSubsectionHeader = (text: string) => {
@@ -238,14 +241,15 @@ export const exportAsPDF = (data: ExportData): void => {
     };
 
     const addBodyText = (text: string, indent = 0) => {
-      pdf.setFontSize(9);
+      pdf.setFontSize(9.5); // Slightly larger
       pdf.setFont('helvetica', 'normal');
       setTextColor(colors.textSecondary);
-      const lines = pdf.splitTextToSize(text, contentWidth - indent - 5);
+      // Narrower content width for better scan-ability
+      const lines = pdf.splitTextToSize(text, contentWidth - indent - 15);
       lines.forEach((line: string) => {
         checkPageBreak();
         pdf.text(line, margin + indent + 5, yPos);
-        yPos += lineHeight;
+        yPos += lineHeight + 0.5; // More line height
       });
     };
 
@@ -262,11 +266,11 @@ export const exportAsPDF = (data: ExportData): void => {
     };
 
     const addBullet = (text: string, number?: number) => {
-      checkPageBreak(lineHeight * 2);
-      pdf.setFontSize(9);
+      checkPageBreak(lineHeight * 2.5);
+      pdf.setFontSize(9.5);
       pdf.setFont('helvetica', 'normal');
       const prefix = number !== undefined ? `${number}.` : '•';
-      const lines = pdf.splitTextToSize(`${text}`, contentWidth - 15);
+      const lines = pdf.splitTextToSize(`${text}`, contentWidth - 20); // More indent
       setTextColor(colors.gold);
       pdf.text(prefix, margin + 5, yPos);
       setTextColor(colors.textSecondary);
@@ -275,6 +279,7 @@ export const exportAsPDF = (data: ExportData): void => {
         pdf.text(line, margin + 15, yPos);
         yPos += lineHeight;
       });
+      yPos += 2.5; // Spacing between bullet items
     };
 
     const addComplexityLine = (label: string, value: string) => {
@@ -362,35 +367,45 @@ export const exportAsPDF = (data: ExportData): void => {
     if (data.code) {
       addSectionHeader(`Code (${data.language || 'Code'})`);
       const codeLines = data.code.split('\n');
-      const codeBlockHeight = Math.min(codeLines.length * 4.2 + 8, pageHeight - yPos - 30);
+      // Increased code spacing
+      const codeLineHeight = 4.8; 
+      const codeBlockHeight = Math.min(codeLines.length * codeLineHeight + 10, pageHeight - yPos - 30);
+      
       setFillColor(colors.bgCode);
       pdf.rect(margin + 2, yPos - 2, contentWidth - 4, codeBlockHeight, 'F');
       setDrawColor(colors.borderDefault);
       pdf.rect(margin + 2, yPos - 2, contentWidth - 4, codeBlockHeight, 'S');
+      
       pdf.setFont('courier', 'normal');
-      pdf.setFontSize(7.5);
+      pdf.setFontSize(8);
       setTextColor(colors.textPrimary);
-      yPos += 3;
+      
+      yPos += 4; // Padding inside code block
       codeLines.forEach((line, idx) => {
         if (yPos > pageHeight - 35) {
           addPageWithBackground();
           setFillColor(colors.bgCode);
           const remainingLines = codeLines.length - idx;
-          const remainingHeight = Math.min(remainingLines * 4.2 + 8, pageHeight - 50);
+          const remainingHeight = Math.min(remainingLines * codeLineHeight + 10, pageHeight - 50);
           pdf.rect(margin + 2, yPos - 2, contentWidth - 4, remainingHeight, 'F');
           setDrawColor(colors.borderDefault);
           pdf.rect(margin + 2, yPos - 2, contentWidth - 4, remainingHeight, 'S');
-          yPos += 3;
+          yPos += 4;
         }
         pdf.text(line.substring(0, 95), margin + 6, yPos);
-        yPos += 4.2;
+        yPos += codeLineHeight;
       });
       pdf.setFont('helvetica', 'normal');
-      yPos += 8;
+      yPos += 12;
     }
 
     // Fast Recall
     if (data.revisionNotes && data.revisionNotes.length > 0) {
+      // Smart page break for checklist - if less than 40% page left, start on new page
+      if (yPos > pageHeight * 0.6) {
+        addPageWithBackground();
+      }
+      
       addSectionHeader('Fast Recall Checklist');
       data.revisionNotes.forEach((note, idx) => {
         addBullet(String(note), idx + 1);
