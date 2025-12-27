@@ -60,8 +60,13 @@ const createCacheKey = (input: string): string => {
 const mapQubridError = (error: any): Error => {
   const message = error?.message || "";
 
+  // Friendly daily-limit messaging that nudges upgrade
+  if (message.includes("Daily limit reached")) {
+    return new Error("You've hit today's Free plan limit. Upgrade to Pro to continue using this feature today.");
+  }
+
   if (message.includes("429") || message.includes("RESOURCE_EXHAUSTED") || message.includes("rate limit")) {
-    return new Error("AI usage limit reached. Please wait a minute and try again.");
+    return new Error("AI usage limit reached. Please wait a minute and try again, or upgrade to Pro if this keeps happening.");
   }
 
   if (message.includes("JSON") || message.includes("parse")) {
@@ -425,20 +430,29 @@ export const generateSolution = async (
       body: JSON.stringify({ questionName, language, problemDescription }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to generate solution");
-    }
+    const data = await response.json().catch(() => ({}));
 
-    const data = await response.json();
+    if (!response.ok) {
+      // Surface backend daily-limit message (429) in a friendly way
+      if (response.status === 429 && data?.message) {
+        throw new Error(
+          data.message.includes("Daily limit")
+            ? "You've hit today's Free plan limit for Get Solution. Upgrade to Pro to keep going today."
+            : data.message
+        );
+      }
+
+      throw new Error(data.error || "Failed to generate solution");
+    }
     
     if (data.fromCache) {
       console.log(`[${data.data.tier?.toUpperCase() || "CACHE"} HIT] Solution served from cache`);
     } else {
       console.log("[QUBRID] Fresh solution generated and cached on server");
-      // Trigger usage display refresh for non-cached (AI-generated) responses
-      window.dispatchEvent(new Event("usage-updated"));
     }
+
+    // Any successful call (cached or fresh) may change usage; refresh display
+    window.dispatchEvent(new Event("usage-updated"));
 
     // Include fromCache and tier in the returned result for UI display
     return {

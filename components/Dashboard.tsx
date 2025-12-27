@@ -1,17 +1,20 @@
 import React, { useMemo, useState } from "react";
 import { SavedQuestion } from "../types";
-import { FolderGit2, Calendar, ArrowRight, LayoutGrid, Search, ChevronDown, ChevronRight } from "lucide-react";
+import { FolderGit2, Calendar, ArrowRight, LayoutGrid, Search, ChevronDown, ChevronRight, Crown } from "lucide-react";
+import ProBadge from "./ProBadge";
 
 interface DashboardProps {
   questions: SavedQuestion[];
   onSelectQuestion: (question: SavedQuestion) => void;
   onAddNew: () => void;
+  onShowPricing: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
   questions,
   onSelectQuestion,
   onAddNew,
+  onShowPricing,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
@@ -101,16 +104,31 @@ const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
         
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search questions, patterns..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all text-sm"
-          />
+        {/* Search + Upgrade */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          {/* Upgrade Button */}
+          <button
+            type="button"
+            className="group flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-[11px] font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30"
+            onClick={onShowPricing}
+          >
+            <span className="relative flex items-center justify-center">
+              <Crown className="w-4 h-4 text-yellow-400 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
+            </span>
+            <span>Upgrade</span>
+          </button>
+
+          {/* Search Bar */}
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search questions, patterns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all text-sm"
+            />
+          </div>
         </div>
       </div>
 

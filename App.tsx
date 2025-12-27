@@ -9,6 +9,7 @@ import ForgotPassword from "./components/Auth/ForgotPassword";
 import GetSolution from "./components/GetSolution";
 import AdminPanel from "./components/AdminPanel";
 import UsageDisplay from "./components/UsageDisplay";
+import Pricing from "./components/Pricing";
 
 import { API_BASE_URL } from "./config/api";
 import {
@@ -25,6 +26,7 @@ import {
   LogOut,
   Sparkles,
   DollarSign,
+  ArrowLeft,
 } from "lucide-react";
 import AppLogo from "./components/Logo-With-Name cropped.png";
 
@@ -276,6 +278,10 @@ const App: React.FC = () => {
       return <GetSolution />;
     }
 
+    if (view === "pricing") {
+      return <Pricing />;
+    }
+
 
 
     return (
@@ -286,6 +292,7 @@ const App: React.FC = () => {
           setView("detail");
         }}
         onAddNew={() => setView("add")}
+          onShowPricing={() => setView("pricing")}
       />
     );
   };
@@ -303,6 +310,19 @@ const App: React.FC = () => {
         </div>
       ) : (!token && showLanding) || !token ? (
         <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
+      ) : view === "pricing" ? (
+        <div className="w-full h-full overflow-y-auto bg-[#0c0c0c]">
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+            <button
+              onClick={() => setView("dashboard")}
+              aria-label="Back to app"
+              className="mb-8 inline-flex items-center text-gray-400 hover:text-yellow-400 transition-colors"
+            >
+              <ArrowLeft className="w-7 h-7" />
+            </button>
+            <Pricing />
+          </div>
+        </div>
       ) : (
         <>
           {/* Sidebar */}

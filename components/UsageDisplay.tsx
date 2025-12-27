@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Sparkles, FileText, Infinity } from "lucide-react";
+import ProBadge from "./ProBadge";
 
 interface Usage {
   getSolution: { used: number; limit: number; left: number };
   addSolution: { used: number; limit: number; left: number };
+  plan?: string;
 }
 
 interface UsageDisplayProps {
@@ -28,7 +30,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
       const data = await response.json();
       
       if (data.success) {
-        setUsage(data.usage);
+        setUsage({ ...data.usage, plan: data.plan });
       }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
@@ -89,9 +91,23 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
     <div className={`bg-[#0d0e12] border border-gray-800/80 rounded-lg ${className}`}>
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-800/50">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-[#e2b857]/80" />
-          <span className="text-[10px] font-semibold text-gray-400 tracking-wide uppercase">Daily Usage</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#e2b857]/80" />
+            <span className="text-[10px] font-semibold text-gray-400 tracking-wide uppercase">Daily Usage</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {usage.plan === "pro" ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/40 text-[9px] font-semibold text-yellow-300 uppercase tracking-wide">
+                <ProBadge size={12} />
+                Pro
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-900 border border-gray-700 text-[9px] font-semibold text-gray-300 uppercase tracking-wide">
+                Free
+              </span>
+            )}
+          </div>
         </div>
       </div>
       

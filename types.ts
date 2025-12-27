@@ -49,7 +49,7 @@ export interface SavedQuestion extends Omit<SubmissionData, 'title' | 'language'
   timestamp: number;
 }
 
-export type ViewState = 'dashboard' | 'add' | 'detail' | 'solution';
+export type ViewState = 'dashboard' | 'add' | 'detail' | 'solution' | 'pricing';
 
 export interface SolutionApproach {
   name: string;
