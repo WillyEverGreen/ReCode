@@ -22,6 +22,7 @@ import {
   Download,
 } from "lucide-react";
 import ProBadge from "./ProBadge";
+import ExportDropdown from "./ExportDropdown";
 
 interface QuestionDetailProps {
   question: SavedQuestion;
@@ -44,6 +45,18 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     "revise" | "code" | "suggestions"
   >("revise");
   const [showSettings, setShowSettings] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+
+  // Close other dropdown when one opens
+  const handleSettingsToggle = (open: boolean) => {
+    setShowSettings(open);
+    if (open) setShowExport(false);
+  };
+
+  const handleExportToggle = (open: boolean) => {
+    setShowExport(open);
+    if (open) setShowSettings(false);
+  };
 
   const handleExport = () => {
     // Helper to format array content
@@ -290,104 +303,133 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-                onClick={handleExport}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-800 hover:text-white transition-colors"
-                title="Export Notes"
-            >
-                <Download className="w-5 h-5" />
-            </button>
+            <ExportDropdown
+              data={{
+                title: question.title,
+                code: question.code,
+                language: question.language,
+                timeComplexity: question.timeComplexity,
+                timeComplexityReason: question.timeComplexityReason,
+                spaceComplexity: question.spaceComplexity,
+                spaceComplexityReason: question.spaceComplexityReason,
+                revisionNotes: question.revisionNotes,
+                edgeCases: question.edgeCases,
+                approach: typeof question.approach === 'string' ? question.approach : undefined,
+                explanation: question.explanation,
+                pattern: question.pattern,
+                dsaCategory: question.dsaCategory,
+                problemOverview: question.problemOverview,
+                testCases: question.testCases,
+                patternName: question.patternName,
+                trick: question.trick,
+                approachSteps: question.approachSteps,
+                whyItWorks: question.whyItWorks,
+                highYieldEdgeCases: question.highYieldEdgeCases,
+                syntaxNotes: question.syntaxNotes,
+                coreLogic: question.coreLogic,
+              }}
+              isOpen={showExport}
+              onToggle={handleExportToggle}
+            />
             {/* Settings Toggle (Only visible in Revise tab) */}
             {activeTab === "revise" && (
               <div className="relative">
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    showSettings
-                      ? "bg-[#e6c888] text-black"
-                      : "text-gray-500 hover:bg-gray-800 hover:text-white"
-                  }`}
+                  onClick={() => handleSettingsToggle(!showSettings)}
+                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-800 hover:text-white transition-colors"
                   title="View Options"
                 >
                   <Settings2 className="w-5 h-5" />
                 </button>
 
                 {showSettings && (
-                  <div className="absolute right-0 top-12 w-64 bg-[#141414] border border-gray-800 rounded-lg shadow-xl p-3 z-50">
-                    <div className="text-xs font-bold text-gray-500 uppercase mb-2 px-1">
-                      View Options
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => handleSettingsToggle(false)}
+                    />
+
+                    {/* Settings Menu */}
+                    <div 
+                      className="absolute right-0 mt-2 w-64 bg-[#141414] border border-gray-800 rounded-lg shadow-xl p-3 z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-xs font-bold text-gray-500 uppercase mb-2 px-1">
+                        View Options
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          onUpdateSettings({
+                            ...userSettings,
+                            showTestCases: !userSettings.showTestCases,
+                          })
+                        }
+                        className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
+                      >
+                        <div
+                          className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            userSettings.showTestCases
+                              ? "bg-[#e6c888] border-[#e6c888]"
+                              : "border-gray-600"
+                          }`}
+                        >
+                          {userSettings.showTestCases && (
+                            <CheckSquare className="w-3 h-3 text-black" />
+                          )}
+                        </div>
+                        Show Test Cases
+                      </button>
+
+                      <div className="h-px bg-gray-800 my-2"></div>
+
+                      <button
+                        onClick={() =>
+                          onUpdateSettings({
+                            ...userSettings,
+                            showEdgeCases: !userSettings.showEdgeCases,
+                          })
+                        }
+                        className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
+                      >
+                        <div
+                          className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            userSettings.showEdgeCases
+                              ? "bg-[#e6c888] border-[#e6c888]"
+                              : "border-gray-600"
+                          }`}
+                        >
+                          {userSettings.showEdgeCases && (
+                            <CheckSquare className="w-3 h-3 text-black" />
+                          )}
+                        </div>
+                        Show Edge Cases
+                      </button>
+                      <button
+                        onClick={() =>
+                          onUpdateSettings({
+                            ...userSettings,
+                            showSyntaxNotes: !userSettings.showSyntaxNotes,
+                          })
+                        }
+                        className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
+                      >
+                        <div
+                          className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            userSettings.showSyntaxNotes
+                              ? "bg-[#e6c888] border-[#e6c888]"
+                              : "border-gray-600"
+                          }`}
+                        >
+                          {userSettings.showSyntaxNotes && (
+                            <CheckSquare className="w-3 h-3 text-black" />
+                          )}
+                        </div>
+                        Show Syntax Notes
+                      </button>
                     </div>
-
-                    <button
-                      onClick={() =>
-                        onUpdateSettings({
-                          ...userSettings,
-                          showTestCases: !userSettings.showTestCases,
-                        })
-                      }
-                      className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center ${
-                          userSettings.showTestCases
-                            ? "bg-[#e6c888] border-[#e6c888]"
-                            : "border-gray-600"
-                        }`}
-                      >
-                        {userSettings.showTestCases && (
-                          <CheckSquare className="w-3 h-3 text-black" />
-                        )}
-                      </div>
-                      Show Test Cases
-                    </button>
-
-                    <div className="h-px bg-gray-800 my-2"></div>
-
-                    <button
-                      onClick={() =>
-                        onUpdateSettings({
-                          ...userSettings,
-                          showEdgeCases: !userSettings.showEdgeCases,
-                        })
-                      }
-                      className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center ${
-                          userSettings.showEdgeCases
-                            ? "bg-[#e6c888] border-[#e6c888]"
-                            : "border-gray-600"
-                        }`}
-                      >
-                        {userSettings.showEdgeCases && (
-                          <CheckSquare className="w-3 h-3 text-black" />
-                        )}
-                      </div>
-                      Show Edge Cases
-                    </button>
-                    <button
-                      onClick={() =>
-                        onUpdateSettings({
-                          ...userSettings,
-                          showSyntaxNotes: !userSettings.showSyntaxNotes,
-                        })
-                      }
-                      className="flex items-center gap-3 w-full p-2 text-sm text-[#cccccc] hover:bg-gray-800 rounded-md transition-colors"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center ${
-                          userSettings.showSyntaxNotes
-                            ? "bg-[#e6c888] border-[#e6c888]"
-                            : "border-gray-600"
-                        }`}
-                      >
-                        {userSettings.showSyntaxNotes && (
-                          <CheckSquare className="w-3 h-3 text-black" />
-                        )}
-                      </div>
-                      Show Syntax Notes
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             )}

@@ -19,6 +19,7 @@ import {
   Check,
 } from "lucide-react";
 import ProBadge from "./ProBadge";
+import ExportDropdown from "./ExportDropdown";
 
 const LANGUAGES = ["Python", "JavaScript", "Java", "C++", "TypeScript", "Go"];
 
@@ -237,6 +238,15 @@ const GetSolution: React.FC = () => {
           <div className="bg-[#0a0d12] border border-gray-800/50 rounded-2xl p-6">
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-2xl font-bold text-white">{questionName}</h3>
+              <ExportDropdown
+                data={{
+                  title: questionName,
+                  code: getCurrentApproach()?.code || '',
+                  language: selectedLanguage,
+                  timeComplexity: getCurrentApproach()?.timeComplexity,
+                  spaceComplexity: getCurrentApproach()?.spaceComplexity,
+                }}
+              />
             </div>
             <div className="flex gap-3 mt-3 flex-wrap">
               <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#e6c888]/10 text-[#e6c888] border border-[#e6c888]/20">

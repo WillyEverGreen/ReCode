@@ -525,12 +525,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           <div className="space-y-4">
             {[
               {
-                q: "Is ReCode really free?",
-                a: "Yes! ReCode is completely free to use. Just sign up and start analyzing your LeetCode solutions.",
+                q: "What's included in the Free plan?",
+                a: "The Free plan includes 2 'Get Solution' requests, 3 'Add Solution' analyses, and 1 custom variant per day. You get AI-powered complexity analysis, pattern recognition, and structured notes—perfect for casual practice.",
+              },
+              {
+                q: "What do I get with Pro ($9/month)?",
+                a: "Pro unlocks unlimited AI requests, advanced complexity engine insights, priority support, PDF/Markdown export, and early access to new features. Best for serious interview prep.",
+              },
+              {
+                q: "Can I export my notes?",
+                a: "Yes! Pro users can export notes as PDF or Markdown for offline studying, Anki cards, or sharing with study groups.",
               },
               {
                 q: "Where is my data stored?",
-                a: "Your solutions are stored securely in our database, linked to your account. You can access them from any device after logging in.",
+                a: "Your solutions are stored securely in our encrypted database, linked to your account. Access them from any device after logging in. We never share your code.",
               },
               {
                 q: "What languages are supported?",
@@ -538,7 +546,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               },
               {
                 q: "How does the AI analysis work?",
-                a: "We use Qubrid AI (powered by Qwen3-Coder 30B) to analyze your code, identify DSA patterns, calculate complexity, and generate structured revision notes.",
+                a: "We use Qubrid AI (Qwen3-Coder 30B) + our custom complexity engine to analyze your code, detect 40+ algorithmic patterns, calculate time/space complexity with 95%+ accuracy, and generate interview-ready notes.",
               },
             ].map((item, index) => (
               <div
