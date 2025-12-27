@@ -141,7 +141,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
       <div className="px-3 py-1.5 border-t border-gray-800/30 bg-black/10">
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-gray-600">
           <Infinity className="w-2.5 h-2.5" />
-          <span>Cache unlimited • Resets midnight</span>
+          <span>Usage resets daily</span>
         </div>
       </div>
     </div>

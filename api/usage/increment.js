@@ -46,26 +46,33 @@ export default async function handler(req, res) {
 
     // ═══════════════════════════════════════════════════════════════
     // STEP 3: STRICT CHECK - Can user make this request?
+    // In development, we skip blocking and always allow increment.
     // ═══════════════════════════════════════════════════════════════
-    const canContinue = await UserUsage.canMakeRequest(userId, type);
-    
-    if (!canContinue) {
-      const usage = await UserUsage.getTodayUsage(userId);
-      const limitInfo = {
-        getSolution: { used: usage.getSolutionUsed, limit: usage.getSolutionLimit },
-        addSolution: { used: usage.addSolutionUsed, limit: usage.addSolutionLimit },
-        variant: { used: usage.variantUsed, limit: usage.variantLimit }
-      };
+    const isDevEnv = process.env.NODE_ENV !== 'production' || process.env.IGNORE_USAGE_LIMITS === 'true';
 
-      console.warn(`[USAGE INCREMENT] ❌ Limit reached for ${type}: ${JSON.stringify(limitInfo[type])}`);
+    if (!isDevEnv) {
+      const canContinue = await UserUsage.canMakeRequest(userId, type);
       
-      return res.status(429).json({ 
-        error: "Daily limit reached",
-        message: `You've used all ${limitInfo[type].limit} ${type} requests for today. Limit resets at midnight UTC.`,
-        currentUsage: limitInfo[type],
-        resetsAt: usage.resetsAt,
-        upgradeMessage: "Upgrade to Pro for unlimited access!"
-      });
+      if (!canContinue) {
+        const usage = await UserUsage.getTodayUsage(userId);
+        const limitInfo = {
+          getSolution: { used: usage.getSolutionUsed, limit: usage.getSolutionLimit },
+          addSolution: { used: usage.addSolutionUsed, limit: usage.addSolutionLimit },
+          variant: { used: usage.variantUsed, limit: usage.variantLimit }
+        };
+
+        console.warn(`[USAGE INCREMENT] ❌ Limit reached for ${type}: ${JSON.stringify(limitInfo[type])}`);
+        
+        return res.status(429).json({ 
+          error: "Daily limit reached",
+          message: `You've used all ${limitInfo[type].limit} ${type} requests for today. Limit resets at midnight UTC.`,
+          currentUsage: limitInfo[type],
+          resetsAt: usage.resetsAt,
+          upgradeMessage: "Upgrade to Pro for unlimited access!"
+        });
+      }
+    } else {
+      console.log(`[USAGE INCREMENT] Skipping limit enforcement for ${type} in development mode`);
     }
 
     // ═══════════════════════════════════════════════════════════════

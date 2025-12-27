@@ -172,23 +172,28 @@ export const analyzeSubmission = async (
   }
 
   // Check usage limit BEFORE making expensive API call
-  try {
-    const token = localStorage.getItem("token");
-    const usageRes = await fetch(`${API_BASE_URL}/api/usage`, {
-      headers: token ? { "Authorization": `Bearer ${token}` } : {}
-    });
-    if (usageRes.ok) {
-      const usageData = await usageRes.json();
-      if (usageData.addSolution?.left === 0) {
-        throw new Error(`Daily limit reached (${usageData.addSolution.limit}/day). Try again tomorrow or upgrade to Pro!`);
+  // In development, we skip this check entirely.
+  if (!import.meta.env.DEV && !import.meta.env.VITE_IGNORE_USAGE_LIMITS) {
+    try {
+      const token = localStorage.getItem("token");
+      const usageRes = await fetch(`${API_BASE_URL}/api/usage`, {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      if (usageRes.ok) {
+        const usageData = await usageRes.json();
+        if (usageData.addSolution?.left === 0) {
+          throw new Error(`Daily limit reached (${usageData.addSolution.limit}/day). Try again tomorrow or upgrade to Pro!`);
+        }
       }
+    } catch (limitError) {
+      // If it's our limit error, rethrow. Otherwise continue (usage check failed)
+      if (limitError instanceof Error && limitError.message.includes("Daily limit")) {
+        throw limitError;
+      }
+      console.warn("[USAGE] Could not check limit:", limitError);
     }
-  } catch (limitError) {
-    // If it's our limit error, rethrow. Otherwise continue (usage check failed)
-    if (limitError instanceof Error && limitError.message.includes("Daily limit")) {
-      throw limitError;
-    }
-    console.warn("[USAGE] Could not check limit:", limitError);
+  } else {
+    console.log("[USAGE] Skipping usage limit check in development mode");
   }
 
   // Now check in-flight guard
@@ -335,6 +340,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
         // ═══════════════════════════════════════════════════════════════
         // COMPLEXITY ENGINE: Validate/correct AI-generated TC & SC
+        // Also log whether final TC/SC came from AI or engine
         // ═══════════════════════════════════════════════════════════════
         try {
           const corrected = getCorrectedComplexity(
@@ -345,8 +351,8 @@ Return ONLY valid JSON, no markdown fences.`;
           );
           
           if (corrected.corrected) {
-            console.log(`[COMPLEXITY ENGINE] Corrected TC: ${result.timeComplexity} → ${corrected.timeComplexity}`);
-            console.log(`[COMPLEXITY ENGINE] Corrected SC: ${result.spaceComplexity} → ${corrected.spaceComplexity}`);
+            console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected TC: ${result.timeComplexity} → ${corrected.timeComplexity}`);
+            console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected SC: ${result.spaceComplexity} → ${corrected.spaceComplexity}`);
             result.timeComplexity = corrected.timeComplexity;
             result.spaceComplexity = corrected.spaceComplexity;
             if (corrected.timeComplexityReason) {
@@ -355,6 +361,8 @@ Return ONLY valid JSON, no markdown fences.`;
             if (corrected.spaceComplexityReason) {
               result.spaceComplexityReason = corrected.spaceComplexityReason;
             }
+          } else {
+            console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided TC/SC without override (TC=${result.timeComplexity}, SC=${result.spaceComplexity})`);
           }
         } catch (engineError) {
           console.warn("[COMPLEXITY ENGINE] Error (using AI values):", engineError);

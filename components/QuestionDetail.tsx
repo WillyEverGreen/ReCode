@@ -103,8 +103,14 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     // 4. Fast Recall Checklist
     if (question.revisionNotes && question.revisionNotes.length > 0) {
       content += `## Fast Recall Checklist\n\n`;
-      question.revisionNotes.forEach((note, idx) => {
-        content += `${idx + 1}. ${note}\n`;
+      question.revisionNotes.forEach((note) => {
+        // Strip leading markdown bullets/numbers AND outer **bold** wrapper on the first phrase
+        const cleaned = String(note)
+          // Remove any leading list marker like "- ", "* ", "1. "
+          .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
+          // If note starts with **...**, drop the asterisks and keep the text
+          .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
+        content += `- ${cleaned}\n`;
       });
       content += `\n`;
     }
@@ -151,11 +157,14 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     // Handle array content by joining with newlines
     let markdownContent = "";
     
-    // Helper: Strip leading bullets/numbers to allow consistent auto-numbering
-    const formatListItem = (item: any, index: number) => {
-      // Removes: "- ", "* ", "1. ", "• " but preserves "**Bold**"
-      const clean = String(item).replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "");
-      return `${index + 1}. ${clean}`;
+    // Helper: Normalize list items and remove explicit numbering/bold wrappers
+    const formatListItem = (item: any) => {
+      let clean = String(item)
+        // Remove any leading list marker like "- ", "* ", "1. ", "• "
+        .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
+        // If item starts with **...**, drop the asterisks and keep the text
+        .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
+      return `- ${clean}`;
     };
 
     if (Array.isArray(content)) {
@@ -493,14 +502,20 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                   <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall Checklist<ProBadge />
                 </h3>
                 <ul className="space-y-4">
-                  {question.revisionNotes.map((note, idx) => (
-                    <li key={idx} className="flex gap-4 text-[#cccccc]">
-                      <span className="flex-shrink-0 w-6 h-6 bg-[#e6c888]/10 text-[#e6c888] rounded-full flex items-center justify-center text-xs border border-[#e6c888]/20 mt-0.5 font-mono">
-                        {idx + 1}
-                      </span>
-                      <span className="leading-relaxed text-lg">{note}</span>
-                    </li>
-                  ))}
+                  {question.revisionNotes.map((rawNote, idx) => {
+                    // Normalize note for display: remove leading list markers and outer **bold** wrapper
+                    const note = String(rawNote)
+                      .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
+                      .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
+                    return (
+                      <li key={idx} className="flex gap-4 text-[#cccccc]">
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#e6c888]/10 text-[#e6c888] rounded-full flex items-center justify-center text-xs border border-[#e6c888]/20 mt-0.5 font-mono">
+                          {idx + 1}
+                        </span>
+                        <span className="leading-relaxed text-lg">{note}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

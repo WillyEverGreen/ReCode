@@ -17,7 +17,6 @@ import {
   ChevronRight,
   Copy,
   Check,
-  Database,
 } from "lucide-react";
 import ProBadge from "./ProBadge";
 
@@ -31,7 +30,6 @@ const GetSolution: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
   const [activeApproach, setActiveApproach] = useState<"brute" | "better" | "optimal">("optimal");
-  const [cacheStatus, setCacheStatus] = useState<{ fromCache: boolean; tier?: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
   const handleGenerate = async () => {
@@ -51,7 +49,6 @@ const GetSolution: React.FC = () => {
         problemDescription.trim() || undefined
       );
       setSolution(result);
-      setCacheStatus({ fromCache: (result as any).fromCache, tier: (result as any).tier });
       setActiveApproach("optimal");
     } catch (err: any) {
       setError(err.message || "Failed to generate solution");
@@ -240,26 +237,6 @@ const GetSolution: React.FC = () => {
           <div className="bg-[#0a0d12] border border-gray-800/50 rounded-2xl p-6">
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-2xl font-bold text-white">{questionName}</h3>
-              {/* Cache Status Badge */}
-              {cacheStatus && (
-                <span className={`px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1.5 ${
-                  cacheStatus.fromCache 
-                    ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                }`}>
-                  {cacheStatus.fromCache ? (
-                    <>
-                      <Database className="w-3 h-3" />
-                      ⚡ Cached
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3 h-3" />
-                      🔵 Fresh
-                    </>
-                  )}
-                </span>
-              )}
             </div>
             <div className="flex gap-3 mt-3 flex-wrap">
               <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#e6c888]/10 text-[#e6c888] border border-[#e6c888]/20">

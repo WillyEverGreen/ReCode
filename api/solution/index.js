@@ -372,6 +372,12 @@ Your prompt must handle these scenarios:
 - complexityNote: In both explaining why they're the same complexity
 - note: "Brute force is optimal for this problem"
 
+**Scenario 3.5: Same Time, Different Space (TIE-BREAKER)**
+- If two approaches have the **same time complexity** but **different space complexity**:
+- The approach with **better (lower) space complexity** MUST be labeled as **"optimal"**.
+- The other one becomes **"better"** (or remains "bruteForce" if it's the naive version).
+- Example: Two O(n²) approaches where one is O(1) space and the other is O(n) space → O(1) space must be **optimal**.
+
 **Scenario 4: Multiple "better" approaches possible (CHOOSE ONE)**
 - Example: Could use sorting OR heap
 - Result: Pick the MOST EDUCATIONAL middle approach
@@ -432,6 +438,7 @@ Your prompt must handle these scenarios:
 - [ ] If better is null, complexityNote explains why in brute/optimal
 - [ ] If brute=optimal, complexityNote in both + "note" field set
 - [ ] timeComplexity values match the actual code implementation
+- [ ] If two approaches share SAME time complexity, the one with LOWER space complexity is labeled **optimal**, the other **better** (or brute)
 - [ ] No contradictions (e.g., saying same TC but providing different code without reason)
 - [ ] Code is clean ${language} without markdown fences
 - [ ] Each approach uses different algorithm or data structure`;
@@ -691,7 +698,7 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] Corrected bruteForce: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected bruteForce: TC=${parsed.bruteForce.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity} → ${corrected.spaceComplexity}`);
         parsed.bruteForce.timeComplexity = corrected.timeComplexity;
         parsed.bruteForce.spaceComplexity = corrected.spaceComplexity;
         if (corrected.timeComplexityReason) {
@@ -700,6 +707,8 @@ Your prompt must handle these scenarios:
         if (corrected.spaceComplexityReason) {
           parsed.bruteForce.spaceComplexityReason = corrected.spaceComplexityReason;
         }
+      } else {
+        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided bruteForce TC/SC without override (TC=${parsed.bruteForce.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity})`);
       }
     }
     
@@ -712,7 +721,7 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] Corrected better: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected better: TC=${parsed.better.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.better.spaceComplexity} → ${corrected.spaceComplexity}`);
         parsed.better.timeComplexity = corrected.timeComplexity;
         parsed.better.spaceComplexity = corrected.spaceComplexity;
         if (corrected.timeComplexityReason) {
@@ -721,6 +730,8 @@ Your prompt must handle these scenarios:
         if (corrected.spaceComplexityReason) {
           parsed.better.spaceComplexityReason = corrected.spaceComplexityReason;
         }
+      } else {
+        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided better TC/SC without override (TC=${parsed.better.timeComplexity}, SC=${parsed.better.spaceComplexity})`);
       }
     }
     
@@ -733,7 +744,7 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] Corrected optimal: TC=${corrected.timeComplexity}, SC=${corrected.spaceComplexity}`);
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected optimal: TC=${parsed.optimal.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.optimal.spaceComplexity} → ${corrected.spaceComplexity}`);
         parsed.optimal.timeComplexity = corrected.timeComplexity;
         parsed.optimal.spaceComplexity = corrected.spaceComplexity;
         if (corrected.timeComplexityReason) {
@@ -742,6 +753,8 @@ Your prompt must handle these scenarios:
         if (corrected.spaceComplexityReason) {
           parsed.optimal.spaceComplexityReason = corrected.spaceComplexityReason;
         }
+      } else {
+        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided optimal TC/SC without override (TC=${parsed.optimal.timeComplexity}, SC=${parsed.optimal.spaceComplexity})`);
       }
       
       // Add detected pattern to response
@@ -827,6 +840,11 @@ export default async function handler(req, res) {
     console.log("[CACHE] Strategy:", isVariant ? "VARIANT" : "BASE", "| Base key:", baseCacheKey);
     if (variantCacheKey) console.log("[CACHE] Variant key:", variantCacheKey);
 
+    // Determine environment + user once (used for both cache hits and AI calls)
+    const isDevEnv = process.env.NODE_ENV !== 'production' || process.env.IGNORE_USAGE_LIMITS === 'true';
+    const userId = await getUserId(req);
+    console.log("[SOLUTION API] User ID:", userId);
+
     // ==================== STEP 1: Check Variant Cache (if applicable) ====================
     if (isVariant && redisClient) {
       try {
@@ -834,6 +852,13 @@ export default async function handler(req, res) {
         if (variantCached) {
           console.log("[REDIS] ✓ VARIANT HIT!");
           const data = typeof variantCached === "string" ? JSON.parse(variantCached) : variantCached;
+          // Count usage even when served from cache (both getSolution + variant)
+          try {
+            await UserUsage.incrementUsage(userId, 'getSolution');
+            await UserUsage.incrementUsage(userId, 'variant');
+          } catch (usageError) {
+            console.error("[USAGE] Failed to increment on variant cache hit:", usageError.message);
+          }
           return res.json({ success: true, fromCache: true, data: { ...data, tier: "cached" } });
         }
         console.log("[REDIS] ✗ Variant MISS");
@@ -869,7 +894,13 @@ export default async function handler(req, res) {
           } catch (e) {
             console.error("[MONGO] Hit count update error:", e.message);
           }
-          
+          // Count usage even when served from base Redis cache
+          try {
+            await UserUsage.incrementUsage(userId, 'getSolution');
+          } catch (usageError) {
+            console.error("[USAGE] Failed to increment on base Redis cache hit:", usageError.message);
+          }
+
           return res.json({ success: true, fromCache: true, data: { ...data, tier: "cached" } });
         }
         console.log("[REDIS] ✗ Base MISS");
@@ -894,6 +925,12 @@ export default async function handler(req, res) {
         redisClient.set(baseCacheKey, JSON.stringify(mongoCached.solution), { ex: 7 * 24 * 60 * 60 });
       }
       await SolutionCache.findByIdAndUpdate(mongoCached._id, { $inc: { hitCount: 1 } });
+      // Count usage even when served from base Mongo cache
+      try {
+        await UserUsage.incrementUsage(userId, 'getSolution');
+      } catch (usageError) {
+        console.error("[USAGE] Failed to increment on base Mongo cache hit:", usageError.message);
+      }
       return res.json({ 
         success: true, 
         fromCache: true, 
@@ -915,6 +952,12 @@ export default async function handler(req, res) {
           if (fuzzyCached) {
             console.log("[FUZZY] ✓ Serving from Redis fuzzy match:", fuzzyMatch);
             const data = typeof fuzzyCached === "string" ? JSON.parse(fuzzyCached) : fuzzyCached;
+            // Count usage even when served from fuzzy Redis cache
+            try {
+              await UserUsage.incrementUsage(userId, 'getSolution');
+            } catch (usageError) {
+              console.error("[USAGE] Failed to increment on fuzzy Redis cache hit:", usageError.message);
+            }
             return res.json({ 
               success: true, 
               fromCache: true, 
@@ -934,6 +977,12 @@ export default async function handler(req, res) {
             // Backfill Redis (best effort - FIX 3)
             redisClient.set(fuzzyBaseKey, JSON.stringify(mongoFuzzy.solution), { ex: 7 * 24 * 60 * 60 }).catch(() => {});
             await SolutionCache.findByIdAndUpdate(mongoFuzzy._id, { $inc: { hitCount: 1 } });
+            // Count usage even when served from fuzzy Mongo cache
+            try {
+              await UserUsage.incrementUsage(userId, 'getSolution');
+            } catch (usageError) {
+              console.error("[USAGE] Failed to increment on fuzzy Mongo cache hit:", usageError.message);
+            }
             return res.json({
               success: true,
               fromCache: true,
@@ -941,13 +990,21 @@ export default async function handler(req, res) {
             });
           }
           
-          // FIX 6: Fuzzy match found but no cache - DO NOT generate AI, suggest instead
-          console.log("[FUZZY] Match found but no cache, not generating AI:", fuzzyMatch);
-          return res.status(404).json({
-            error: "Problem not found in cache",
-            suggestion: fuzzyMatch,
-            message: `Did you mean '${fuzzyMatch}'? Try searching with the correct name.`
-          });
+          // FIX 6: Fuzzy match found but no cache
+          // Production: DO NOT generate AI, suggest instead (safety)
+          // Development: allow falling through to AI generation
+          console.log("[FUZZY] Match found but no cache:", fuzzyMatch);
+          const isDevEnv = process.env.NODE_ENV !== 'production' || process.env.IGNORE_USAGE_LIMITS === 'true';
+          if (!isDevEnv) {
+            console.log("[FUZZY] Production mode → not generating AI, returning 404 suggestion");
+            return res.status(404).json({
+              error: "Problem not found in cache",
+              suggestion: fuzzyMatch,
+              message: `Did you mean '${fuzzyMatch}'? Try searching with the correct name.`
+            });
+          } else {
+            console.log("[FUZZY] Dev mode → ignoring cache-only restriction, allowing AI generation to proceed");
+          }
         } catch (e) {
           console.error("[FUZZY] Read error:", e.message);
         }
@@ -955,40 +1012,42 @@ export default async function handler(req, res) {
     }
 
     // ==================== STEP 5: Check Daily Limit (before AI call) ====================
-    // Get user ID from shared helper (ensures consistency across ALL APIs)
-    const userId = await getUserId(req);
-    console.log("[SOLUTION API] User ID:", userId);
+    // For development, we skip strict daily limit enforcement to allow free experimentation.
     
-    // Check if user can make this request (cache hits don't count, only AI calls)
-    const canContinue = await UserUsage.canMakeRequest(userId, 'getSolution');
-    if (!canContinue) {
-      const usage = await UserUsage.getTodayUsage(userId);
-      return res.status(429).json({ 
-        error: "Daily limit reached", 
-        message: `You've used all ${usage.getSolutionLimit} Get Solution requests for today. Upgrade to Pro for unlimited access!`,
-        usage: {
-          used: usage.getSolutionUsed,
-          limit: usage.getSolutionLimit,
-          resetsAt: getNextMidnight()
-        }
-      });
-    }
-    
-    // Check variant limit separately (variants are more expensive)
-    if (isVariant) {
-      const canMakeVariant = await UserUsage.canMakeRequest(userId, 'variant');
-      if (!canMakeVariant) {
+    if (!isDevEnv) {
+      // Check if user can make this request (applies to AI calls; cache hits are already counted above)
+      const canContinue = await UserUsage.canMakeRequest(userId, 'getSolution');
+      if (!canContinue) {
         const usage = await UserUsage.getTodayUsage(userId);
         return res.status(429).json({ 
-          error: "Variant limit reached", 
-          message: `You've used your ${usage.variantLimit} custom variant request for today. Try without custom description or upgrade to Pro!`,
+          error: "Daily limit reached", 
+          message: `You've used all ${usage.getSolutionLimit} Get Solution requests for today. Upgrade to Pro for unlimited access!`,
           usage: {
-            variantUsed: usage.variantUsed,
-            variantLimit: usage.variantLimit,
+            used: usage.getSolutionUsed,
+            limit: usage.getSolutionLimit,
             resetsAt: getNextMidnight()
           }
         });
       }
+      
+      // Check variant limit separately (variants are more expensive)
+      if (isVariant) {
+        const canMakeVariant = await UserUsage.canMakeRequest(userId, 'variant');
+        if (!canMakeVariant) {
+          const usage = await UserUsage.getTodayUsage(userId);
+          return res.status(429).json({ 
+            error: "Variant limit reached", 
+            message: `You've used your ${usage.variantLimit} custom variant request for today. Try without custom description or upgrade to Pro!`,
+            usage: {
+              variantUsed: usage.variantUsed,
+              variantLimit: usage.variantLimit,
+              resetsAt: getNextMidnight()
+            }
+          });
+        }
+      }
+    } else {
+      console.log("[USAGE] Skipping getSolution/variant daily limits in development mode");
     }
 
     // FIX 9: Prevent same user spamming same question (10s lock)
@@ -1041,7 +1100,7 @@ export default async function handler(req, res) {
       questionName: normalizedName
     };
     
-    // Increment usage count (only for successful AI calls)
+    // Increment usage count (for successful AI calls)
     await UserUsage.incrementUsage(userId, 'getSolution');
     
     // Also increment variant count if this was a variant request
