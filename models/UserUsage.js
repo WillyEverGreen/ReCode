@@ -185,7 +185,7 @@ UserUsageSchema.statics.incrementUsage = async function(userId, type) {
     }
   );
 
-  console.log(`[USAGE] Incremented ${type} for user ${userId}: ${result[field]}/${FREE_LIMITS[type]}`);
+  console.log(`[USAGE] Incremented ${type} for user ${userId}: ${result[field]}/${TRIAL_LIMITS[type]}`);
   return result;
 };
 
@@ -213,7 +213,7 @@ UserUsageSchema.statics.checkLimit = async function(userId, type) {
   }
 
   const current = usage ? (usage[field] || 0) : 0;
-  const limit = FREE_LIMITS[type];
+  const limit = TRIAL_LIMITS[type];
   
   return {
     exceeded: current >= limit,

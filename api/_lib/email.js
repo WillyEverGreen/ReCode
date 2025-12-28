@@ -8,19 +8,52 @@ function getTransporter() {
   
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
+  const emailHost = process.env.EMAIL_HOST;
+  const emailPort = process.env.EMAIL_PORT;
+  const resendApiKey = process.env.RESEND_API_KEY; // Auto-detect Resend
   
-  if (!emailUser || !emailPass) {
-    console.log("[EMAIL] Missing EMAIL_USER or EMAIL_PASS - emails disabled");
+  if (!emailUser && !resendApiKey) {
+    console.log("[EMAIL] Missing EMAIL_USER or RESEND_API_KEY - emails disabled");
     return null;
   }
   
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-  });
+  // 1. Resend (Highest Priority)
+  if (resendApiKey) {
+    console.log("[EMAIL] Using Resend SMTP");
+    transporter = nodemailer.createTransport({
+      host: "smtp.resend.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "resend",
+        pass: resendApiKey,
+      },
+    });
+    return transporter;
+  }
+
+  // 2. Custom SMTP (if host provided)
+  if (emailHost) {
+    transporter = nodemailer.createTransport({
+      host: emailHost,
+      port: Number(emailPort) || 587,
+      secure: (Number(emailPort) || 465) === 465,
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+    });
+  } 
+  // 3. Gmail Fallback
+  else if (emailUser && emailPass) {
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+    });
+  }
   
   return transporter;
 }
@@ -98,7 +131,7 @@ export async function sendVerificationEmail(to, otp) {
   
   try {
     await transport.sendMail({
-      from: `"ReCode" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<') ? process.env.EMAIL_FROM : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
       subject: "Verify Your Email - ReCode",
       html: getEmailTemplate(content, "Verify Email"),
@@ -141,7 +174,7 @@ export async function sendPasswordResetEmail(to, otp) {
   
   try {
     await transport.sendMail({
-      from: `"ReCode" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<') ? process.env.EMAIL_FROM : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
       subject: "Password Reset - ReCode",
       html: getEmailTemplate(content, "Password Reset"),
