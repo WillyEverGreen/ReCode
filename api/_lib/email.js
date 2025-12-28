@@ -22,8 +22,8 @@ function getTransporter() {
     console.log("[EMAIL] Using Resend SMTP");
     transporter = nodemailer.createTransport({
       host: "smtp.resend.com",
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false, // StartTLS
       auth: {
         user: "resend",
         pass: resendApiKey,
