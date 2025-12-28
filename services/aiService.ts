@@ -304,14 +304,14 @@ COMPLEXITY DISCREPANCY:
 
 TASK: 
 1. Carefully reconsider the code's complexity
-2. Provide your FINAL answer with concise reasoning (1-2 sentences max)
-3. Focus ONLY on explaining the complexity, not on any discrepancy
+2. Provide your FINAL answer with CONCISE reasoning.
+3. If overriding, do NOT write a paragraph. Keep it to 1 sentence if possible.
 
 Return your answer in this JSON format:
 {
   "finalTimeComplexity": "O(...)",
   "finalSpaceComplexity": "O(...)",
-  "reasoning": "1-2 sentence explanation of why this complexity is correct. Be direct and concise."
+  "reasoning": "EXTREMELY CONCISE (max 20 words). Direct structural justification only. No fluff."
 }
 
 Return ONLY valid JSON, no markdown fences.`;
