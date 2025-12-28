@@ -73,7 +73,7 @@ const Pricing: React.FC = () => {
               Designed for intensive prep cycles, with more room for daily problem solving.
             </p>
             <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-3xl font-bold text-white">$9</span>
+              <span className="text-3xl font-bold text-white">₹249</span>
               <span className="text-gray-400 text-xs">/month</span>
             </div>
 

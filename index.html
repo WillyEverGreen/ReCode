@@ -62,24 +62,23 @@
         background: #6b7280;
       }
     </style>
-    <script type="importmap">
-      {
-        "imports": {
-          "react/": "https://aistudiocdn.com/react@^19.2.0/",
-          "react": "https://aistudiocdn.com/react@^19.2.0",
-          "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-          "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-          "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-          "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
-          "react-syntax-highlighter": "https://esm.sh/react-syntax-highlighter@15.5.0?external=react,react-dom",
-          "react-syntax-highlighter/dist/esm/styles/prism": "https://esm.sh/react-syntax-highlighter@15.5.0/dist/esm/styles/prism?external=react,react-dom",
-          "react-syntax-highlighter/": "https://aistudiocdn.com/react-syntax-highlighter@^16.1.0/"
-        }
-      }
-    </script>
     <link rel="stylesheet" href="/index.css" />
   </head>
   <body>
+    <script>
+      // FIX: Unregister any existing service workers (likely from previous projects or different versions)
+      // This resolves the "Failed to fetch" and "WebSocket" errors caused by stale workers intercepting requests.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              console.log('Unregistering stale service worker:', registration);
+              registration.unregister();
+            }
+          });
+        });
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

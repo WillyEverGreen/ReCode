@@ -47,12 +47,21 @@ UserUsageSchema.pre('save', function(next) {
   next();
 });
 
-// Free tier limits (strict enforcement)
-const FREE_LIMITS = {
-  getSolution: 2,    // 2 "Get Solution" per day (expensive AI call)
-  addSolution: 3,    // 3 "Add Solution" (code analysis) per day
-  variant: 1         // 1 variant per day (expensive)
+// Trial tier limits (DAILY limits during 7-day trial)
+const TRIAL_LIMITS = {
+  getSolution: 1,    // 1 "Get Solution" per day (7 total over trial)
+  addSolution: 2,    // 2 "Add Solution" per day (14 total over trial)
+  variant: 0         // Variant not included in trial
 };
+
+// Pro tier limits (daily limits to prevent abuse)
+const PRO_LIMITS = {
+  getSolution: 10,   // 10 "Get Solution" per day
+  addSolution: 10,   // 10 "Add Solution" per day
+  variant: 10        // 10 variants per day
+};
+
+
 
 /**
  * Get current UTC date in YYYY-MM-DD format
@@ -65,12 +74,20 @@ function getTodayUTC() {
 
 /**
  * Get today's usage for a specific user
- * Returns usage stats with remaining counts
+ * Returns usage stats with remaining counts based on user plan
+ * @param {string} userId - User ID
+ * @param {string} plan - User plan ('trial' or 'pro')
+ * @param {string} role - User role ('user' or 'admin')
  */
-UserUsageSchema.statics.getTodayUsage = async function(userId) {
+UserUsageSchema.statics.getTodayUsage = async function(userId, plan = 'trial', role = 'user') {
   if (!userId) {
     throw new Error("userId is required");
   }
+
+  // Determine limits based on plan (admin gets unlimited)
+  const isAdmin = role === 'admin';
+  const limits = isAdmin ? { getSolution: 999999, addSolution: 999999, variant: 999999 } :
+                 plan === 'pro' ? PRO_LIMITS : TRIAL_LIMITS;
 
   const today = getTodayUTC();
   let usage = await this.findOne({ userId, date: today });
@@ -81,12 +98,12 @@ UserUsageSchema.statics.getTodayUsage = async function(userId) {
       getSolutionUsed: 0,
       addSolutionUsed: 0,
       variantUsed: 0,
-      getSolutionLimit: FREE_LIMITS.getSolution,
-      addSolutionLimit: FREE_LIMITS.addSolution,
-      variantLimit: FREE_LIMITS.variant,
-      getSolutionLeft: FREE_LIMITS.getSolution,
-      addSolutionLeft: FREE_LIMITS.addSolution,
-      variantLeft: FREE_LIMITS.variant,
+      getSolutionLimit: limits.getSolution,
+      addSolutionLimit: limits.addSolution,
+      variantLimit: limits.variant,
+      getSolutionLeft: limits.getSolution,
+      addSolutionLeft: limits.addSolution,
+      variantLeft: limits.variant,
       resetsAt: getNextMidnightUTC()
     };
   }
@@ -95,12 +112,12 @@ UserUsageSchema.statics.getTodayUsage = async function(userId) {
     getSolutionUsed: usage.getSolutionCount || 0,
     addSolutionUsed: usage.addSolutionCount || 0,
     variantUsed: usage.variantCount || 0,
-    getSolutionLimit: FREE_LIMITS.getSolution,
-    addSolutionLimit: FREE_LIMITS.addSolution,
-    variantLimit: FREE_LIMITS.variant,
-    getSolutionLeft: Math.max(0, FREE_LIMITS.getSolution - (usage.getSolutionCount || 0)),
-    addSolutionLeft: Math.max(0, FREE_LIMITS.addSolution - (usage.addSolutionCount || 0)),
-    variantLeft: Math.max(0, FREE_LIMITS.variant - (usage.variantCount || 0)),
+    getSolutionLimit: limits.getSolution,
+    addSolutionLimit: limits.addSolution,
+    variantLimit: limits.variant,
+    getSolutionLeft: Math.max(0, limits.getSolution - (usage.getSolutionCount || 0)),
+    addSolutionLeft: Math.max(0, limits.addSolution - (usage.addSolutionCount || 0)),
+    variantLeft: Math.max(0, limits.variant - (usage.variantCount || 0)),
     resetsAt: getNextMidnightUTC()
   };
 };
@@ -108,13 +125,17 @@ UserUsageSchema.statics.getTodayUsage = async function(userId) {
 /**
  * Check if user can make a specific type of request
  * Returns true if under limit, false if limit reached
+ * @param {string} userId - User ID
+ * @param {string} type - Request type ('getSolution', 'addSolution', 'variant')
+ * @param {string} plan - User plan ('trial' or 'pro')
+ * @param {string} role - User role ('user' or 'admin')
  */
-UserUsageSchema.statics.canMakeRequest = async function(userId, type) {
+UserUsageSchema.statics.canMakeRequest = async function(userId, type, plan = 'trial', role = 'user') {
   if (!userId || !type) {
     throw new Error("userId and type are required");
   }
 
-  const usage = await this.getTodayUsage(userId);
+  const usage = await this.getTodayUsage(userId, plan, role);
   
   switch(type) {
     case 'getSolution':

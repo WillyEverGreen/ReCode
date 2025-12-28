@@ -73,3 +73,32 @@ export interface SolutionResult {
   pattern: string;
   keyInsights: string[];
 }
+
+// User types
+export type UserRole = 'user' | 'admin';
+export type UserPlan = 'trial' | 'pro';
+
+export interface User {
+  _id: string;
+  username: string;
+  email: string;
+  password?: string;
+  isVerified: boolean;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  createdAt: Date;
+  provider: 'email' | 'google' | 'github';
+  providerId?: string;
+  avatar?: string;
+  role: UserRole;
+  plan: UserPlan;
+  
+  // Trial system (7-day trial with daily limits)
+  trialStartDate?: Date;
+  trialEndDate?: Date;
+  trialUsed?: boolean;
+  
+  // Pro subscription
+  planStartDate?: Date;
+  planEndDate?: Date;
+}

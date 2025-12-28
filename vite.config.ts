@@ -8,8 +8,15 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        hmr: {
+          clientPort: 3000,
+          port: 3000
+        }
       },
       plugins: [react()],
+      optimizeDeps: {
+        include: ['react', 'react-dom']
+      },
       define: {
         'process.env.API_KEY': JSON.stringify(env.QUBRID_API_KEY),
         'process.env.QUBRID_API_KEY': JSON.stringify(env.QUBRID_API_KEY)
@@ -17,7 +24,8 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
-        }
+        },
+        dedupe: ['react', 'react-dom']
       }
     };
 });

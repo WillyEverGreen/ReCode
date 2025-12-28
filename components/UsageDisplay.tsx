@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Sparkles, FileText, Infinity } from "lucide-react";
+import { Sparkles, FileText, Infinity, Zap, ShieldCheck, Crown } from "lucide-react";
 import ProBadge from "./ProBadge";
+import UpgradeModal from "./UpgradeModal";
 
 interface Usage {
-  getSolution: { used: number; limit: number; left: number };
-  addSolution: { used: number; limit: number; left: number };
+  getSolution: { used: number; limit: number; left: number | string };
+  addSolution: { used: number; limit: number; left: number | string };
   plan?: string;
+  unlimited?: boolean;
 }
 
 interface UsageDisplayProps {
@@ -17,6 +19,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const fetchUsage = async () => {
     try {
@@ -30,7 +33,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
       const data = await response.json();
       
       if (data.success) {
-        setUsage({ ...data.usage, plan: data.plan });
+        setUsage({ ...data.usage, plan: data.plan, unlimited: data.unlimited });
       }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
@@ -76,8 +79,13 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
 
   if (!usage) return null;
 
-  const getPercentage = (left: number, limit: number) => (left / limit) * 100;
-  const getColor = (left: number, limit: number) => {
+  const getPercentage = (left: number | string, limit: number) => {
+    if (left === 'unlimited') return 100;
+    return ((left as number) / limit) * 100;
+  };
+  
+  const getColor = (left: number | string, limit: number) => {
+    if (left === 'unlimited') return { bar: "bg-[#e2b857]", text: "text-[#e2b857]" };
     const pct = getPercentage(left, limit);
     if (pct <= 0) return { bar: "bg-red-600/90", text: "text-red-400/90" };
     if (pct <= 33) return { bar: "bg-amber-500/90", text: "text-amber-400/90" };
@@ -97,7 +105,12 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
             <span className="text-[10px] font-semibold text-gray-400 tracking-wide uppercase">Daily Usage</span>
           </div>
           <div className="flex items-center gap-1">
-            {usage.plan === "pro" ? (
+            {usage.unlimited ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/40 text-[9px] font-semibold text-purple-300 uppercase tracking-wide">
+                <ShieldCheck className="w-3 h-3" />
+                Admin
+              </span>
+            ) : usage.plan === "pro" ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/40 text-[9px] font-semibold text-yellow-300 uppercase tracking-wide">
                 <ProBadge size={12} />
                 Pro
@@ -120,7 +133,16 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
               <span className="text-xs text-gray-400">Get Solution</span>
             </div>
             <div className={`text-xs font-bold ${getSolutionColors.text}`}>
-              {usage.getSolution.left}<span className="text-gray-600 font-medium">/{usage.getSolution.limit}</span>
+              {usage.getSolution.left === 'unlimited' ? (
+                <span className="flex items-center gap-1 text-[#e2b857]">
+                  <Infinity className="w-3 h-3" />
+                  Unlimited
+                </span>
+              ) : (
+                <>
+                  {usage.getSolution.left}<span className="text-gray-600 font-medium">/{usage.getSolution.limit}</span>
+                </>
+              )}
             </div>
           </div>
           
@@ -140,7 +162,16 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
               <span className="text-xs text-gray-400">Add Solution</span>
             </div>
             <div className={`text-xs font-bold ${addSolutionColors.text}`}>
-              {usage.addSolution.left}<span className="text-gray-600 font-medium">/{usage.addSolution.limit}</span>
+              {usage.addSolution.left === 'unlimited' ? (
+                <span className="flex items-center gap-1 text-[#e2b857]">
+                  <Infinity className="w-3 h-3" />
+                  Unlimited
+                </span>
+              ) : (
+                <>
+                  {usage.addSolution.left}<span className="text-gray-600 font-medium">/{usage.addSolution.limit}</span>
+                </>
+              )}
             </div>
           </div>
           
@@ -154,12 +185,38 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-1.5 border-t border-gray-800/30 bg-black/10">
+      <div className="px-3 py-2 border-t border-gray-800/30 bg-black/10 flex flex-col gap-2">
+        {usage.plan === 'free' && !usage.unlimited && (
+          <button
+            type="button"
+            onClick={() => setShowUpgradeModal(true)}
+            className="group flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-[11px] font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30 w-full"
+          >
+            <span className="relative flex items-center justify-center">
+              <Crown className="w-4 h-4 text-yellow-400 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
+            </span>
+            <span>Upgrade</span>
+          </button>
+        )}
+        
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-gray-600">
           <Infinity className="w-2.5 h-2.5" />
-          <span>Usage resets daily</span>
+          <span>
+            {usage.unlimited ? 'Unlimited access' : 
+             usage.plan === 'free' ? 'Usage resets daily for a week' : 
+             'Usage resets daily'}
+          </span>
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSuccess={() => {
+          fetchUsage(); // Refresh usage after upgrade
+        }}
+      />
     </div>
   );
 };

@@ -295,14 +295,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       {/* How It Works - Clean Steps */}
       <HowItWorksSection />
 
+      {/* Product Preview - ReCode in Action */}
+      <ProductPreviewSection />
+
       {/* Pricing - Clean Comparison */}
       <PricingSection onGetStarted={onGetStarted} />
 
       {/* Testimonials - Minimal Cards */}
       <TestimonialsSection />
-
-      {/* Product Preview */}
-      <ProductPreviewSection />
 
       {/* FAQ Section */}
       <FAQSection />
@@ -535,7 +535,7 @@ const PricingSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
             <h3 className="text-2xl font-bold mb-2">Pro</h3>
             <div className="flex items-baseline gap-2 mb-6">
-              <span className="text-5xl font-bold">₹199</span>
+              <span className="text-5xl font-bold">₹249</span>
               <span className="text-gray-400">/month</span>
             </div>
 

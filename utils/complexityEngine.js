@@ -272,7 +272,7 @@ function extractCodeFeatures(code, language = 'python') {
   
   // Check for Subset/Choice Pattern (O(2^n))
   // Look for multiple calls with i+1 or simple step
-  if (features.algorithms.recursion && !features.algorithms.isPermutation) {
+  if (features.algorithms.recursion && !features.algorithms.isPermutation && !features.algorithms.divideConquer) {
      const fnNames = extractFunctionNames(code, language);
      if (fnNames.length > 0) {
         // recursion with i+1
@@ -1310,9 +1310,11 @@ function deriveTimeComplexity(features) {
 
   
   // Backtracking - exponential (covers classical backtracking + recursive subset/choice patterns)
-  if (features.algorithms.backtracking ||
-      features.algorithms.recursionInsideLoop ||
-      (features.algorithms.recursion && (features.metrics.recursionArgs === 'step' || features.metrics.recursionBranching >= 2))) {
+  // FIX: Exclude Divide & Conquer (QuickSort, MergeSort) from being treated as exponential backtracking
+  if ((features.algorithms.backtracking ||
+       features.algorithms.recursionInsideLoop ||
+       (features.algorithms.recursion && (features.metrics.recursionArgs === 'step' || features.metrics.recursionBranching >= 2))) && 
+       !features.algorithms.divideConquer) {
       if (features.algorithms.isPermutation) {
            applicableComplexities.push({
              complexity: 'O(n!)',
@@ -1671,6 +1673,95 @@ function deriveSpaceComplexity(features) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// LAYER 3.5: SAFETY LAYER - HARD CONSTRAINTS & VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function verifyComplexity(analysisResult, features) {
+  const { timeComplexity, spaceComplexity, features: f } = analysisResult;
+  let correctedTC = timeComplexity;
+  let correctedReason = analysisResult.timeComplexityReason;
+  let correctedSC = spaceComplexity;
+  let correctedSCReason = analysisResult.spaceComplexityReason;
+
+  // Helper to check TC buckets
+  const isExponential = (tc) => tc.includes('2^n') || tc.includes('k^n') || tc.includes('!');
+  const isLogLinearOrQuadratic = (tc) => tc.includes('n log n') || tc.includes('n^2') || tc.includes('n²');
+  const isLinearOrLog = (tc) => tc === 'O(n)' || tc === 'O(log n)';
+
+  // 1️⃣ SORTING ALGORITHMS
+  if (f.algorithms.sorting || f.algorithms.sortingInsideLoop) {
+    if (isExponential(timeComplexity)) {
+      correctedTC = 'O(n log n)'; // Safe fallback
+      correctedReason = 'Correction: Sorting algorithms cannot be exponential. Standard sorting is O(n log n).';
+    }
+  }
+
+  // 2️⃣ SEARCHING ALGORITHMS (Binary Search, BFS, DFS)
+  if (f.algorithms.binarySearch || (f.algorithms.bfs && !f.dataStructures.graph) || (f.algorithms.dfs && !f.dataStructures.graph)) {
+    if (isExponential(timeComplexity)) {
+      correctedTC = f.algorithms.binarySearch ? 'O(log n)' : 'O(n)';
+      correctedReason = 'Correction: Search algorithms on standard structures cannot be exponential.';
+    }
+  }
+
+  // 3️⃣ DIVIDE & CONQUER (Quick Sort, Merge Sort)
+  if (f.algorithms.divideConquer) {
+    if (isExponential(timeComplexity) && !f.algorithms.accumulatesResults) {
+      correctedTC = 'O(n log n)';
+      correctedReason = 'Correction: Divide & Conquer algorithms (like QuickSort/MergeSort) are typically O(n log n), not exponential.';
+    }
+  }
+
+  // 4️⃣ BACKTRACKING RULES
+  if (isExponential(timeComplexity)) {
+    const isValidBacktracking = 
+      f.algorithms.isPermutation || 
+      (f.algorithms.recursion && (f.metrics.recursionArgs === 'step' || f.metrics.recursionBranching >= 2));
+      
+    if (!isValidBacktracking && !f.algorithms.backtracking) {
+      // If claimed exponential but no backtracking patterns found -> Flag it
+      correctedTC = 'O(n²)'; // Conservative fallback
+      correctedReason = 'Correction: Exponential complexity detected without backtracking structure. Re-evaluating as polynomial.';
+    }
+  }
+
+  // 5️⃣ DP SANITY RULES
+  if (f.algorithms.dp || f.algorithms.memoization) {
+    if (isExponential(timeComplexity)) {
+      correctedTC = f.metrics.dpDimensions === 2 ? 'O(n²)' : 'O(n)';
+      correctedReason = 'Correction: Dynamic Programming optimizes exponential problems to polynomial time.';
+    }
+  }
+
+  // 6️⃣ GRAPH ALGORITHMS
+  if (f.dataStructures.graph && (f.algorithms.bfs || f.algorithms.dfs)) {
+    if (isExponential(timeComplexity)) {
+      correctedTC = 'O(V + E)';
+      correctedReason = 'Correction: Graph traversal (BFS/DFS) is linear with respect to vertices and edges.';
+    }
+  }
+
+  // 7️⃣ PATTERN COMPATIBILITY
+  if (f.pointers.slidingWindow && timeComplexity !== 'O(n)') {
+    correctedTC = 'O(n)';
+    correctedReason = 'Correction: Sliding Window pattern guarantees linear time complexity.';
+  }
+  
+  if (f.pointers.twoPointers && f.pointers.leftRight && !f.pointers.slidingWindow && timeComplexity !== 'O(n)') {
+     correctedTC = 'O(n)';
+     correctedReason = 'Correction: Two Pointers pattern guarantees linear time complexity.';
+  }
+
+  return {
+    ...analysisResult,
+    timeComplexity: correctedTC,
+    timeComplexityReason: correctedReason,
+    spaceComplexity: correctedSC,
+    spaceComplexityReason: correctedSCReason
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // LAYER 4: MAIN ANALYSIS FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1700,7 +1791,7 @@ function analyzeComplexity(code, language = 'python') {
   const spaceComplexityResult = deriveSpaceComplexity(features);
   
   // Step 4: Build analysis result
-  return {
+  const analysisResult = {
     timeComplexity: timeComplexity.complexity,
     timeComplexityReason: timeComplexity.explanation,
     spaceComplexity: spaceComplexityResult.complexity,
@@ -1716,9 +1807,12 @@ function analyzeComplexity(code, language = 'python') {
     confidence: calculateConfidence(features),
     _meta: {
       version: "1.4.0",
-      capabilities: ["log-loop", "amortized", "dp-2d", "recursion-branching", "divide-conquer", "backtracking-space", "hazard-patterns"]
+      capabilities: ["log-loop", "amortized", "dp-2d", "recursion-branching", "divide-conquer", "backtracking-space", "hazard-patterns", "safety-layer"]
     }
   };
+
+  // Step 5: Verify against hard constraints
+  return verifyComplexity(analysisResult, features);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
