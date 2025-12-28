@@ -1,15 +1,13 @@
 import crypto from 'crypto';
-import { connectDB } from '../_lib/mongodb.js';
-import { handleCors } from '../_lib/auth.js';
+import { connectDB } from '../../_lib/mongodb.js';
 import jwt from 'jsonwebtoken';
-import User from '../../models/User.js';
+import User from '../../../models/User.js';
 
 /**
  * POST /api/payment/verify-payment
- * Verifies Razorpay payment signature and upgrades user to Pro
  */
-export default async function handler(req, res) {
-  if (handleCors(req, res)) return;
+export async function verifyPaymentHandler(req, res) {
+  // CORS handled by parent
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -18,7 +16,6 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Verify user is logged in
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -34,7 +31,6 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Get payment details from request
     const { 
       razorpay_order_id, 
       razorpay_payment_id, 
@@ -48,7 +44,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Verify signature
     const generatedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -62,13 +57,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Signature is valid - upgrade user to Pro
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update user plan
     const now = new Date();
     const oneMonthLater = new Date(now);
     oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);

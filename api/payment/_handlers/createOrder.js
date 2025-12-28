@@ -1,15 +1,13 @@
 import Razorpay from 'razorpay';
-import { connectDB } from '../_lib/mongodb.js';
-import { handleCors } from '../_lib/auth.js';
+import { connectDB } from '../../_lib/mongodb.js';
 import jwt from 'jsonwebtoken';
-import User from '../../models/User.js';
+import User from '../../../models/User.js';
 
 /**
  * POST /api/payment/create-order
- * Creates a Razorpay order for Pro plan subscription
  */
-export default async function handler(req, res) {
-  if (handleCors(req, res)) return;
+export async function createOrderHandler(req, res) {
+  // CORS handled by parent
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -18,7 +16,6 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Verify user is logged in
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -34,13 +31,11 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Get user details
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is already Pro
     if (user.plan === 'pro') {
       return res.status(400).json({ 
         error: 'Already a Pro user',
@@ -48,7 +43,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check Razorpay credentials
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('[PAYMENT] Razorpay credentials not configured');
       return res.status(500).json({ 
@@ -57,14 +51,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Initialize Razorpay
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET
     });
 
-    // Create order
-    const amount = 24900; // ₹249 in paise
+    const amount = 24900;
     const currency = 'INR';
     
     const order = await razorpay.orders.create({

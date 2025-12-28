@@ -1,10 +1,9 @@
-import { connectDB } from "../_lib/mongodb.js";
-import { handleCors } from "../_lib/auth.js";
-import UserUsage from "../../models/UserUsage.js";
+import { connectDB } from "../../_lib/mongodb.js";
+import UserUsage from "../../../models/UserUsage.js";
 import jwt from "jsonwebtoken";
 
-export default async function handler(req, res) {
-  if (handleCors(req, res)) return;
+export async function resetUsageHandler(req, res) {
+  // CORS handled by parent
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -13,7 +12,6 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // Verify admin/user token (optional - you can add admin check)
     const authHeader = req.headers.authorization;
     let userId = null;
     
@@ -32,7 +30,6 @@ export default async function handler(req, res) {
     const { action } = req.body;
 
     if (action === "clear-my-usage") {
-      // Clear usage for current user only
       const result = await UserUsage.deleteMany({ userId });
       console.log(`[USAGE RESET] User ${userId} cleared ${result.deletedCount} records`);
       
@@ -44,7 +41,6 @@ export default async function handler(req, res) {
     }
 
     if (action === "clear-today") {
-      // Clear today's usage for current user
       const today = new Date().toISOString().split('T')[0];
       const result = await UserUsage.deleteMany({ userId, date: today });
       console.log(`[USAGE RESET] User ${userId} cleared today's usage (${result.deletedCount} records)`);

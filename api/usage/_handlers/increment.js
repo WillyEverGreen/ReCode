@@ -1,16 +1,13 @@
-import { connectDB } from "../_lib/mongodb.js";
-import { handleCors } from "../_lib/auth.js";
-import { getUserId } from "../_lib/userId.js";
-import UserUsage from "../../models/UserUsage.js";
-import User from "../../models/User.js";
+import { connectDB } from "../../_lib/mongodb.js";
+import { getUserId } from "../../_lib/userId.js";
+import UserUsage from "../../../models/UserUsage.js";
+import User from "../../../models/User.js";
 
 /**
  * POST /api/usage/increment
- * Increment usage count for a specific action type
- * STRICT: Returns 429 if limit exceeded (except for Admin and Pro users)
  */
-export default async function handler(req, res) {
-  if (handleCors(req, res)) return;
+export async function incrementUsageHandler(req, res) {
+  // CORS handled by parent
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -19,9 +16,6 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 1: Validate input
-    // ═══════════════════════════════════════════════════════════════
     const { type } = req.body;
     
     if (!type) {
@@ -39,22 +33,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Get userId (logged in or anonymous)
-    // ═══════════════════════════════════════════════════════════════
     const userId = await getUserId(req);
     console.log(`[USAGE INCREMENT] Type: ${type}, User: ${userId}`);
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 2.5: Check if user is Admin (unlimited) or Pro (high limits)
-    // ═══════════════════════════════════════════════════════════════
     let skipLimits = false;
     let userPlan = 'trial';
     let userRole = 'user';
     let isAdmin = false;
     let trialExpired = false;
 
-    // Only check for logged-in users (not anonymous)
     if (!userId.startsWith('anon_')) {
       try {
         const user = await User.findById(userId);
@@ -62,13 +49,11 @@ export default async function handler(req, res) {
           userRole = user.role;
           userPlan = user.plan;
           
-          // Only Admin users get truly unlimited access
           if (user.role === 'admin') {
             skipLimits = true;
             isAdmin = true;
             console.log(`[USAGE INCREMENT] ✨ Unlimited access for ADMIN user: ${user.username}`);
           } else if (user.plan === 'trial') {
-            // Check if trial expired
             if (new Date() > new Date(user.trialEndDate)) {
               trialExpired = true;
               console.log(`[USAGE INCREMENT] ⏰ Trial expired for user: ${user.username}`);
@@ -84,9 +69,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 2.9: Check if trial expired
-    // ═══════════════════════════════════════════════════════════════
     if (trialExpired) {
       return res.status(403).json({
         error: 'Trial expired',
@@ -103,11 +85,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 3: STRICT CHECK - Can user make this request?
-    // Skip only for Admin or Development mode
-    // Pro users have high limits but still enforced
-    // ═══════════════════════════════════════════════════════════════
     const isDevEnv = process.env.NODE_ENV !== 'production' || process.env.IGNORE_USAGE_LIMITS === 'true';
 
     if (!isDevEnv && !skipLimits) {
@@ -123,7 +100,6 @@ export default async function handler(req, res) {
 
         console.warn(`[USAGE INCREMENT] ❌ Limit reached for ${type}: ${JSON.stringify(limitInfo[type])}`);
         
-        // Different messages for trial vs pro users
         const upgradeMessage = userPlan === 'trial' 
           ? "Upgrade to Pro for 10x more requests daily! Only ₹249/month."
           : "Need more? Upgrade to Pro for 10 requests per day! Only ₹249/month.";
@@ -152,21 +128,15 @@ export default async function handler(req, res) {
       console.log(`[USAGE INCREMENT] Skipping limit enforcement for ${type} in development mode`);
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 4: Increment usage (atomic operation)
-    // ═══════════════════════════════════════════════════════════════
     await UserUsage.incrementUsage(userId, type);
     console.log(`[USAGE INCREMENT] ✓ Incremented ${type} for user ${userId}`);
     
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 5: Return updated usage
-    // ═══════════════════════════════════════════════════════════════
     const usage = await UserUsage.getTodayUsage(userId, userPlan, userRole);
 
     return res.json({
       success: true,
       message: `${type} usage incremented`,
-      unlimited: skipLimits, // True for Admin and Pro users
+      unlimited: skipLimits,
       userPlan,
       userRole,
       usage: {
