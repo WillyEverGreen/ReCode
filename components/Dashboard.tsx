@@ -70,20 +70,29 @@ const Dashboard: React.FC<DashboardProps> = ({
           <LayoutGrid className="w-16 h-16 text-yellow-500/50" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
             Your Dashboard is Empty
           </h2>
-          <p className="text-gray-400 mt-2 max-w-md">
+          <p className="text-gray-400 mt-2 max-w-md text-sm sm:text-base px-4">
             Start adding your LeetCode solutions. We'll organize them by Data
             Structure and Pattern automatically.
           </p>
         </div>
-        <button
-          onClick={onAddNew}
-          className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-semibold transition-all shadow-lg shadow-yellow-900/20"
-        >
-          Add First Solution
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full px-4 sm:w-auto">
+          <button
+            onClick={onAddNew}
+            className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-semibold transition-all shadow-lg shadow-yellow-900/20"
+          >
+            Add First Solution
+          </button>
+          <button
+            onClick={onShowPricing}
+            className="group flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-sm font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30"
+          >
+            <Crown className="w-4 h-4 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
+            <span>Upgrade to Pro</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -92,32 +101,32 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       {/* Header with Search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-gray-800 pb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <LayoutGrid className="w-6 h-6 text-yellow-500" />
-            My Library
-          </h2>
-          <p className="text-gray-400 text-sm mt-1">
-            {filteredQuestions.length} Questions •{" "}
-            {Object.keys(groupedQuestions).length} Categories
-            {searchQuery && ` • Searching "${searchQuery}"`}
-          </p>
-        </div>
-        
-        {/* Search + Upgrade */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          {/* Upgrade Button */}
+        <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <LayoutGrid className="w-6 h-6 text-yellow-500" />
+              My Library
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              {filteredQuestions.length} Questions •{" "}
+              {Object.keys(groupedQuestions).length} Categories
+              {searchQuery && ` • Searching "${searchQuery}"`}
+            </p>
+          </div>
+          
+          {/* Compact Pro Button - Mobile Only (inline with header) */}
           <button
             type="button"
-            className="group flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-[11px] font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30"
+            className="sm:hidden group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-xs font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30"
             onClick={onShowPricing}
           >
-            <span className="relative flex items-center justify-center">
-              <Crown className="w-4 h-4 text-yellow-400 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
-            </span>
-            <span>Upgrade</span>
+            <Crown className="w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
+            <span>Pro</span>
           </button>
-
+        </div>
+        
+        {/* Search + Upgrade Button - Desktop */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           {/* Search Bar */}
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -129,6 +138,16 @@ const Dashboard: React.FC<DashboardProps> = ({
               className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all text-sm"
             />
           </div>
+          
+          {/* Full Upgrade Button - Desktop Only */}
+          <button
+            type="button"
+            className="hidden sm:flex group items-center justify-center gap-2 px-4 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-sm font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30"
+            onClick={onShowPricing}
+          >
+            <Crown className="w-4 h-4 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5" />
+            <span>Upgrade</span>
+          </button>
         </div>
       </div>
 
@@ -175,19 +194,19 @@ const Dashboard: React.FC<DashboardProps> = ({
               {/* Category Header - Clickable */}
               <button
                 onClick={() => toggleCategory(category)}
-                className="w-full flex items-center justify-between group"
+                className="w-full flex items-center justify-between gap-3 group"
               >
-                <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                  <FolderGit2 className="w-5 h-5" />
-                  {category}
-                  <span className="text-xs font-normal text-gray-500 bg-gray-900 px-2 py-0.5 rounded-full border border-gray-800">
+                <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2 flex-wrap">
+                  <FolderGit2 className="w-5 h-5 shrink-0" />
+                  <span className="break-words">{category}</span>
+                  <span className="text-xs font-normal text-gray-500 bg-gray-900 px-2 py-0.5 rounded-full border border-gray-800 shrink-0">
                     {items.length}
                   </span>
                 </h3>
                 {isCollapsed ? (
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors" />
+                  <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
                 )}
               </button>
 
@@ -201,12 +220,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                       className="group bg-gray-900 border border-gray-800 hover:border-yellow-500/50 rounded-xl p-5 cursor-pointer transition-all hover:shadow-xl hover:shadow-yellow-900/10 flex flex-col justify-between"
                     >
                       <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <span className="text-xs font-medium text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs font-medium text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 max-w-full break-words leading-tight">
                             {q.pattern}
                           </span>
                           {q.language && (
-                            <span className="text-xs text-gray-500 font-mono">
+                            <span className="text-xs text-gray-500 font-mono shrink-0">
                               {q.language}
                             </span>
                           )}

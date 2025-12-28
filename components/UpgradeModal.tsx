@@ -22,10 +22,10 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
   if (!isOpen) return null;
 
   const proFeatures = [
-    { icon: <Zap className="w-5 h-5" />, text: 'Unlimited AI analyses' },
-    { icon: <FileText className="w-5 h-5" />, text: 'Unlimited solution storage' },
-    { icon: <BookOpen className="w-5 h-5" />, text: 'Export to PDF & Markdown' },
-    { icon: <Sparkles className="w-5 h-5" />, text: 'Advanced code insights' },
+    { icon: <Zap className="w-5 h-5" />, text: '10 Get Solution requests/day' },
+    { icon: <FileText className="w-5 h-5" />, text: '10 Add Solution analyses/day' },
+    { icon: <BookOpen className="w-5 h-5" />, text: 'Lifetime solution history' },
+    { icon: <Sparkles className="w-5 h-5" />, text: 'Export to PDF, Markdown & Text' },
     { icon: <Shield className="w-5 h-5" />, text: 'Priority support' },
   ];
 
@@ -161,7 +161,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
             <h2 className="text-2xl font-bold text-white">Upgrade to Pro</h2>
           </div>
           <p className="text-gray-400">
-            Unlock unlimited access and advanced features
+            10× more daily analyses for serious interview prep
           </p>
         </div>
 

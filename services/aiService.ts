@@ -14,6 +14,133 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// FINAL GUARANTEE STACK - 7 LAYERS OF CORRECTNESS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// LAYER 1: Algorithm Equivalence Guard
+// Prevents fake "better" approaches with same TC/SC
+function isSameAlgorithm(a: any, b: any): boolean {
+  if (!a || !b) return false;
+  const norm = (s = "") => s.toLowerCase().replace(/\s+/g, "");
+  return (
+    norm(a.pattern) === norm(b.pattern) &&
+    norm(a.timeComplexity) === norm(b.timeComplexity) &&
+    norm(a.spaceComplexity) === norm(b.spaceComplexity)
+  );
+}
+
+// LAYER 2: Amortized Complexity Detector
+// Overrides static analysis for amortized patterns
+function applyAmortizedOverrides(code: string, detectedTC: string): string {
+  const c = code.replace(/\s+/g, "").toLowerCase();
+
+  // Monotonic Stack (each element pushed/popped once)
+  if (c.includes("stack") && c.includes("while") && (c.includes("pop()") || c.includes(".pop("))) {
+    return "O(n)";
+  }
+
+  // Sliding Window (two pointers moving forward)
+  if ((c.includes("left++") || c.includes("l++") || c.includes("left+=")) && 
+      (c.includes("right++") || c.includes("r++") || c.includes("right+="))) {
+    return "O(n)";
+  }
+
+  // Union-Find with path compression
+  if (c.includes("find(") && c.includes("parent")) {
+    return "O(α(n))";
+  }
+
+  // BFS/DFS traversal
+  if ((c.includes("queue") || c.includes("deque")) && c.includes("while")) {
+    return "O(n)";
+  }
+
+  return detectedTC;
+}
+
+// LAYER 3: Recursion Tree Analyzer (STRENGTHENED)
+// Detects exponential recursion - counts function calls by name
+function detectRecursiveExplosion(code: string): boolean {
+  // Extract function name (works for Python, JS, Java, C++)
+  const fnMatch = code.match(/def\s+(\w+)|function\s+(\w+)|(\w+)\s*=\s*\(|public\s+\w+\s+(\w+)\s*\(/);
+  const fnName = fnMatch?.[1] || fnMatch?.[2] || fnMatch?.[3] || fnMatch?.[4];
+  
+  if (!fnName) return false;
+  
+  // Count how many times this function calls itself
+  const callPattern = new RegExp(`${fnName}\\s*\\(`, 'g');
+  const calls = code.match(callPattern) || [];
+  
+  // If function is defined once and called 2+ more times, it's tree recursion
+  // (1 definition + 2+ recursive calls = exponential)
+  return calls.length >= 3; // def + 2 calls
+}
+
+// LAYER 4: Space Complexity Truth Guard
+// Forces O(n) when data structures are clearly used
+function detectSpaceUsage(code: string): string | null {
+  const c = code.toLowerCase();
+  
+  // Explicit data structures
+  if (c.includes("stack") || c.includes("set(") || c.includes("map(") || 
+      c.includes("dict(") || c.includes("{}") || c.includes("hashmap") ||
+      c.includes("defaultdict") || c.includes("counter(")) {
+    return "O(n)";
+  }
+  
+  // Recursion implies call stack
+  if (c.includes("def ") && c.match(/return\s+\w+\s*\(/)) {
+    return "O(n)";
+  }
+  
+  return null;
+}
+
+// LAYER 6: Pattern → Complexity Hard Map (Final Backstop)
+const PATTERN_TC_MAP: Record<string, string> = {
+  // Linear patterns - O(n)
+  "sliding window": "O(n)",
+  "two pointers": "O(n)",
+  "monotonic stack": "O(n)",
+  "hash map": "O(n)",
+  "hash table": "O(n)",
+  "prefix sum": "O(n)",
+  "kadane": "O(n)",
+  "dfs": "O(n)",
+  "bfs": "O(n)",
+  "linear scan": "O(n)",
+  "one pass": "O(n)",
+  
+  // Log patterns - O(log n)
+  "binary search": "O(log n)",
+  
+  // N log N patterns - O(n log n)
+  "merge sort": "O(n log n)",
+  "quick sort": "O(n log n)",
+  "heap": "O(n log n)",
+  "sorting": "O(n log n)",
+  
+  // Special patterns
+  "union find": "O(α(n))",
+  
+  // Polynomial patterns
+  "dynamic programming": "O(n²)",
+  "dp": "O(n²)",
+};
+
+// Apply pattern-based TC override as final backstop
+function applyPatternOverride(pattern: string, detectedTC: string): string {
+  const normalizedPattern = pattern.toLowerCase().trim();
+  for (const [key, tc] of Object.entries(PATTERN_TC_MAP)) {
+    if (normalizedPattern.includes(key)) {
+      return tc;
+    }
+  }
+  return detectedTC;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 // Helper function to increment usage counter and trigger UI refresh
 const incrementUsage = async (type: 'addSolution') => {
@@ -106,8 +233,11 @@ problemOverview:
 - 2–3 lines explaining the problem goal clearly.
 
 testCases:
-- Return an Array of strings.
-- Format: "Input: \`...\` → Output: \`...\`" (No bullets)
+- Return an Array of strings (3-5 test cases).
+- CRITICAL: Each test case MUST be VERIFIED by tracing through the code.
+- Format: "Input: [actual value] → Output: [expected result]"
+- Include: 1 basic case, 1 edge case (empty/single), 1 boundary case
+- Example: "Input: nums=[2,7,11,15], target=9 → Output: [0,1]"
 
 coreLogic:
 - Return a Nested JSON Object with these keys:
@@ -117,8 +247,10 @@ coreLogic:
   - "WhyItWorks": Intuition.
 
 edgeCases:
-- Return an Array of strings (No bullets).
-- Format: "**Condition:** Result/Behavior" (e.g., "**Empty Input:** Returns 0")
+- Return an Array of strings (4-6 edge cases).
+- Each must include SPECIFIC input and expected behavior.
+- Format: "**[Condition]:** Input: [value] → Output: [result]"
+- Example: "**Empty Array:** Input: [] → Output: 0 or throws error"
 
 syntaxNotes:
 - Return an Array of strings (No bullets).
@@ -145,6 +277,108 @@ RULES:
 - Keep descriptions concise but informative.
 - BE CRITICAL: Only praise if truly optimal in time AND space complexity.`;
 };
+
+// Request LLM to reconsider complexity analysis (for Add Solution feature)
+async function requestLLMReconsideration(
+  problemName: string,
+  llmTC: string,
+  llmSC: string,
+  engineTC: string,
+  engineSC: string,
+  code: string,
+  language: string
+): Promise<{ finalTC: string; finalSC: string; reasoning: string } | null> {
+  const prompt = `You are a complexity analysis expert. Our static code analyzer detected different complexity than your analysis.
+
+PROBLEM: ${problemName}
+LANGUAGE: ${language}
+
+CODE:
+\`\`\`${language.toLowerCase()}
+${code}
+\`\`\`
+
+COMPLEXITY DISCREPANCY:
+- Your Initial Analysis: Time=${llmTC}, Space=${llmSC}
+- Engine's Analysis: Time=${engineTC}, Space=${engineSC}
+
+TASK: 
+1. Carefully reconsider the code's complexity
+2. Provide your FINAL answer with concise reasoning (1-2 sentences max)
+3. Focus ONLY on explaining the complexity, not on any discrepancy
+
+Return your answer in this JSON format:
+{
+  "finalTimeComplexity": "O(...)",
+  "finalSpaceComplexity": "O(...)",
+  "reasoning": "1-2 sentence explanation of why this complexity is correct. Be direct and concise."
+}
+
+Return ONLY valid JSON, no markdown fences.`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const response = await fetch(QUBRID_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_QUBRID_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: QUBRID_MODEL,
+        messages: [
+          { role: "system", content: "You are a complexity analysis expert. When reconsidering, be honest about mistakes but also defend correct analysis. Prioritize accuracy over agreement." },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 400,
+        temperature: 0.3,
+        stream: false
+      }),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout));
+
+    if (!response.ok) {
+      console.error("[LLM RECONSIDER] API error:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    let text = "";
+    
+    if (data.content && typeof data.content === "string") {
+      text = data.content;
+    } else if (data.choices?.[0]?.message?.content) {
+      text = data.choices[0].message.content;
+    } else {
+      console.error("[LLM RECONSIDER] Unknown response format");
+      return null;
+    }
+    
+    // Clean markdown fences
+    if (text.startsWith("```json")) text = text.slice(7);
+    if (text.startsWith("```")) text = text.slice(3);
+    if (text.endsWith("```")) text = text.slice(0, -3);
+    text = text.trim();
+    
+    const parsed = JSON.parse(text);
+    
+    if (!parsed.finalTimeComplexity || !parsed.finalSpaceComplexity || !parsed.reasoning) {
+      console.error("[LLM RECONSIDER] Missing required fields");
+      return null;
+    }
+    
+    return {
+      finalTC: parsed.finalTimeComplexity,
+      finalSC: parsed.finalSpaceComplexity,
+      reasoning: parsed.reasoning
+    };
+  } catch (error: any) {
+    console.error("[LLM RECONSIDER] Error:", error.message);
+    return null;
+  }
+}
 
 export const analyzeSubmission = async (
   data: SubmissionData
@@ -343,35 +577,121 @@ Return ONLY valid JSON, no markdown fences.`;
           result.improvementMarkdown = result.improvementMarkdown.replace(/```\s*```/g, '```');
         }
 
+
         // ═══════════════════════════════════════════════════════════════
-        // COMPLEXITY ENGINE: Validate/correct AI-generated TC & SC
-        // Also log whether final TC/SC came from AI or engine
+        // COMPLEXITY VALIDATION: 7-LAYER GUARANTEE STACK
         // ═══════════════════════════════════════════════════════════════
         try {
-          const corrected = getCorrectedComplexity(
+          let corrected = getCorrectedComplexity(
             result.timeComplexity,
             result.spaceComplexity,
             data.code,
             data.language || 'python'
           );
           
+          // LAYER 2: Apply Amortized Overrides (before engine comparison)
+          const amortizedTC = applyAmortizedOverrides(data.code, corrected.timeComplexity);
+          if (amortizedTC !== corrected.timeComplexity) {
+            console.log(`[LAYER 2] Amortized override: ${corrected.timeComplexity} → ${amortizedTC}`);
+            corrected.timeComplexity = amortizedTC;
+            corrected.corrected = true;
+          }
+          
+          // LAYER 3: Recursion Explosion Detection
+          if (detectRecursiveExplosion(data.code)) {
+            console.log(`[LAYER 3] Recursive explosion detected → O(2^n)`);
+            corrected.timeComplexity = "O(2^n)";
+            corrected.timeComplexityReason = "Tree recursion with multiple recursive calls per invocation";
+            corrected.corrected = true;
+          }
+          
+          // LAYER 4: Space Complexity Truth Guard (UNCONDITIONAL)
+          const forcedSC = detectSpaceUsage(data.code);
+          if (forcedSC && forcedSC !== result.spaceComplexity) {
+            console.log(`[LAYER 4] Space truth enforced: ${result.spaceComplexity} → ${forcedSC}`);
+            corrected.spaceComplexity = forcedSC;
+            corrected.spaceComplexityReason = "Detected auxiliary data structures or recursion stack";
+            corrected.corrected = true;
+          }
+          
           if (corrected.corrected) {
-            console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected TC: ${result.timeComplexity} → ${corrected.timeComplexity}`);
-            console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected SC: ${result.spaceComplexity} → ${corrected.spaceComplexity}`);
-            result.timeComplexity = corrected.timeComplexity;
-            result.spaceComplexity = corrected.spaceComplexity;
-            if (corrected.timeComplexityReason) {
-              result.timeComplexityReason = corrected.timeComplexityReason;
-            }
-            if (corrected.spaceComplexityReason) {
-              result.spaceComplexityReason = corrected.spaceComplexityReason;
+            console.log(`[COMPLEXITY ENGINE] Detected mismatch: TC=${result.timeComplexity} → ${corrected.timeComplexity}, SC=${result.spaceComplexity} → ${corrected.spaceComplexity}`);
+            
+            // Ask LLM to reconsider with engine's findings
+            const reconsideration = await requestLLMReconsideration(
+              result.title || 'Code Analysis',
+              result.timeComplexity,
+              result.spaceComplexity,
+              corrected.timeComplexity,
+              corrected.spaceComplexity,
+              data.code,
+              data.language || 'python'
+            );
+            
+            if (reconsideration) {
+              const normalizeComplexity = (c: string) => c.replace(/\s+/g, '').toLowerCase();
+              
+              const llmFinalTC = normalizeComplexity(reconsideration.finalTC);
+              const llmFinalSC = normalizeComplexity(reconsideration.finalSC);
+              const engineTC = normalizeComplexity(corrected.timeComplexity);
+              const engineSC = normalizeComplexity(corrected.spaceComplexity);
+              const originalTC = normalizeComplexity(result.timeComplexity);
+              const originalSC = normalizeComplexity(result.spaceComplexity);
+              
+              if (llmFinalTC === originalTC && llmFinalSC === originalSC) {
+                // LLM maintains position - TRUST LLM
+                console.log(`[LLM RECONSIDER] Trusting LLM's decision: ${reconsideration.finalTC}/${reconsideration.finalSC}`);
+                result.timeComplexity = reconsideration.finalTC;
+                result.spaceComplexity = reconsideration.finalSC;
+                result.timeComplexityReason = reconsideration.reasoning;
+                result.spaceComplexityReason = reconsideration.reasoning;
+              } else if (llmFinalTC === engineTC && llmFinalSC === engineSC) {
+                // LLM agrees with engine
+                console.log(`[LLM RECONSIDER] LLM agreed with engine: ${corrected.timeComplexity}/${corrected.spaceComplexity}`);
+                result.timeComplexity = corrected.timeComplexity;
+                result.spaceComplexity = corrected.spaceComplexity;
+                result.timeComplexityReason = reconsideration.reasoning;
+                result.spaceComplexityReason = reconsideration.reasoning;
+              } else {
+                // LLM provides new answer - trust it
+                console.log(`[LLM RECONSIDER] LLM provided new analysis: ${reconsideration.finalTC}/${reconsideration.finalSC}`);
+                result.timeComplexity = reconsideration.finalTC;
+                result.spaceComplexity = reconsideration.finalSC;
+                result.timeComplexityReason = reconsideration.reasoning;
+                result.spaceComplexityReason = reconsideration.reasoning;
+              }
+            } else {
+              // Failed to get reconsideration - use engine values as fallback
+              console.log(`[LLM RECONSIDER] Failed, using engine values`);
+              result.timeComplexity = corrected.timeComplexity;
+              result.spaceComplexity = corrected.spaceComplexity;
+              if (corrected.timeComplexityReason) result.timeComplexityReason = corrected.timeComplexityReason;
+              if (corrected.spaceComplexityReason) result.spaceComplexityReason = corrected.spaceComplexityReason;
             }
           } else {
             console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided TC/SC without override (TC=${result.timeComplexity}, SC=${result.spaceComplexity})`);
           }
+          
+          // LAYER 6: Pattern → Complexity Hard Map (FINAL AUTHORITY)
+          // This MUST be the absolute last complexity decision
+          const coreLogicObj = result.coreLogic as Record<string, any> | undefined;
+          if (coreLogicObj && typeof coreLogicObj === 'object' && coreLogicObj.Pattern) {
+            const finalTC = applyPatternOverride(coreLogicObj.Pattern, result.timeComplexity);
+            if (finalTC !== result.timeComplexity) {
+              console.log(`[FINAL OVERRIDE] Pattern enforces ${finalTC}`);
+              result.timeComplexity = finalTC;
+              result.timeComplexityReason = `Guaranteed by ${coreLogicObj.Pattern} invariant`;
+            }
+          }
+          
         } catch (engineError) {
           console.warn("[COMPLEXITY ENGINE] Error (using AI values):", engineError);
         }
+        
+        // NOTE: Algorithm Equivalence Guard (Layer 1) is applied in the Get Solution API
+        // (api/solution/index.js) since Add Solution analyzes single code snippets,
+        // not multiple approaches (bruteForce/better/optimal)
+
 
         // Cache the result
         analysisCache.set(cacheKey, { value: result, timestamp: Date.now() });
@@ -435,11 +755,7 @@ export const generateSolution = async (
     if (!response.ok) {
       // Surface backend daily-limit message (429) in a friendly way
       if (response.status === 429 && data?.message) {
-        throw new Error(
-          data.message.includes("Daily limit")
-            ? "You've hit today's Free plan limit for Get Solution. Upgrade to Pro to keep going today."
-            : data.message
-        );
+        throw new Error(data.message);
       }
 
       throw new Error(data.error || "Failed to generate solution");

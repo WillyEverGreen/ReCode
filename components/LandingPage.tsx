@@ -93,7 +93,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           <div className="flex items-center gap-4">
             <button
               onClick={onGetStarted}
-              className="px-5 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-semibold transition-all shadow-lg shadow-yellow-900/20 hover:shadow-yellow-900/40 text-white text-sm"
+              className="px-4 sm:px-5 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-semibold transition-all shadow-lg shadow-yellow-900/20 hover:shadow-yellow-900/40 text-white text-sm"
             >
               Get Started
             </button>
@@ -149,10 +149,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             >
               <button
                 onClick={onGetStarted}
-                className="px-8 py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 rounded-xl font-semibold transition-all shadow-lg shadow-yellow-900/30 text-white flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 rounded-xl font-semibold transition-all shadow-lg shadow-yellow-900/30 text-white flex items-center justify-center gap-2 group text-sm sm:text-base"
               >
                 Start Analyzing Now
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
 
@@ -500,15 +500,19 @@ const PricingSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
             <ul className="space-y-4 mb-8">
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-300">5 AI analyses per day</span>
+                <span className="text-gray-300">1 Get Solution + 2 Add Solution per day</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-300">Basic code analysis</span>
+                <span className="text-gray-300">7-day free trial</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-300">Save up to 10 solutions</span>
+                <span className="text-gray-300">24-hour solution history</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                <span className="text-gray-300">No credit card required</span>
               </li>
             </ul>
 
@@ -542,19 +546,15 @@ const PricingSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
             <ul className="space-y-4 mb-8">
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">Unlimited AI analyses</span>
+                <span className="font-medium">10 Get Solution + 10 Add Solution per day</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">Advanced code insights</span>
+                <span className="font-medium">Lifetime solution history</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">Unlimited solution storage</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">Export to PDF/Markdown</span>
+                <span className="font-medium">Export to PDF, Markdown & Text</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -831,7 +831,7 @@ const FAQSection = () => {
     },
     {
       question: "Can I use ReCode for free?",
-      answer: "Yes! The free plan includes 5 AI analyses per day and storage for up to 10 solutions. Perfect for getting started and trying out the platform."
+      answer: "Yes! The free plan includes 1 Get Solution + 2 Add Solution analyses per day for 7 days. No credit card required. Perfect for trying out the platform."
     },
     {
       question: "What programming languages are supported?",

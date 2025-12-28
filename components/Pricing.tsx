@@ -5,22 +5,20 @@ const Pricing: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const features = {
     free: [
-      "Daily limits on Get Solution and Add Solution",
-      "Core AI-powered analysis and notes",
-      "Dashboard with search and filtering",
-      "Works with all common DSA languages",
+      "1 Get Solution + 2 Add Solution per day",
+      "7-day free trial",
+      "24-hour solution history",
+      "AI-powered complexity analysis",
+      "Pattern recognition",
+      "No credit card required",
     ],
     pro: [
-      "Higher daily limits across all tools",
-      "Faster access to new features and improvements",
-      "Priority handling for feedback and support",
-      "Best experience for focused interview prep",
-      "Smart Code Analysis powered by our TC/SC engine",
-      "Pattern Recognition and pattern-based question grouping",
-      "AI Revision Notes panel with export and copy actions",
-      "Fast Recall Checklist and Core Logic & Approach views",
-      "Dedicated AI Suggestions tab with polished-code improvements",
-      "Interview-style focused revision experience",
+      "10 Get Solution requests per day",
+      "10 Add Solution analyses per day",
+      "Lifetime solution history",
+      "Export to PDF, Markdown & Text",
+      "Priority support",
+      "Early access to new features",
     ],
   };
 
@@ -42,7 +40,7 @@ const Pricing: React.FC = () => {
               Ideal while you are exploring the app and building a small personal library.
             </p>
             <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-3xl font-bold text-white">$0</span>
+              <span className="text-3xl font-bold text-white">₹0</span>
               <span className="text-gray-500 text-xs">forever</span>
             </div>
 

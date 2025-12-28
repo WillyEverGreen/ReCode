@@ -60,6 +60,11 @@ export interface SolutionApproach {
   timeComplexityReason?: string;
   spaceComplexity: string;
   spaceComplexityReason?: string;
+  // Mismatch tracking: When engine corrects LLM's TC/SC
+  complexityMismatchNote?: string; // LLM's reasoning for why it chose different TC/SC than engine
+  llmOriginalTC?: string; // Original TC from LLM before engine correction
+  llmOriginalSC?: string; // Original SC from LLM before engine correction
+  complexitySource?: 'LLM' | 'Engine' | 'LLM-Reconsidered'; // Source of final complexity values
 }
 
 export interface SolutionResult {

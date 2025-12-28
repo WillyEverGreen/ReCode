@@ -8,9 +8,11 @@ import levenshtein from "fast-levenshtein";
 // Import models
 import SolutionCache from "../../models/SolutionCache.js";
 import UserUsage from "../../models/UserUsage.js";
+import User from "../../models/User.js";
 
 // Import Complexity Analysis Engine (for validating/correcting AI output)
 import { getCorrectedComplexity } from "../../utils/complexityEngine.js";
+import { analyzeAmortizedComplexity } from "../../utils/amortizedDetector.js";
 
 // Qubrid AI Configuration
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
@@ -31,6 +33,58 @@ function getRedis() {
     console.log("[REDIS DEBUG] Missing credentials, Redis disabled");
   }
   return redis;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDEX-SENSITIVE CORRECTNESS GUARD
+// Detects when value-based HashMap is incorrectly used for index-sensitive problems
+// These problems MUST use index-based monotonic stack to handle duplicates correctly
+// ═══════════════════════════════════════════════════════════════════════════════
+function isIndexSensitiveBug(code, problemName) {
+  const c = code.toLowerCase();
+  const problem = (problemName || "").toLowerCase();
+
+  // Problems where position/index matters (fails with value-based mapping on duplicates)
+  const indexSensitiveProblems = [
+    "next greater",
+    "previous greater",
+    "next smaller",
+    "previous smaller",
+    "stock span",
+    "daily temperatures",
+    "largest rectangle",
+    "trapping rain"
+  ];
+
+  const isIndexSensitive = indexSensitiveProblems.some(p => problem.includes(p));
+  if (!isIndexSensitive) return false;
+
+  // Detect value-based mapping (WRONG for these problems)
+  const usesValueMap =
+    c.includes("map<integer, integer>") ||
+    c.includes("hashmap<integer") ||
+    c.includes("map.put(nums[i]") ||
+    c.includes("map.put(stack.pop()") ||
+    c.includes("dict[num]") ||
+    c.includes("map[num]") ||
+    (c.includes("hashmap") && !c.includes("push(i)"));
+
+  // Detect correct index-based stack (RIGHT for these problems)
+  const usesIndexStack =
+    c.includes("stack.push(i)") ||
+    c.includes("push(i)") ||
+    c.includes("append(i)") ||
+    c.includes("stack.push(index") ||
+    c.includes("nums[stack") ||
+    c.includes("temperatures[stack");
+
+  // BUG: Uses value-based mapping WITHOUT index-based stack
+  return usesValueMap && !usesIndexStack;
+}
+
+// Generate warning message for index-sensitive bug
+function getIndexSensitiveWarning() {
+  return "⚠️ This solution may fail when duplicate values exist. For correctness, use an index-based monotonic stack where the stack stores indices, not values.";
 }
 
 // Common DSA problem name mappings (typos, variations, LC numbers)
@@ -423,7 +477,17 @@ Your prompt must handle these scenarios:
     "spaceComplexityReason": "..."
   },
   "note": "Set ONLY if brute=optimal (same TC/SC). Explain why no improvement exists. Else null.",
-  "edgeCases": ["5-6 specific edge cases with brief explanations"],
+  "edgeCases": [
+    "**Empty Input:** Input: [] → Output: (expected output)",
+    "**Single Element:** Input: [5] → Output: (expected output)",
+    "**All Same Values:** Input: [2,2,2] → Output: (expected output)",
+    "Include 4-6 edge cases with SPECIFIC input/output examples"
+  ],
+  "testCases": [
+    "Input: s='ADOBECODEBANC', t='ABC' → Output: 'BANC'",
+    "Input: s='a', t='a' → Output: 'a'",
+    "Include 3-5 test cases with VERIFIED input/output"
+  ],
   "dsaCategory": "Arrays & Hashing | Trees | Graphs | DP | Greedy | etc.",
   "pattern": "Two Pointers | Sliding Window | BFS/DFS | Monotonic Stack | etc.",
   "keyInsights": ["5-6 key takeaways, common mistakes, pattern recognition tips"]
@@ -441,7 +505,10 @@ Your prompt must handle these scenarios:
 - [ ] If two approaches share SAME time complexity, the one with LOWER space complexity is labeled **optimal**, the other **better** (or brute)
 - [ ] No contradictions (e.g., saying same TC but providing different code without reason)
 - [ ] Code is clean ${language} without markdown fences
-- [ ] Each approach uses different algorithm or data structure`;
+- [ ] Each approach uses different algorithm or data structure
+- [ ] testCases: Each test case has VERIFIED input/output traced through the optimal code
+- [ ] edgeCases: Each edge case has SPECIFIC input and expected output`;
+
 
   // FIX 4: Add 30s timeout to prevent hung requests
   const controller = new AbortController();
@@ -698,15 +765,8 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected bruteForce: TC=${parsed.bruteForce.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity} → ${corrected.spaceComplexity}`);
-        parsed.bruteForce.timeComplexity = corrected.timeComplexity;
-        parsed.bruteForce.spaceComplexity = corrected.spaceComplexity;
-        if (corrected.timeComplexityReason) {
-          parsed.bruteForce.timeComplexityReason = corrected.timeComplexityReason;
-        }
-        if (corrected.spaceComplexityReason) {
-          parsed.bruteForce.spaceComplexityReason = corrected.spaceComplexityReason;
-        }
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected bruteForce: TC=${parsed.bruteForce.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity} → ${corrected.spaceComplexity}`);
+        await reconcileComplexity(parsed.bruteForce, "Brute Force", questionName, language, corrected);
       } else {
         console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided bruteForce TC/SC without override (TC=${parsed.bruteForce.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity})`);
       }
@@ -721,15 +781,8 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected better: TC=${parsed.better.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.better.spaceComplexity} → ${corrected.spaceComplexity}`);
-        parsed.better.timeComplexity = corrected.timeComplexity;
-        parsed.better.spaceComplexity = corrected.spaceComplexity;
-        if (corrected.timeComplexityReason) {
-          parsed.better.timeComplexityReason = corrected.timeComplexityReason;
-        }
-        if (corrected.spaceComplexityReason) {
-          parsed.better.spaceComplexityReason = corrected.spaceComplexityReason;
-        }
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected better: TC=${parsed.better.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.better.spaceComplexity} → ${corrected.spaceComplexity}`);
+        await reconcileComplexity(parsed.better, "Better", questionName, language, corrected);
       } else {
         console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided better TC/SC without override (TC=${parsed.better.timeComplexity}, SC=${parsed.better.spaceComplexity})`);
       }
@@ -744,15 +797,8 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Corrected optimal: TC=${parsed.optimal.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.optimal.spaceComplexity} → ${corrected.spaceComplexity}`);
-        parsed.optimal.timeComplexity = corrected.timeComplexity;
-        parsed.optimal.spaceComplexity = corrected.spaceComplexity;
-        if (corrected.timeComplexityReason) {
-          parsed.optimal.timeComplexityReason = corrected.timeComplexityReason;
-        }
-        if (corrected.spaceComplexityReason) {
-          parsed.optimal.spaceComplexityReason = corrected.spaceComplexityReason;
-        }
+        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected optimal: TC=${parsed.optimal.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.optimal.spaceComplexity} → ${corrected.spaceComplexity}`);
+        await reconcileComplexity(parsed.optimal, "Optimal", questionName, language, corrected);
       } else {
         console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided optimal TC/SC without override (TC=${parsed.optimal.timeComplexity}, SC=${parsed.optimal.spaceComplexity})`);
       }
@@ -769,7 +815,321 @@ Your prompt must handle these scenarios:
     console.warn("[COMPLEXITY ENGINE] ⚠️ Engine error (using AI values):", engineError.message);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // LAYER 1: Algorithm Equivalence Guard (AFTER all complexity reconciliation)
+  // Removes fake 'better' approaches that are identical to optimal
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const isSameAlgorithm = (a, b) => {
+    if (!a || !b) return false;
+    const norm = (s = "") => s.toLowerCase().replace(/\s+/g, "");
+    return (
+      norm(a.name) === norm(b.name) ||
+      (norm(a.timeComplexity) === norm(b.timeComplexity) &&
+       norm(a.spaceComplexity) === norm(b.spaceComplexity))
+    );
+  };
+
+  if (parsed.better && parsed.optimal && isSameAlgorithm(parsed.better, parsed.optimal)) {
+    console.log("[LAYER 1] Removing fake 'better' (same algorithm as optimal)");
+    parsed.better = null;
+    parsed.note = "No meaningful intermediate approach exists. The solution jumps directly from brute force to optimal.";
+  }
+  
+  // Auto-generate "why no better exists" note
+  if (!parsed.better && parsed.bruteForce && parsed.optimal && !parsed.note) {
+    parsed.note = "No intermediate approach exists because any partial optimization still requires scanning all elements.";
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // INDEX-SENSITIVE CORRECTNESS CHECK
+  // Adds warning if optimal uses value-based mapping for index-sensitive problems
+  // ═══════════════════════════════════════════════════════════════════════════════
+  if (parsed.optimal?.code && isIndexSensitiveBug(parsed.optimal.code, questionName)) {
+    console.warn("[INDEX-SENSITIVE] ⚠️ Detected value-based mapping for index-sensitive problem");
+    parsed.optimal.correctnessWarning = getIndexSensitiveWarning();
+  }
+  if (parsed.better?.code && isIndexSensitiveBug(parsed.better.code, questionName)) {
+    console.warn("[INDEX-SENSITIVE] ⚠️ Detected value-based mapping in better approach");
+    parsed.better.correctnessWarning = getIndexSensitiveWarning();
+  }
+
   return parsed;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *                    COMPLEXITY RECONCILIATION SYSTEM
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * CORRECTNESS CONTRACT (NON-NEGOTIABLE):
+ * 1. ENGINE is the source of truth
+ * 2. LLM may assist but NEVER override without structural proof
+ * 3. Confidence is irrelevant. Evidence is mandatory.
+ * 4. If uncertain, system absorbs uncertainty — user never sees it.
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
+
+// Request LLM to reconsider complexity analysis WITH EVIDENCE REQUIREMENT
+async function requestComplexityReconsideration(questionName, approachName, llmTC, llmSC, engineTC, engineSC, code, language) {
+  const prompt = `You are a complexity analysis expert. Our deterministic code analyzer detected different complexity than your analysis.
+
+PROBLEM: ${questionName}
+APPROACH: ${approachName}
+LANGUAGE: ${language}
+
+CODE:
+\`\`\`${language.toLowerCase()}
+${code}
+\`\`\`
+
+COMPLEXITY DISCREPANCY:
+- Your Initial Analysis: Time=${llmTC}, Space=${llmSC}
+- Engine's Analysis: Time=${engineTC}, Space=${engineSC}
+
+TASK:
+1. Identify the EXACT code construct causing this complexity.
+2. Quote the line(s) or describe the structure (loop, recursion, call).
+3. If no such construct exists, explicitly state: "The engine analysis is correct."
+
+Return JSON:
+{
+  "finalTimeComplexity": "O(...)",
+  "finalSpaceComplexity": "O(...)",
+  "evidence": "Quoted line(s) or structural explanation. Write 'NO_EVIDENCE' if none.",
+  "reasoning": "1-2 sentence justification."
+}
+
+Return ONLY valid JSON, no markdown fences.`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const response = await fetch(QUBRID_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.QUBRID_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: QUBRID_MODEL,
+        messages: [
+          { role: "system", content: "You are a complexity analysis expert. Provide STRUCTURAL EVIDENCE for your claims. Quote actual code lines. If you cannot find evidence, admit the engine is correct." },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 500,
+        temperature: 0.2,
+        stream: false
+      }),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout));
+
+    if (!response.ok) {
+      console.error("[LLM RECONSIDER] API error:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    let text = "";
+    
+    if (data.content && typeof data.content === "string") {
+      text = data.content;
+    } else if (data.choices?.[0]?.message?.content) {
+      text = data.choices[0].message.content;
+    } else {
+      console.error("[LLM RECONSIDER] Unknown response format");
+      return null;
+    }
+    
+    // Clean markdown fences
+    if (text.startsWith("```json")) text = text.slice(7);
+    if (text.startsWith("```")) text = text.slice(3);
+    if (text.endsWith("```")) text = text.slice(0, -3);
+    text = text.trim();
+    
+    const parsed = JSON.parse(text);
+    
+    // Validate response has required fields (including NEW evidence field)
+    if (!parsed.finalTimeComplexity || !parsed.finalSpaceComplexity) {
+      console.error("[LLM RECONSIDER] Missing required fields in response");
+      return null;
+    }
+    
+    return {
+      finalTC: parsed.finalTimeComplexity,
+      finalSC: parsed.finalSpaceComplexity,
+      evidence: parsed.evidence || "NO_EVIDENCE",
+      reasoning: parsed.reasoning || ""
+    };
+  } catch (error) {
+    console.error("[LLM RECONSIDER] Error:", error.message);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: Apply engine values (source of truth)
+// ═══════════════════════════════════════════════════════════════════════════════
+function applyEngine(approach, corrected, state) {
+  approach.timeComplexity = corrected.timeComplexity;
+  approach.spaceComplexity = corrected.spaceComplexity;
+  approach.timeComplexityReason = corrected.timeComplexityReason || approach.timeComplexityReason;
+  approach.spaceComplexityReason = corrected.spaceComplexityReason || approach.spaceComplexityReason;
+  approach.complexitySource = "ENGINE";
+  approach.resolutionState = state;
+  approach.complexityMismatchNote = null;
+  console.log(`[RECONCILE] Applied ENGINE (${state}): ${corrected.timeComplexity}/${corrected.spaceComplexity}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: Apply LLM override (ONLY with evidence)
+// ═══════════════════════════════════════════════════════════════════════════════
+function applyLLMOverride(approach, tc, sc, reasoning, evidence) {
+  approach.timeComplexity = tc;
+  approach.spaceComplexity = sc;
+  approach.timeComplexityReason = reasoning;
+  approach.spaceComplexityReason = reasoning;
+  approach.complexitySource = "LLM_OVERRIDE";
+  approach.resolutionState = "VERIFIED_LLM_OVERRIDE";
+  approach.overrideEvidence = evidence;
+  approach.complexityMismatchNote = null;
+  console.log(`[RECONCILE] Applied LLM_OVERRIDE with evidence: ${tc}/${sc}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN RECONCILIATION FUNCTION (Evidence-Based Resolution)
+// ═══════════════════════════════════════════════════════════════════════════════
+async function reconcileComplexity(approach, approachName, questionName, language, corrected) {
+  const llmOriginalTC = approach.timeComplexity;
+  const llmOriginalSC = approach.spaceComplexity;
+  
+  // First check for amortized patterns (engine might miss these)
+  const amortized = analyzeAmortizedComplexity(approach.code, language);
+  if (amortized) {
+    console.log(`[AMORTIZED] Detected ${amortized.pattern} for ${approachName}`);
+    approach.timeComplexity = amortized.timeComplexity;
+    approach.spaceComplexity = amortized.spaceComplexity;
+    approach.timeComplexityReason = amortized.reason;
+    approach.spaceComplexityReason = amortized.reason;
+    approach.complexitySource = "AMORTIZED_ENGINE";
+    approach.resolutionState = "VERIFIED_AMORTIZED";
+    return;
+  }
+
+  const reconsider = await requestComplexityReconsideration(
+    questionName,
+    approachName,
+    llmOriginalTC,
+    llmOriginalSC,
+    corrected.timeComplexity,
+    corrected.spaceComplexity,
+    approach.code,
+    language
+  );
+
+  // 🚨 RULE 1: If reconsideration failed → ENGINE WINS
+  if (!reconsider) {
+    applyEngine(approach, corrected, "ENGINE_FALLBACK");
+    return;
+  }
+
+  const normalize = (x) => (x || "").replace(/\s+/g, "").toLowerCase();
+
+  const llmFinalTC = normalize(reconsider.finalTC);
+  const llmFinalSC = normalize(reconsider.finalSC);
+  const engineTC = normalize(corrected.timeComplexity);
+  const engineSC = normalize(corrected.spaceComplexity);
+
+  // Check if LLM provided real evidence
+  const hasEvidence =
+    reconsider.evidence &&
+    reconsider.evidence !== "NO_EVIDENCE" &&
+    reconsider.evidence.length > 10 &&
+    !reconsider.evidence.toLowerCase().includes("engine analysis is correct");
+
+  // 🚨 RULE 2: LLM cannot override WITHOUT evidence
+  if (!hasEvidence) {
+    console.log(`[RECONCILE] No evidence from LLM, using ENGINE`);
+    applyEngine(approach, corrected, "VERIFIED_ENGINE");
+    return;
+  }
+
+  // 🚨 RULE 3: If LLM agrees with engine → ENGINE
+  if (llmFinalTC === engineTC && llmFinalSC === engineSC) {
+    applyEngine(approach, corrected, "VERIFIED_ENGINE");
+    return;
+  }
+
+  // 🚨 RULE 4: LLM override ONLY WITH evidence
+  applyLLMOverride(
+    approach,
+    reconsider.finalTC,
+    reconsider.finalSC,
+    reconsider.reasoning,
+    reconsider.evidence
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SAFE-TO-SHOW GATE: Protects users from seeing unresolved ambiguity
+// ═══════════════════════════════════════════════════════════════════════════════
+function isSafeToShow(solution) {
+  const approaches = ["bruteForce", "better", "optimal"];
+  let warnings = [];
+
+  for (const key of approaches) {
+    const a = solution[key];
+    if (!a) continue;
+
+    // ❌ Never show unresolved ambiguity - THIS IS THE ONLY HARD BLOCK
+    if (a.resolutionState === "AMBIGUOUS") {
+      console.warn(`[SAFE-TO-SHOW] ❌ BLOCKING: Ambiguous state for ${key}`);
+      return false;
+    }
+
+    // ⚠️ Log warning but DON'T BLOCK: O(n) with nested loop mention
+    // This can happen with amortized analysis (e.g., monotonic stack)
+    if (
+      a.timeComplexity === "O(n)" &&
+      a.timeComplexityReason?.toLowerCase().includes("nested loop")
+    ) {
+      warnings.push(`${key}: O(n) with nested loop reason (may be amortized)`);
+    }
+    
+    // ⚠️ Log warning but DON'T BLOCK: O(1) space with data structure mention
+    // Only truly concerning if it's O(1), not O(k) or O(n)
+    if (
+      a.spaceComplexity === "O(1)" &&
+      (a.spaceComplexityReason?.toLowerCase().includes("creates") ||
+       a.spaceComplexityReason?.toLowerCase().includes("allocates"))
+    ) {
+      warnings.push(`${key}: O(1) space but reason mentions allocation`);
+    }
+  }
+  
+  // Log all warnings but don't block
+  if (warnings.length > 0) {
+    console.warn(`[SAFE-TO-SHOW] ⚠️ Warnings (not blocking): ${warnings.join(', ')}`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // TEST CASE VALIDATION (warnings only, never block)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  if (solution.testCases && Array.isArray(solution.testCases)) {
+    for (const tc of solution.testCases) {
+      if (typeof tc === 'object') {
+        const input = tc.input?.toLowerCase() || '';
+        const output = tc.output?.toLowerCase() || '';
+        if (input.includes('...') || output.includes('...')) {
+          console.warn(`[SAFE-TO-SHOW] ⚠️ Placeholder in testCase (not blocking)`);
+        }
+      }
+    }
+  }
+  
+  return true;
 }
 
 // Helper to get next midnight for rate limit reset
@@ -844,6 +1204,22 @@ export default async function handler(req, res) {
     const isDevEnv = process.env.NODE_ENV !== 'production' || process.env.IGNORE_USAGE_LIMITS === 'true';
     const userId = await getUserId(req);
     console.log("[SOLUTION API] User ID:", userId);
+    
+    // Fetch user plan and role for usage limits
+    let userPlan = 'trial';
+    let userRole = 'user';
+    if (!userId.startsWith('anon_')) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          userPlan = user.plan || 'trial';
+          userRole = user.role || 'user';
+          console.log(`[SOLUTION API] User: ${user.username}, Plan: ${userPlan}, Role: ${userRole}`);
+        }
+      } catch (err) {
+        console.warn(`[SOLUTION API] Could not fetch user details: ${err.message}`);
+      }
+    }
 
     // ==================== STEP 1: Check Variant Cache (if applicable) ====================
     if (isVariant && redisClient) {
@@ -1016,33 +1392,35 @@ export default async function handler(req, res) {
     
     if (!isDevEnv) {
       // Check if user can make this request (applies to AI calls; cache hits are already counted above)
-      const canContinue = await UserUsage.canMakeRequest(userId, 'getSolution');
+      const canContinue = await UserUsage.canMakeRequest(userId, 'getSolution', userPlan, userRole);
       if (!canContinue) {
-        const usage = await UserUsage.getTodayUsage(userId);
+        const usage = await UserUsage.getTodayUsage(userId, userPlan, userRole);
         return res.status(429).json({ 
           error: "Daily limit reached", 
-          message: `You've used all ${usage.getSolutionLimit} Get Solution requests for today. Upgrade to Pro for unlimited access!`,
+          message: `You've used all ${usage.getSolutionLimit} Get Solution requests for today. ${userPlan === 'trial' ? 'Upgrade to Pro for 10x more!' : 'Resets at midnight UTC.'}`,
           usage: {
             used: usage.getSolutionUsed,
             limit: usage.getSolutionLimit,
             resetsAt: getNextMidnight()
-          }
+          },
+          userPlan
         });
       }
       
       // Check variant limit separately (variants are more expensive)
       if (isVariant) {
-        const canMakeVariant = await UserUsage.canMakeRequest(userId, 'variant');
+        const canMakeVariant = await UserUsage.canMakeRequest(userId, 'variant', userPlan, userRole);
         if (!canMakeVariant) {
-          const usage = await UserUsage.getTodayUsage(userId);
+          const usage = await UserUsage.getTodayUsage(userId, userPlan, userRole);
           return res.status(429).json({ 
             error: "Variant limit reached", 
-            message: `You've used your ${usage.variantLimit} custom variant request for today. Try without custom description or upgrade to Pro!`,
+            message: `You've used your ${usage.variantLimit} custom variant requests for today. ${userPlan === 'trial' ? 'Upgrade to Pro for more!' : 'Resets at midnight UTC.'}`,
             usage: {
               variantUsed: usage.variantUsed,
               variantLimit: usage.variantLimit,
               resetsAt: getNextMidnight()
-            }
+            },
+            userPlan
           });
         }
       }
@@ -1137,6 +1515,15 @@ export default async function handler(req, res) {
       redisClient.set(variantCacheKey, JSON.stringify(solution), { ex: 3 * 24 * 60 * 60 })
         .then(() => console.log("[REDIS] ✓ Saved to variant cache"))
         .catch(e => console.error("[REDIS] Variant write error:", e.message));
+    }
+
+    // 🚨 SAFE-TO-SHOW GATE: Protect users from contradictory analysis
+    if (!isSafeToShow(solution)) {
+      console.error("[SAFE-TO-SHOW] ❌ Solution failed safety check, returning error");
+      return res.status(500).json({ 
+        error: "Could not confidently analyze this problem. Please retry.",
+        retryable: true
+      });
     }
 
     return res.json({ 

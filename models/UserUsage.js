@@ -185,15 +185,17 @@ UserUsageSchema.statics.incrementUsage = async function(userId, type) {
     }
   );
 
-  console.log(`[USAGE] Incremented ${type} for user ${userId}: ${result[field]}/${TRIAL_LIMITS[type]}`);
+  console.log(`[USAGE] Incremented ${type} for user ${userId}: ${result[field]}`);
   return result;
 };
 
 /**
+ * @deprecated Use canMakeRequest() or getTodayUsage() instead as they support plans/roles
  * Check if limit is exceeded for a specific type
- * Returns { exceeded: boolean, current: number, limit: number }
  */
 UserUsageSchema.statics.checkLimit = async function(userId, type) {
+  console.warn("UserUsage.checkLimit is deprecated. Use UserUsage.canMakeRequest instead.");
+  // Fallback to trial limits if mistakenly used
   if (!userId || !type) {
     throw new Error("userId and type are required");
   }
@@ -213,6 +215,7 @@ UserUsageSchema.statics.checkLimit = async function(userId, type) {
   }
 
   const current = usage ? (usage[field] || 0) : 0;
+  // Defaulting to trial limits as this method is unsafe for pro/admin check
   const limit = TRIAL_LIMITS[type];
   
   return {

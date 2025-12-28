@@ -186,7 +186,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
 
       {/* Footer */}
       <div className="px-3 py-2 border-t border-gray-800/30 bg-black/10 flex flex-col gap-2">
-        {usage.plan === 'free' && !usage.unlimited && (
+        {usage.plan === 'trial' && !usage.unlimited && (
           <button
             type="button"
             onClick={() => setShowUpgradeModal(true)}
@@ -203,7 +203,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
           <Infinity className="w-2.5 h-2.5" />
           <span>
             {usage.unlimited ? 'Unlimited access' : 
-             usage.plan === 'free' ? 'Usage resets daily for a week' : 
+             usage.plan === 'trial' ? 'Usage resets daily for a week' : 
              'Usage resets daily'}
           </span>
         </div>

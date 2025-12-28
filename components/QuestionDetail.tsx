@@ -270,24 +270,24 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   return (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-right-4 pb-20">
       {/* Sticky Header Container */}
-      <div className="sticky top-0 z-20 bg-[#0c0c0c]/95 backdrop-blur-xl border-b border-gray-800/50 pt-6 pb-0 mb-8 -mx-4 px-4 md:-mx-0 md:px-0 transition-all duration-300">
-        <div className="flex items-start justify-between mb-4">
-          <div>
+      <div className="sticky top-0 z-20 bg-[#0c0c0c]/95 backdrop-blur-xl border-b border-gray-800/50 pt-4 sm:pt-6 pb-0 mb-6 sm:mb-8 -mx-4 px-4 md:-mx-0 md:px-0 transition-all duration-300">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0 mb-4">
+          <div className="w-full sm:w-auto">
             <button
               onClick={onBack}
-              className="group flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#e6c888] mb-3 transition-colors w-fit"
+              className="group flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-500 hover:text-[#e6c888] mb-2 sm:mb-3 transition-colors w-fit"
             >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 group-hover:-translate-x-1 transition-transform" />
               Back to Dashboard
             </button>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
               {question.title}
             </h1>
-            <div className="flex gap-3 mt-3">
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#e6c888]/10 text-[#e6c888] border border-[#e6c888]/20">
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-3">
+              <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-full bg-[#e6c888]/10 text-[#e6c888] border border-[#e6c888]/20 max-w-full break-words leading-tight">
                 {question.dsaCategory}
               </span>
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <span className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 max-w-full break-words leading-tight">
                 {question.pattern}
               </span>
               {question.problemUrl && (
@@ -295,14 +295,14 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                   href={question.problemUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1 text-xs font-medium rounded-full bg-gray-800 text-gray-400 hover:text-white border border-gray-700 transition-colors"
+                  className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-full bg-gray-800 text-gray-400 hover:text-white border border-gray-700 transition-colors shrink-0"
                 >
-                  Original Problem ↗
+                  Original ↗
                 </a>
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 self-end sm:self-auto">
             <ExportDropdown
               data={{
                 title: question.title,
@@ -439,51 +439,60 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 if (confirm("Are you sure you want to delete this question?"))
                   onDelete(question.id);
               }}
-              className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
               title="Delete Question"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab("revise")}
-            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-all ${
-              activeTab === "revise"
-                ? "border-[#e6c888] text-[#e6c888]"
-                : "border-transparent text-gray-400 hover:text-white"
-            }`}
-          >
-            <Zap className="w-4 h-4" /> Quick Revise
-          </button>
-          <button
-            onClick={() => setActiveTab("code")}
-            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-all ${
-              activeTab === "code"
-                ? "border-[#e6c888] text-[#e6c888]"
-                : "border-transparent text-gray-400 hover:text-white"
-            }`}
-          >
-            <FileCode className="w-4 h-4" /> My Code
-          </button>
-          <button
-            onClick={() => setActiveTab("suggestions")}
-            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-all ${
-              activeTab === "suggestions"
-                ? "border-[#e6c888] text-[#e6c888]"
-                : "border-transparent text-gray-400 hover:text-white"
-            }`}
-          >
-            <Lightbulb className="w-4 h-4" /> AI Suggestions<ProBadge />
-          </button>
+        {/* Tabs - Horizontal Scroll on Mobile */}
+        <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-4 sm:gap-8 min-w-max sm:min-w-0">
+            <button
+              onClick={() => setActiveTab("revise")}
+              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                activeTab === "revise"
+                  ? "border-[#e6c888] text-[#e6c888]"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Quick Revise</span>
+              <span className="xs:hidden">Revise</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                activeTab === "code"
+                  ? "border-[#e6c888] text-[#e6c888]"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              <FileCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">My Code</span>
+              <span className="xs:hidden">Code</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("suggestions")}
+              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                activeTab === "suggestions"
+                  ? "border-[#e6c888] text-[#e6c888]"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">AI Suggestions</span>
+              <span className="xs:hidden">AI</span>
+              <ProBadge />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content Card */}
-      <div className="bg-[#141414] border border-gray-800 rounded-2xl p-8 md:p-12 min-h-[600px] relative shadow-2xl shadow-black/50">
+      <div className="bg-[#141414] border border-gray-800 rounded-2xl p-4 sm:p-8 md:p-12 min-h-[400px] sm:min-h-[600px] relative shadow-2xl shadow-black/50">
         {/* REVISION TAB */}
         {activeTab === "revise" && (
           <div className="space-y-12 animate-in fade-in duration-500">
