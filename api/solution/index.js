@@ -14,6 +14,10 @@ import User from "../../models/User.js";
 import { getCorrectedComplexity } from "../../utils/complexityEngine.js";
 import { analyzeAmortizedComplexity } from "../../utils/amortizedDetector.js";
 
+// Import Ground Truth Database (for bulletproof validation)
+import { validateAgainstGroundTruth, applyGroundTruthCorrections } from "../../utils/problemGroundTruth.js";
+
+
 // Qubrid AI Configuration
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
@@ -438,6 +442,20 @@ Your prompt must handle these scenarios:
 - complexityNote: Not needed if all 3 provided
 
 ═══════════════════════════════════════════════════════════════
+⚠️ INSIGHTS & EXPLANATIONS GUIDELINES:
+═══════════════════════════════════════════════════════════════
+1. Do NOT suggest optimizations (e.g., "Sort neighbors") if your code does not implement them.
+2. Insights must match the provided solutions EXACTLY.
+3. For Brute Force == Optimal (e.g., DFS on small grid):
+   - Label Brute Force as "Standard Approach"
+   - Label Optimal as "Same Approach (Optimal)"
+   - Do NOT invent a fake "Brute Force" that is worse than standard DFS for exponential problems.
+4. For Grid Problems:
+   - Always check for empty grid edge cases: 'if (grid.length == 0) return 0;'
+   - Avoid Bitmask DP unless grid size is guaranteed extremely small (< 20 cells).
+   - Prefer standard Backtracking for cyclic grid paths.
+
+═══════════════════════════════════════════════════════════════
 📝 REQUIRED JSON OUTPUT:
 ═══════════════════════════════════════════════════════════════
 
@@ -750,6 +768,90 @@ Your prompt must handle these scenarios:
   if (parsed.optimal?.code) parsed.optimal.code = cleanCode(parsed.optimal.code);
 
   // ═══════════════════════════════════════════════════════════════
+  // ULTIMATE COMPLEXITY VALIDATOR
+  // Combines ALL validation layers into one bulletproof system
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    // Import ultimate validator (dynamic import for compatibility)
+    const { default: validateComplexity } = await import('../../utils/ultimateValidator.js');
+    
+    // Prepare code object for validation
+    const codeForValidation = {
+      bruteForce: parsed.bruteForce?.code,
+      better: parsed.better?.code,
+      optimal: parsed.optimal?.code
+    };
+    
+    // Run ultimate validation
+    const validationResult = await validateComplexity(
+      questionName,
+      parsed,
+      codeForValidation,
+      language
+    );
+    
+    // Apply validated solution
+    if (validationResult.validated) {
+      console.log('[ULTIMATE VALIDATOR] ✅ Validation complete');
+      console.log(`[ULTIMATE VALIDATOR] Source: ${validationResult.source}`);
+      console.log(`[ULTIMATE VALIDATOR] Confidence: ${(validationResult.confidence * 100).toFixed(1)}%`);
+      
+      // Log corrections
+      if (validationResult.corrections.length > 0) {
+        console.log('[ULTIMATE VALIDATOR] Applied corrections:');
+        validationResult.corrections.forEach(corr => {
+          console.log(`  - ${corr.approach}: ${corr.reason}`);
+        });
+      }
+      
+      // Use validated solution
+      parsed = validationResult.solution;
+    }
+    
+  } catch (validatorError) {
+    console.warn('[ULTIMATE VALIDATOR] ⚠️ Error (falling back to individual layers):', validatorError.message);
+    
+    // Fallback to individual validation layers if ultimate validator fails
+    // This ensures the system never breaks
+    
+    // ═══════════════════════════════════════════════════════════════
+    // FALLBACK LAYER 1: Problem-Specific Fixes
+    // ═══════════════════════════════════════════════════════════════
+    // Anagram fix removed (superseded by Ground Truth)
+
+    // ═══════════════════════════════════════════════════════════════
+    // FALLBACK LAYER 2: Ground Truth Database
+    // ═══════════════════════════════════════════════════════════════
+    try {
+      const groundTruthValidation = validateAgainstGroundTruth(questionName, parsed);
+      
+      if (groundTruthValidation.found) {
+        console.log('[GROUND TRUTH] ✓ Found verified entry for:', questionName);
+        
+        // ALWAYS apply ground truth corrections to ensure note field is updated
+        // Even if TC/SC matches, the note might be wrong
+        console.log('[GROUND TRUTH] Applying ground truth data...');
+        
+        if (groundTruthValidation.needsCorrection) {
+          groundTruthValidation.corrections.forEach(corr => {
+            console.log(`  [${corr.approach}] ${corr.field}: "${corr.aiValue}" → "${corr.correctValue}"`);
+            console.log(`  Reason: ${corr.reason}`);
+          });
+        }
+        
+        // Apply corrections (this will update note field even if TC/SC is correct)
+        parsed = applyGroundTruthCorrections(parsed, groundTruthValidation.groundTruth);
+        
+        console.log('[GROUND TRUTH] ✓ Ground truth applied successfully');
+      } else {
+        console.log('[GROUND TRUTH] No entry found, using other validation layers');
+      }
+    } catch (groundTruthError) {
+      console.warn('[GROUND TRUTH] ⚠️ Validation error (continuing):', groundTruthError.message);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // LAYER 5: DETERMINISTIC COMPLEXITY CORRECTION
   // Validate AI-generated TC/SC against actual code analysis
   // ═══════════════════════════════════════════════════════════════
@@ -851,6 +953,29 @@ Your prompt must handle these scenarios:
   if (parsed.better?.code && isIndexSensitiveBug(parsed.better.code, questionName)) {
     console.warn("[INDEX-SENSITIVE] ⚠️ Detected value-based mapping in better approach");
     parsed.better.correctnessWarning = getIndexSensitiveWarning();
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // LAYER 6: NUCLEAR FINAL CONSISTENCY CHECK (Ground Truth Override)
+  // Guarantees that verified problems ALWAYS match ground truth, no exceptions.
+  // ═══════════════════════════════════════════════════════════════════════════════
+  try {
+    const finalGroundTruthcheck = validateAgainstGroundTruth(questionName, parsed);
+    if (finalGroundTruthcheck.found && finalGroundTruthcheck.groundTruth) {
+       console.log("[FINAL CHECK] Force-applying ground truth to guarantee consistency...");
+       parsed = applyGroundTruthCorrections(parsed, finalGroundTruthcheck.groundTruth);
+       
+       // Explicitly check for AI failure to generate correct Brute Force code
+       if (finalGroundTruthcheck.groundTruth.bruteForce.algorithm.toLowerCase().includes('sort')) {
+         const code = (parsed.bruteForce.code || "").toLowerCase();
+         if (!code.includes('sort') && (code.includes('validanagram') || code.includes('frequency') || code.includes('hash') || code.includes('new int['))) {
+            parsed.bruteForce.codeNote = "Note: The standard brute force approach uses Sorting (O(n log n)). The AI generated an optimized implementation here, but for interview purposes, start with Sorting.";
+         }
+       }
+    }
+  } catch (e) { 
+    console.error("[FINAL CHECK] Error:", e.message); 
   }
 
   return parsed;
