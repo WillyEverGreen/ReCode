@@ -361,6 +361,223 @@ Same TC/SC
 
 Different implementations only
 
+K️⃣ Conceptual / Theory-Based Problems
+Core property
+
+The question tests understanding, not algorithmic optimization.
+
+Sub-Categories
+
+📚 K1. Pure Conceptual Questions
+Questions that test knowledge, not code.
+
+Concepts
+
+What is time complexity?
+
+Explain call stack vs heap
+
+Difference between BFS and DFS
+
+What is amortized analysis?
+
+When to use HashMap vs TreeMap?
+
+Why linked list vs array?
+
+What is a monotonic stack?
+
+Why no ladder
+
+No code to optimize
+
+Answer is explanation, not algorithm
+
+Correct teaching model
+Concept explanation
+Visual examples
+Common misconceptions
+Real-world analogies
+
+📝 K2. Implementation-Only Problems
+Questions where the algorithm is fixed, focus is on writing correct code.
+
+Concepts
+
+Implement a stack
+
+Implement a queue
+
+Design a basic HashSet
+
+Implement binary search (the exact algorithm)
+
+Write a comparator function
+
+Implement a linked list from scratch
+
+Why no ladder
+
+Algorithm is given/obvious
+
+Focus is correctness + edge cases
+
+Not optimization
+
+Correct teaching model
+Step-by-step implementation
+Common bugs
+Edge cases
+Testing strategies
+
+🧩 K3. Edge-Case / Corner-Case Focused Problems
+Questions where main logic is simple, complexity is in handling edge cases.
+
+Concepts
+
+Handle empty input
+
+Handle single element
+
+Integer overflow scenarios
+
+Null pointer handling
+
+Boundary conditions (0, -1, MAX_INT)
+
+String encoding edge cases
+
+Why no ladder
+
+Core algorithm is trivial
+
+"Optimization" is about robustness, not TC
+
+Correct teaching model
+What edge cases exist
+Why they matter
+How to handle systematically
+Testing approach
+
+🔧 K4. Simulation / Following Instructions Problems
+Questions where you simply follow rules step-by-step.
+
+Concepts
+
+Robot Return to Origin
+
+Simulate Tic-Tac-Toe
+
+Game of Life
+
+Spiral Matrix traversal
+
+Rotate Image
+
+Pascal's Triangle
+
+Why no ladder
+
+Simulation is inherently O(steps)
+
+No alternative approach exists
+
+You're executing rules, not optimizing
+
+Correct teaching model
+Understanding the rules
+State management
+Implementation clarity
+Edge case handling
+
+🎯 K5. Counting / Enumeration Problems (No Optimization Path)
+Questions where you must count or enumerate all valid items.
+
+Concepts
+
+Count prime numbers (Sieve)
+
+Count bits in number
+
+Count valid words
+
+Generate all valid IP addresses
+
+Letter Combinations of Phone Number
+
+Why no ladder
+
+Must generate/count all items
+
+No way to skip work
+
+Sieve/formula is THE solution
+
+Correct teaching model
+Why enumeration is required
+Space-time tradeoff (if any)
+The standard algorithm
+
+📐 K6. Geometry / Coordinate Problems
+Questions involving geometric reasoning.
+
+Concepts
+
+Check if point in rectangle
+
+Line intersection
+
+Convex hull
+
+Valid triangle check
+
+Distance calculations
+
+Overlapping intervals (geometric view)
+
+Why no ladder
+
+Math/geometry defines approach
+
+"Brute force" means wrong algorithm
+
+Correct teaching model
+Geometric insight
+Mathematical formula
+Edge cases (collinear, overlapping, etc.)
+Implementation precision issues
+
+🔄 K7. Transformation / Conversion Problems
+Questions focused on converting between formats.
+
+Concepts
+
+Roman to Integer / Integer to Roman
+
+Excel Column Number conversion
+
+Decimal to Binary / Hex
+
+Expression evaluation (infix to postfix)
+
+JSON parsing
+
+Serialize/Deserialize
+
+Why no ladder
+
+Conversion rules are fixed
+
+Follow the transformation
+
+No "optimization" — just correctness
+
+Correct teaching model
+Transformation rules
+Step-by-step process
+Edge cases
+Validation
+
 4️⃣ Deterministic Decision Rules (Engine-Friendly)
 
 Mark hasOptimizationLadder = false if any is true:
