@@ -2381,6 +2381,23 @@ export const PROBLEM_GROUND_TRUTH = {
     note: 'Binary search finds partition in O(log(min(m,n))).'
   },
 
+  'coinchange': {
+    patterns: ['coin change', 'minimum coins', 'fewest coins'],
+    bruteForce: {
+      tc: 'Exponential (k^amount)',
+      sc: 'O(amount)',
+      algorithm: 'Recursion (Brute Force)',
+      name: 'Recursion'
+    },
+    better: null,
+    optimal: {
+      tc: 'O(n * amount)',
+      sc: 'O(amount)',
+      algorithm: 'DP (Top-Down or Bottom-Up)',
+      name: 'Dynamic Programming'
+    },
+    note: 'Brute force is exponential. DP reduces it to pseudo-polynomial O(n*amount).'
+  },
 };
 
 
