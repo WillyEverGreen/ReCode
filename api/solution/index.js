@@ -464,6 +464,10 @@ Your prompt must handle these scenarios:
    - Do NOT use specific algorithm names (like "Quickselect", "KMP", "Manacher") unless the code ACTUALLY implements that specific algorithm.
    - For Tree/BST problems, use names like "Inorder Traversal", "Iterative Approach", "DFS", "BFS".
    - "Quickselect" applies to Arrays, not Trees. Do not use array algorithm names for tree problems.
+   - **DP Accuracy**:
+     - Do NOT call Top-Down Recursion+Memoization "1D DP". Label it "Top-Down DP" or "Memoization".
+     - "1D DP" or "Bottom-Up" implies Iterative Loop.
+     - For Coin Change/Knapsack: Brute Force is O(k^n) or Exponential, NOT O(2^n). O(2^n) implies binary choice, but coins have k choices.
 
 ═══════════════════════════════════════════════════════════════
 📝 REQUIRED JSON OUTPUT:
