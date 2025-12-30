@@ -3005,6 +3005,32 @@ function validateComplexity(aiTC, aiSC, code, language = 'python') {
       explanation: 'Comparison-based sorting has a lower bound of Ω(n log n).'
     });
   }
+
+  // CRITICAL: Space Complexity Underestimation (AI says O(1) but uses Stack/Queue/Recursion/Map)
+  const isConstantSpaceClaim = normalizedAiSC === 'O(1)' || normalizedAiSC === 'O(0)';
+  // Check if system found meaningful space usage
+  const hasDetectedSpace = 
+    systemAnalysis.features.dataStructures.stack || 
+    systemAnalysis.features.dataStructures.queue || 
+    (systemAnalysis.features.algorithms.recursion && !systemAnalysis.features.pointers.tailRecursion) || // Tail recursion optimization is rare in JS/Java standard engines
+    systemAnalysis.features.spaceUsage.auxArrays > 0 ||
+    systemAnalysis.features.spaceUsage.auxMaps > 0 ||
+    systemAnalysis.features.dataStructures.stringConcatLoop;
+
+  if (isConstantSpaceClaim && hasDetectedSpace) {
+    // Double check system complexity isn't actually O(1) due to some edge case override
+    const systemIsConstant = normalizedSystemSC === 'O(1)';
+    
+    if (!systemIsConstant) {
+      criticalErrors.push({
+        type: 'SPACE_COMPLEXITY',
+        error: 'Auxiliary space usage ignored (Stack/Queue/Recursion/Map detected)',
+        aiValue: aiSC,
+        correctValue: systemAnalysis.spaceComplexity,
+        explanation: systemAnalysis.spaceComplexityReason
+      });
+    }
+  }
   
   // Determine if we should override based on pattern and confidence pattern
   const deterministicPatterns = [

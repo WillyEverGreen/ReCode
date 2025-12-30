@@ -454,6 +454,10 @@ Your prompt must handle these scenarios:
    - Always check for empty grid edge cases: 'if (grid.length == 0) return 0;'
    - Avoid Bitmask DP unless grid size is guaranteed extremely small (< 20 cells).
    - Prefer standard Backtracking for cyclic grid paths.
+5. **Naming Accuracy**:
+   - Do NOT use specific algorithm names (like "Quickselect", "KMP", "Manacher") unless the code ACTUALLY implements that specific algorithm.
+   - For Tree/BST problems, use names like "Inorder Traversal", "Iterative Approach", "DFS", "BFS".
+   - "Quickselect" applies to Arrays, not Trees. Do not use array algorithm names for tree problems.
 
 ═══════════════════════════════════════════════════════════════
 📝 REQUIRED JSON OUTPUT:
