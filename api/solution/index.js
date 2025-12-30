@@ -500,10 +500,9 @@ Your prompt must handle these scenarios:
   },
   "note": "Set ONLY if brute=optimal (same TC/SC). Explain why no improvement exists. Else null.",
   "edgeCases": [
-    "**Empty Input:** Input: [] → Output: (expected output)",
-    "**Single Element:** Input: [5] → Output: (expected output)",
-    "**All Same Values:** Input: [2,2,2] → Output: (expected output)",
-    "Include 4-6 edge cases with SPECIFIC input/output examples"
+    "**Constraint Check:** Input: (e.g., min/max value) → Output: ...",
+    "**Corner Case:** Input: ... → Output: ...",
+    "Include 4-6 edge cases. STRICTLY RESPECT problem constraints (e.g., if constraint says 1 <= n, do NOT include 'Empty Input')."
   ],
   "testCases": [
     "Input: s='ADOBECODEBANC', t='ABC' → Output: 'BANC'",
