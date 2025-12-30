@@ -1677,7 +1677,9 @@ function deriveSpaceComplexity(features) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function verifyComplexity(analysisResult, features) {
-  const { timeComplexity, spaceComplexity, features: f } = analysisResult;
+  const { timeComplexity, spaceComplexity } = analysisResult;
+  // Use full features object (including metrics) instead of the sanitized subset in analysisResult
+  const f = features;
   let correctedTC = timeComplexity;
   let correctedReason = analysisResult.timeComplexityReason;
   let correctedSC = spaceComplexity;

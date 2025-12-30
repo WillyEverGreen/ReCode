@@ -10,6 +10,7 @@ import GetSolution from "./components/GetSolution";
 import AdminPanel from "./components/AdminPanel";
 import UsageDisplay from "./components/UsageDisplay";
 import Pricing from "./components/Pricing";
+import { PolicyPage } from "./components/Policies";
 
 import { API_BASE_URL } from "./config/api";
 import {
@@ -42,6 +43,31 @@ const App: React.FC = () => {
 
   const [showLanding, setShowLanding] = useState<boolean>(!token);
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
+  const [policyView, setPolicyView] = useState<string | null>(null);
+
+  // Check for policy routes on mount
+  useEffect(() => {
+    const path = window.location.pathname;
+    const routes: Record<string, string> = {
+      '/privacy': 'privacy',
+      '/privacy-policy': 'privacy',
+      '/terms': 'terms',
+      '/terms-and-conditions': 'terms',
+      '/refunds': 'refunds',
+      '/cancellation-refund-policy': 'refunds',
+      '/shipping': 'shipping',
+      '/shipping-policy': 'shipping',
+      '/contact': 'contact',
+      '/contact-us': 'contact'
+    };
+    
+    // Check exact match or without trailing slash
+    const view = routes[path] || routes[path.replace(/\/$/, '')];
+    if (view) {
+      setPolicyView(view);
+      setShowLanding(false);
+    }
+  }, []);
 
   // Check for admin route on mount and hash change
   useEffect(() => {
@@ -213,7 +239,6 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    // Admin panel (accessible without auth via hash route)
     if (showAdmin) {
       return (
         <AdminPanel
@@ -221,6 +246,18 @@ const App: React.FC = () => {
             window.location.hash = "";
             setShowAdmin(false);
           }}
+        />
+      );
+    }
+
+    if (policyView) {
+      return (
+        <PolicyPage 
+          type={policyView} 
+          onHome={() => {
+            setPolicyView(null);
+            window.location.href = '/';
+          }} 
         />
       );
     }
@@ -329,6 +366,8 @@ const App: React.FC = () => {
             }}
           />
         </div>
+      ) : policyView ? (
+        <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
       ) : (!token && showLanding) || !token ? (
         <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
       ) : view === "pricing" ? (
