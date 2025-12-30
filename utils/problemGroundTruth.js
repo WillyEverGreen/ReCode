@@ -2317,8 +2317,26 @@ export const PROBLEM_GROUND_TRUTH = {
     note: 'Sample k items from stream of unknown size.'
   },
 
+  'kthsmallestbst': {
+    patterns: ['kth smallest element in a bst', 'kth smallest bst', 'kth smallest in bst'],
+    bruteForce: {
+      tc: 'O(n)',
+      sc: 'O(n)',
+      algorithm: 'Inorder Traversal to Array',
+      name: 'Inorder Array'
+    },
+    better: null,
+    optimal: {
+      tc: 'O(n)', // Worst case visit all nodes
+      sc: 'O(h)',
+      algorithm: 'Iterative Inorder Traversal',
+      name: 'Iterative Inorder'
+    },
+    note: 'Inorder traversal finds elements in sorted order. O(h) space is optimal.'
+  },
+
   'quickselect': {
-    patterns: ['quick select', 'kth element', 'kth smallest'],
+    patterns: ['quick select', 'kth largest element in an array', 'kth smallest element in an array'],
     bruteForce: {
       tc: 'O(n log n)',
       sc: 'O(1)',
