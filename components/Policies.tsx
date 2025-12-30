@@ -153,6 +153,7 @@ export const PolicyPage: React.FC<PolicyPageProps> = ({ type, onHome }) => {
               <li>AI outputs may be inaccurate, incomplete, or incorrect</li>
               <li>ReCode does not guarantee correctness of explanations, solutions, or complexity analysis</li>
               <li>You are responsible for verifying outputs before relying on them in exams, interviews, or production systems</li>
+              <li><strong>Complexity Analysis Methodology:</strong> Currently, our Complexity Engine calculates the <strong>Worst-Case Time Complexity (Upper Bound)</strong> by default to ensure conservative safety estimates. We are actively working on future updates to provide detailed breakdown analysis for Best-Case, Average-Case, and Amortized scenarios.</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-white mt-8">6. Intellectual Property</h3>
