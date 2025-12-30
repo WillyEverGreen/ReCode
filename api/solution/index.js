@@ -346,6 +346,12 @@ TASK: Provide Brute Force, Better (if exists), and Optimal solutions with DISTIN
    - Set "better" to null ONLY if no middle ground exists
    - Never skip an approach just because it's "not interesting"
 
+3. **PROBLEM CORRECTNESS (CRITICAL)**:
+   - Pay extreme attention to specific constraints like "Distinct", "Unique", "At Most K", "Repeating".
+   - Example 1: "Longest Substring with At Most Two Distinct Characters" is DIFFERENT from "Longest Substring Without Repeating Characters".
+   - Example 2: "Permutation" is DIFFERENT from "Combination".
+   - Solve EXACTLY the problem requested. Do not hallucinate a more popular variant.
+
 ═══════════════════════════════════════════════════════════════
 📋 WHEN TO USE "complexityNote" FIELD:
 ═══════════════════════════════════════════════════════════════
