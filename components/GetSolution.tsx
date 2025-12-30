@@ -725,7 +725,9 @@ const GetSolution: React.FC = () => {
                   <span className="flex-shrink-0 w-6 h-6 bg-[#e6c888]/10 text-[#e6c888] rounded-full flex items-center justify-center text-xs border border-[#e6c888]/20 font-mono">
                     {idx + 1}
                   </span>
-                  <span className="leading-relaxed">{edge}</span>
+                  <div className="leading-relaxed text-[#cccccc]">
+                    <MarkdownRenderer content={edge} />
+                  </div>
                 </li>
               ))}
             </ul>
