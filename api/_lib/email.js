@@ -12,14 +12,9 @@ function getTransporter() {
   const emailPort = process.env.EMAIL_PORT;
   const resendApiKey = process.env.RESEND_API_KEY; // Auto-detect Resend
   
-  if (!emailUser && !resendApiKey) {
-    console.log("[EMAIL] Missing EMAIL_USER or RESEND_API_KEY - emails disabled");
-    return null;
-  }
-  
   // 1. Resend (Highest Priority)
   if (resendApiKey) {
-    console.log("[EMAIL] Using Resend SMTP");
+    console.log("[EMAIL] Initializing Resend SMTP...");
     transporter = nodemailer.createTransport({
       host: "smtp.resend.com",
       port: 587,
@@ -29,11 +24,13 @@ function getTransporter() {
         pass: resendApiKey,
       },
     });
+    console.log("[EMAIL] Resend Transporter Ready.");
     return transporter;
   }
 
-  // 2. Custom SMTP (if host provided)
+  // 2. Custom SMTP
   if (emailHost) {
+    console.log("[EMAIL] Using Custom SMTP:", emailHost);
     transporter = nodemailer.createTransport({
       host: emailHost,
       port: Number(emailPort) || 587,
@@ -43,9 +40,12 @@ function getTransporter() {
         pass: emailPass,
       },
     });
+    return transporter;
   } 
+  
   // 3. Gmail Fallback
-  else if (emailUser && emailPass) {
+  if (emailUser && emailPass) {
+    console.log("[EMAIL] Using Gmail Fallback.");
     transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -53,9 +53,11 @@ function getTransporter() {
         pass: emailPass,
       },
     });
+    return transporter;
   }
   
-  return transporter;
+  console.log("[EMAIL] NO EMAIL PROVIDER CONFIGURED. Checks: RESEND (" + (resendApiKey ? "Yes" : "No") + "), SMTP Host (" + (emailHost ? "Yes" : "No") + "), Gmail User (" + (emailUser ? "Yes" : "No") + ")");
+  return null;
 }
 
 // Branded email template
