@@ -2,7 +2,7 @@
 
 ## Summary
 
-Successfully set **saibalkawade10@gmail.com** as an **Admin** with **unlimited usage** (no daily limits).
+Successfully set **[REDACTED_ADMIN_EMAIL]** as an **Admin** with **unlimited usage** (no daily limits).
 
 ---
 
@@ -10,7 +10,7 @@ Successfully set **saibalkawade10@gmail.com** as an **Admin** with **unlimited u
 
 ### 1. Made You Admin ✅
 ```bash
-node scripts/manage-users.js make-admin saibalkawade10@gmail.com
+node scripts/manage-users.js make-admin [REDACTED_ADMIN_EMAIL]
 ```
 
 **Result**: ✅ Sai is now an ADMIN!
@@ -172,7 +172,7 @@ return res.json({
 
 ### Test Your Admin Access:
 
-1. **Login** with your account (saibalkawade10@gmail.com)
+1. **Login** with your account ([REDACTED_ADMIN_EMAIL])
 2. **Make API requests** - You should see:
    - ✅ No 429 "Daily limit reached" errors
    - ✅ `unlimited: true` in responses
@@ -217,7 +217,7 @@ node scripts/manage-users.js upgrade-pro user@example.com
 ### ✅ Updated:
 1. `api/usage/increment.js` - Added admin/pro unlimited access
 2. `api/usage/index.js` - Show unlimited for admin/pro
-3. User database - Set saibalkawade10@gmail.com as admin
+3. User database - Set [REDACTED_ADMIN_EMAIL] as admin
 
 ### ✅ Created:
 1. `ADMIN_SETUP_COMPLETE.md` - This documentation
@@ -263,7 +263,7 @@ Run this to verify everything:
 # 1. Check your admin status
 node scripts/manage-users.js list
 
-# 2. Login to the app with saibalkawade10@gmail.com
+# 2. Login to the app with [REDACTED_ADMIN_EMAIL]
 
 # 3. Make multiple API requests (more than free limits)
 
