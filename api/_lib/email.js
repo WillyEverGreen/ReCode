@@ -11,6 +11,7 @@ function getTransporter() {
   const emailHost = process.env.EMAIL_HOST;
   const emailPort = process.env.EMAIL_PORT;
   const resendApiKey = process.env.RESEND_API_KEY; // Auto-detect Resend
+  console.log("[EMAIL CONFIG] FROM:", process.env.EMAIL_FROM); // DEBUG: Verify env var
   
   // 1. Resend (Highest Priority)
   if (resendApiKey) {
