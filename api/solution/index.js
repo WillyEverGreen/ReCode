@@ -1187,11 +1187,11 @@ Return ONLY valid JSON, no markdown fences.`;
       body: JSON.stringify({
         model: AI_MODEL,
         messages: [
-          { role: "system", content: "You are a complexity analysis expert. Provide STRUCTURAL EVIDENCE for your claims. Quote actual code lines. If you cannot find evidence, admit the engine is correct." },
+          { role: "system", content: "You are a meticulous algorithm expert. Your designated role is to generate 100% accurate, compile-ready code and mathematically verified edge cases. \n\nCRITICAL RULES:\n1. Verify EVERY edge case example manually. Do not hallucinate outputs.\n2. For interval problems, explicitely check overlaps. (e.g., [-1,4] and [2,3] MUST merge to [-1,4]).\n3. Code must handle empty inputs and nulls.\n4. Provide purely factual complexity analysis." },
           { role: "user", content: prompt }
         ],
-        max_tokens: 500,
-        temperature: 0.2,
+        max_tokens: 1500,
+        temperature: 0.1,
         stream: false
       }),
       signal: controller.signal
