@@ -7,9 +7,11 @@ interface AnalysisResultProps {
   markdown: string;
   onReset: () => void;
   questionTitle?: string;
+  isPro: boolean;
+  onUpgrade: () => void;
 }
 
-const AnalysisResult: React.FC<AnalysisResultProps> = ({ markdown, onReset, questionTitle }) => {
+const AnalysisResult: React.FC<AnalysisResultProps> = ({ markdown, onReset, questionTitle, isPro, onUpgrade }) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
@@ -19,6 +21,11 @@ const AnalysisResult: React.FC<AnalysisResultProps> = ({ markdown, onReset, ques
   };
 
   const handleExport = () => {
+    if (!isPro) {
+      onUpgrade();
+      return;
+    }
+
     // Create formatted markdown with header
     const formattedContent = `# ${questionTitle || 'Revision Notes'}
     
@@ -54,16 +61,19 @@ ${markdown}
           <div className="flex items-center gap-2 text-white font-semibold">
             <BookOpen className="text-yellow-500" />
             <span>AI Revision Notes</span>
-            <ProBadge />
           </div>
           
           <div className="flex gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
-              title="Download notes as Markdown file"
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                isPro 
+                  ? 'text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700' 
+                  : 'text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20'
+              }`}
+              title={isPro ? "Download notes as Markdown file" : "Upgrade to export notes"}
             >
-              <Download className="w-4 h-4" />
+              {isPro ? <Download className="w-4 h-4" /> : <ProBadge size={14} className="!ml-0" />}
               Export
             </button>
             <button

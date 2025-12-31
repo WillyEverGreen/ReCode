@@ -335,6 +335,8 @@ const App: React.FC = () => {
           onBack={() => setView("dashboard")}
           onDelete={handleDelete}
           onUpdateQuestion={handleUpdateQuestion}
+          isPro={user?.plan === 'pro' || user?.role === 'admin'}
+          onUpgrade={() => setView("pricing")}
         />
       );
     }

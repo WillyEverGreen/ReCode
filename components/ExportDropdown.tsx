@@ -3,23 +3,22 @@ import { Download, FileText, File, ChevronDown, ChevronRight, Crown } from 'luci
 import { exportAsMarkdown, exportAsPDF, exportAsText } from '../utils/exportUtils';
 
 interface ExportDropdownProps {
-  data: {
-    title: string;
-    code?: string;
-    language?: string;
-    timeComplexity?: string;
-    spaceComplexity?: string;
-    revisionNotes?: string[];
-    edgeCases?: string[];
-    approach?: string;
-    explanation?: string;
-  };
+  data: any; // Using any for brevity since we're passing through
   className?: string;
   isOpen?: boolean;
   onToggle?: (open: boolean) => void;
+  isPro?: boolean;
+  onUpgrade?: () => void;
 }
 
-const ExportDropdown: React.FC<ExportDropdownProps> = ({ data, className = '', isOpen: controlledIsOpen, onToggle }) => {
+const ExportDropdown: React.FC<ExportDropdownProps> = ({ 
+  data, 
+  className = '', 
+  isOpen: controlledIsOpen, 
+  onToggle,
+  isPro = false,
+  onUpgrade
+}) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   
   // Use controlled state if provided, otherwise use internal state
@@ -36,10 +35,16 @@ const ExportDropdown: React.FC<ExportDropdownProps> = ({ data, className = '', i
     {
       label: 'PDF',
       action: () => {
+        if (!isPro && onUpgrade) {
+          onUpgrade();
+          setIsOpen(false);
+          return;
+        }
         exportAsPDF(data);
         setIsOpen(false);
       },
       badge: 'Pro',
+      isLocked: !isPro
     },
     {
       label: 'Markdown',

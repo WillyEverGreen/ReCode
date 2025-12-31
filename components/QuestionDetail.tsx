@@ -31,6 +31,8 @@ interface QuestionDetailProps {
   onBack: () => void;
   onDelete: (id: string) => void;
   onUpdateQuestion: (question: SavedQuestion) => void;
+  isPro?: boolean;
+  onUpgrade?: () => void;
 }
 
 const QuestionDetail: React.FC<QuestionDetailProps> = ({
@@ -40,6 +42,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   onBack,
   onDelete,
   onUpdateQuestion,
+  isPro,
+  onUpgrade,
 }) => {
   const [activeTab, setActiveTab] = useState<
     "revise" | "code" | "suggestions"
@@ -330,6 +334,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
               }}
               isOpen={showExport}
               onToggle={handleExportToggle}
+              isPro={isPro}
+              onUpgrade={onUpgrade}
             />
             {/* Settings Toggle (Only visible in Revise tab) */}
             {activeTab === "revise" && (
@@ -485,7 +491,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
               <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">AI Suggestions</span>
               <span className="xs:hidden">AI</span>
-              <ProBadge />
+
             </button>
           </div>
         </div>
@@ -550,7 +556,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             {question.revisionNotes && question.revisionNotes.length > 0 && (
               <div className="bg-[#0c0c0c] p-8 rounded-xl border border-gray-800">
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall Checklist<ProBadge />
+                  <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall Checklist
                 </h3>
                 <ul className="space-y-4">
                   {question.revisionNotes.map((rawNote, idx) => {
@@ -574,7 +580,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             {/* Core Logic */}
             <div className="custom-markdown">
               <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5" /> Core Logic & Approach<ProBadge />
+                <BrainCircuit className="w-5 h-5" /> Core Logic & Approach
               </h2>
               <MarkdownRenderer content={question.coreLogic} />
             </div>
