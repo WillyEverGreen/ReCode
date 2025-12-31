@@ -136,6 +136,13 @@ const App: React.FC = () => {
     );
   }, [userSettings]);
 
+  // Listen for navigation to pricing from UsageDisplay
+  useEffect(() => {
+    const handlePricingNav = () => setView("pricing");
+    window.addEventListener("navigate-to-pricing", handlePricingNav);
+    return () => window.removeEventListener("navigate-to-pricing", handlePricingNav);
+  }, []);
+
   const fetchQuestions = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/questions`, {

@@ -4,6 +4,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { SolutionResult, SolutionApproach } from "../types";
 import { generateSolution } from "../services/aiService";
+
 import {
   Sparkles,
   Loader2,
@@ -421,6 +422,9 @@ const GetSolution: React.FC = () => {
               className="w-full bg-gray-950 text-white border border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-colors"
               disabled={isLoading}
             />
+            <p className="text-xs text-gray-500 mt-2">
+              Note: Use exact problem names (e.g. from LeetCode,GFG) for better accuracy.
+            </p>
           </div>
 
           {/* Problem Description */}
@@ -611,53 +615,20 @@ const GetSolution: React.FC = () => {
                   </div>
                 )}
                 
+                
                 {/* Complexity Cards */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#0c0c0c] border border-gray-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">
                       <Clock className="w-3 h-3" /> Time
-                      {/* DEBUG: Source badge */}
-                      {(currentApproach as any).complexitySource && (
-                        <span className={`ml-auto px-2 py-0.5 rounded text-[10px] font-mono ${
-                          (currentApproach as any).complexitySource === 'LLM' 
-                            ? 'bg-blue-500/20 text-blue-400' 
-                            : (currentApproach as any).complexitySource === 'Engine'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-purple-500/20 text-purple-400'
-                        }`}>
-                          {(currentApproach as any).complexitySource}
-                        </span>
-                      )}
                     </div>
                     <div className="text-white font-mono">{currentApproach.timeComplexity}</div>
-                    {(currentApproach as any).timeComplexityReason && (
-                      <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                        {(currentApproach as any).timeComplexityReason}
-                      </p>
-                    )}
                   </div>
                   <div className="bg-[#0c0c0c] border border-gray-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">
                       <Activity className="w-3 h-3" /> Space
-                      {/* DEBUG: Source badge */}
-                      {(currentApproach as any).complexitySource && (
-                        <span className={`ml-auto px-2 py-0.5 rounded text-[10px] font-mono ${
-                          (currentApproach as any).complexitySource === 'LLM' 
-                            ? 'bg-blue-500/20 text-blue-400' 
-                            : (currentApproach as any).complexitySource === 'Engine'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-purple-500/20 text-purple-400'
-                        }`}>
-                          {(currentApproach as any).complexitySource}
-                        </span>
-                      )}
                     </div>
                     <div className="text-white font-mono">{currentApproach.spaceComplexity}</div>
-                    {(currentApproach as any).spaceComplexityReason && (
-                      <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                        {(currentApproach as any).spaceComplexityReason}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>

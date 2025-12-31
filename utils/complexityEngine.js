@@ -382,11 +382,15 @@ function extractCodeFeatures(code, language = 'python') {
     /\[left:right\]|\[left,\s*right\]/gi,
     /right\s*-\s*left.*===|right\s*-\s*left.*>=|right\s*-\s*left.*<=/gi,  // window size check
     /end\s*-\s*start/gi,
-    /for.*right.*while.*left\+\+|for.*while.*set.*delete/gi,  // Classic sliding window with Set
-    /maxLen.*right\s*-\s*left|right\s*-\s*left.*maxLen/gi,  // Length tracking
+    /for[\s\S]*right[\s\S]*while[\s\S]*left\+\+|for[\s\S]*while[\s\S]*set[\s\S]*delete/gi,  // Classic sliding window with Set
+    /for[\s\S]*i[\s\S]*while[\s\S]*start\+\+|for[\s\S]*j[\s\S]*while[\s\S]*i\+\+/gi, // Common variable names (i/start, j/i)
+    /while[\s\S]*map\.size[\s\S]*\s*>/gi, // Map size constraint check
+    /while[\s\S]*count[\s\S]*>[\s\S]*k/gi, // Count constraint check
+    /maxLen[\s\S]*right\s*-\s*left|right\s*-\s*left[\s\S]*maxLen/gi,  // Length tracking
+    /max[\s\S]*i\s*-\s*start|max[\s\S]*j\s*-\s*i/gi, // Length tracking with i/start/j
     /\[i\]\s*-\s*\w+\[i\s*-\s*(?:k|\d+)\]/gi, // Fixed size window (nums[i] - nums[i-k])
     /curr.*-=.*nums\[.*\]/gi, // manual window slide subtraction
-    /Math\.(?:min|max).*right\s*-\s*left/gi // Math.min/max with window size
+    /Math\.(?:min|max)[\s\S]*right\s*-\s*left/gi // Math.min/max with window size
   ];
   
   // Only detect sliding window if it's NOT binary search

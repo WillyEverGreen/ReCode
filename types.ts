@@ -51,20 +51,44 @@ export interface SavedQuestion extends Omit<SubmissionData, 'title' | 'language'
 
 export type ViewState = 'dashboard' | 'add' | 'detail' | 'solution' | 'pricing';
 
+// Complexity case (average vs worst)
+export interface ComplexityCase {
+  time: string;
+  space: string;
+  explanation: string;
+}
+
+// Dual complexity analysis result
+export interface DualComplexityAnalysis {
+  averageCase: ComplexityCase;
+  worstCase: ComplexityCase;
+  confidence: number;
+  source: 'ground-truth-title' | 'ground-truth-fingerprint' | 'heuristic';
+  patterns: string[];
+  dataStructures: string[];
+  note?: string;
+}
+
 export interface SolutionApproach {
   name: string;
   intuition: string;
   steps: string[];
   code: string;
+  
+  // Legacy single complexity (deprecated but kept for backwards compatibility)
   timeComplexity: string;
   timeComplexityReason?: string;
   spaceComplexity: string;
   spaceComplexityReason?: string;
+  
+  // NEW: Dual complexity analysis (V2 Engine)
+  complexityAnalysis?: DualComplexityAnalysis;
+  
   // Mismatch tracking: When engine corrects LLM's TC/SC
   complexityMismatchNote?: string; // LLM's reasoning for why it chose different TC/SC than engine
   llmOriginalTC?: string; // Original TC from LLM before engine correction
   llmOriginalSC?: string; // Original SC from LLM before engine correction
-  complexitySource?: 'LLM' | 'Engine' | 'LLM-Reconsidered'; // Source of final complexity values
+  complexitySource?: 'LLM' | 'Engine' | 'LLM-Reconsidered' | 'EngineV2'; // Source of final complexity values
 }
 
 export interface SolutionResult {

@@ -41,7 +41,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
             Problem URL <span className="text-gray-500 text-xs font-normal">(Optional)</span>
           </label>
           <input
-            type="url"
+            type="text"
             id="problemUrl"
             name="problemUrl"
             value={formData.problemUrl}
@@ -49,6 +49,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
             placeholder="https://leetcode.com/problems/..."
             className="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Note: Providing an accurate URL or problem name helps the AI analyze complexity correctly.
+          </p>
         </div>
 
         {/* Code Editor Area */}

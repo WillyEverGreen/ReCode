@@ -10,7 +10,7 @@ let analyzeInFlight = false;
 // API base URL - empty in production for Vercel serverless (relative /api routes)
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
-// Qubrid AI API Configuration
+// Qubrid AI API Configuration (Qwen3-Coder-30B - fast, reliable)
 const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
 const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 

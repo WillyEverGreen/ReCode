@@ -13,14 +13,17 @@ import User from "../../models/User.js";
 // Import Complexity Analysis Engine (for validating/correcting AI output)
 import { getCorrectedComplexity } from "../../utils/complexityEngine.js";
 import { analyzeAmortizedComplexity } from "../../utils/amortizedDetector.js";
+// Import V2 Complexity Engine (for dual complexity analysis with 3,680+ problem ground truth)
+import { analyzeComplexityV2 } from "../../utils/complexityEngineV2.js";
 
 // Import Ground Truth Database (for bulletproof validation)
-import { validateAgainstGroundTruth, applyGroundTruthCorrections } from "../../utils/problemGroundTruth.js";
+import { validateAgainstGroundTruth, applyGroundTruthCorrections, findGroundTruth } from "../../utils/problemGroundTruth.js";
 
 
-// Qubrid AI Configuration
-const QUBRID_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
-const QUBRID_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
+// Qubrid AI Configuration (Qwen3-Coder-30B - fast, reliable)
+const AI_API_URL = "https://platform.qubrid.com/api/v1/qubridai/chat/completions";
+const AI_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
+const AI_API_KEY = process.env.QUBRID_API_KEY;
 
 // Lazy-load Redis (for serverless - env vars may not be available at module load)
 let redis = null;
@@ -318,9 +321,61 @@ async function saveCanonicalId(canonicalId, redis) {
   }
 }
 
-// Generate from Qubrid
-async function generateFromQubrid(questionName, language, problemDescription, temperature = 0.8) {
+// Generate solution using AI
+async function generateFromQubrid(questionName, language, problemDescription, temperature = 0.3) {
+  // ═══════════════════════════════════════════════════════════════
+  // STEP 2.5: FETCH TARGET COMPLEXITY (GUIDANCE INJECTION)
+  // ═══════════════════════════════════════════════════════════════
+  let complexityGuidance = "";
+  try {
+    // Check Layer 2 Database (369 verified problems with Brute/Better/Optimal)
+    const layer2Data = findGroundTruth(questionName);
+    
+    if (layer2Data) {
+      console.log(`[PROMPT INJECTION] Found Layer 2 Ground Truth for: ${layer2Data.patterns[0]}`);
+      
+      let guidanceParts = ["IMPORTANT CONSTRAINTS:"];
+      
+      if (layer2Data.bruteForce) {
+         guidanceParts.push(`- Brute Force Approach: Target Time ${layer2Data.bruteForce.tc}, Space ${layer2Data.bruteForce.sc} (${layer2Data.bruteForce.algorithm})`);
+      }
+      
+      if (layer2Data.better) {
+         guidanceParts.push(`- Better Approach: Target Time ${layer2Data.better.tc}, Space ${layer2Data.better.sc} (${layer2Data.better.algorithm})`);
+      } else if (layer2Data.hasOptimizationLadder === false) {
+          guidanceParts.push(`- NO Better Approach: This problem does not have an intermediate optimization.`);
+      }
+      
+      if (layer2Data.optimal) {
+         guidanceParts.push(`- Optimal Approach: Target Time ${layer2Data.optimal.tc}, Space ${layer2Data.optimal.sc} (${layer2Data.optimal.algorithm})`);
+      }
+      
+      guidanceParts.push("Structure your solution to STRICTLY follow this optimization ladder.");
+      guidanceParts.push("You MUST provide ALL 3 approaches (Brute, Better, Optimal) if they are listed above. Do NOT skip 'Better'.");
+      complexityGuidance = guidanceParts.join("\n");
+      
+    } else {
+      // Fallback to Layer 3 (V2 Mega DB - 3,680+ problems, Optimal only)
+      const v2Meta = analyzeComplexityV2("", language, questionName);
+      
+      if (v2Meta && v2Meta.source && v2Meta.source.includes('ground-truth')) {
+        console.log(`[PROMPT INJECTION] Found V2 Ground Truth (Optimal only): ${v2Meta.worstCase.time}`);
+        complexityGuidance = `
+IMPORTANT CONSTRAINT:
+This problem is known to have an optimal solution with:
+- Time Complexity: ${v2Meta.worstCase.time}
+- Space Complexity: ${v2Meta.worstCase.space}
+
+You MUST ensure your 'optimal' approach achieves these specific complexities.
+`;
+      }
+    }
+  } catch (err) {
+    console.warn("[PROMPT INJECTION] Failed to look up ground truth:", err.message);
+  }
+
   const prompt = `You are a DSA problem solver. Solve this problem with ALL possible approaches.
+${complexityGuidance}
 
 PROBLEM: ${questionName}
 LANGUAGE: ${language}
@@ -541,18 +596,18 @@ Your prompt must handle these scenarios:
 - [ ] edgeCases: Each edge case has SPECIFIC input and expected output`;
 
 
-  // FIX 4: Add 30s timeout to prevent hung requests
+  // Timeout for DeepSeek R1 70B (larger model needs more time)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 90000);
 
-  const response = await fetch(QUBRID_API_URL, {
+  const response = await fetch(AI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.QUBRID_API_KEY}`
+      "Authorization": `Bearer ${AI_API_KEY}`
     },
     body: JSON.stringify({
-      model: QUBRID_MODEL,
+      model: AI_MODEL,
       messages: [
         { role: "system", content: "You are an expert DSA tutor. Your goal is to teach students by showing them MULTIPLE solution approaches whenever possible. Always aim to provide THREE solutions (Brute Force, Better, Optimal) to help students understand the progression of optimizations. Be educational, comprehensive, and logically consistent. Always output valid JSON only. If brute force and optimal have different complexities, they are NOT the same - show the intermediate 'better' approach if one exists." },
         { role: "user", content: prompt }
@@ -566,7 +621,7 @@ Your prompt must handle these scenarios:
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
-    throw new Error(`Qubrid API error: ${response.status} - ${errorText.slice(0, 100)}`);
+    throw new Error(`AI API error: ${response.status} - ${errorText.slice(0, 100)}`);
   }
 
   const data = await response.json();
@@ -865,6 +920,77 @@ Your prompt must handle these scenarios:
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // LAYER 4.5: V2 DUAL COMPLEXITY ANALYSIS (3,680 PROBLEM DATABASE)
+  // Enriches AI output with average + worst case for time and space
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    console.log("[COMPLEXITY ENGINE V2] Analyzing dual complexity (avg + worst case)...");
+    
+    // Analyze each approach with V2 engine
+    const approaches = ['bruteForce', 'better', 'optimal'];
+    
+    for (const approachKey of approaches) {
+      const approach = parsed[approachKey];
+      if (!approach || !approach.code) continue;
+      
+      // Pass questionName to all approaches so the engine knows the "Baseline Complexity"
+      // but the engine itself will handle whether to force-override or just use it as a hint.
+      const v2Analysis = analyzeComplexityV2(approach.code, language, questionName);
+      
+      if (v2Analysis && v2Analysis.confidence >= 70) {
+        // Add dual complexity data to approach
+        approach.complexityAnalysis = {
+          averageCase: {
+            time: v2Analysis.averageCase.time,
+            space: v2Analysis.averageCase.space,
+            explanation: v2Analysis.averageCase.explanation
+          },
+          worstCase: {
+            time: v2Analysis.worstCase.time,
+            space: v2Analysis.worstCase.space,
+            explanation: v2Analysis.worstCase.explanation
+          },
+          confidence: v2Analysis.confidence,
+          source: v2Analysis.source,
+          patterns: v2Analysis.patterns,
+          dataStructures: v2Analysis.dataStructures
+        };
+        
+        console.log(`[COMPLEXITY ENGINE V2] ${approachKey}:`);
+        console.log(`  Average: TC=${v2Analysis.averageCase.time}, SC=${v2Analysis.averageCase.space}`);
+        console.log(`  Worst:   TC=${v2Analysis.worstCase.time}, SC=${v2Analysis.worstCase.space}`);
+        console.log(`  Source: ${v2Analysis.source}, Confidence: ${v2Analysis.confidence}%`);
+        
+        // If V2 found ground truth match (100% confidence), update main complexity fields
+        // LOGIC UPDATE: We DO NOT blindly apply optimal complexity just because the title matches.
+        // We only override if:
+        // 1. It's a fingerprint match (We know this exact code snippet is correct)
+        // 2. OR the engine performed a "pattern" analysis (not just a DB lookup) and is confident.
+        
+        const isFingerprintMatch = v2Analysis.source && v2Analysis.source.includes('fingerprint');
+        const isPatternMatch = v2Analysis.source && (v2Analysis.source.includes('heuristic') || v2Analysis.source.includes('pattern'));
+        
+        // Only override if we really know the CODE matches the complexity
+        if (v2Analysis.confidence === 100 && isFingerprintMatch) {
+          console.log(`[COMPLEXITY ENGINE V2] 🎯 Fingerprint match! Updating ${approachKey} complexity`);
+          approach.timeComplexity = v2Analysis.worstCase.time;
+          approach.spaceComplexity = v2Analysis.worstCase.space;
+        } else if (isPatternMatch && v2Analysis.confidence >= 90) {
+           console.log(`[COMPLEXITY ENGINE V2] 🔍 Pattern Verified! Updating ${approachKey} complexity (Confidence: ${v2Analysis.confidence}%)`);
+           // For pattern matches, we trust the engine's analysis of THIS code
+           approach.timeComplexity = v2Analysis.worstCase.time;
+           approach.spaceComplexity = v2Analysis.worstCase.space;
+           approach.complexitySource = "V2_PATTERN";
+        }
+      }
+    }
+    
+    console.log("[COMPLEXITY ENGINE V2] ✓ Dual complexity analysis complete");
+  } catch (v2Error) {
+    console.warn("[COMPLEXITY ENGINE V2] ⚠️ V2 engine error (continuing with fallback):", v2Error.message);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // LAYER 5: DETERMINISTIC COMPLEXITY CORRECTION
   // Validate AI-generated TC/SC against actual code analysis
   // ═══════════════════════════════════════════════════════════════
@@ -872,7 +998,7 @@ Your prompt must handle these scenarios:
     console.log("[COMPLEXITY ENGINE] Validating AI-generated complexity values...");
     
     // Correct bruteForce complexity
-    if (parsed.bruteForce?.code) {
+    if (parsed.bruteForce?.code && parsed.bruteForce.complexitySource !== "V2_PATTERN") {
       const corrected = getCorrectedComplexity(
         parsed.bruteForce.timeComplexity,
         parsed.bruteForce.spaceComplexity,
@@ -880,15 +1006,19 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected bruteForce: TC=${parsed.bruteForce.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity} → ${corrected.spaceComplexity}`);
-        await reconcileComplexity(parsed.bruteForce, "Brute Force", questionName, language, corrected);
+        console.log(`[COMPLEXITY ENGINE] ⚡ FORCE OVERRIDE | Brute Force: AI=${parsed.bruteForce.timeComplexity} -> Engine=${corrected.timeComplexity}`);
+        parsed.bruteForce.timeComplexity = corrected.timeComplexity;
+        parsed.bruteForce.spaceComplexity = corrected.spaceComplexity;
+        parsed.bruteForce.complexitySource = "ENGINE_OVERRIDE";
       } else {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided bruteForce TC/SC without override (TC=${parsed.bruteForce.timeComplexity}, SC=${parsed.bruteForce.spaceComplexity})`);
+        console.log(`[COMPLEXITY ENGINE] MATCH | Brute Force: ${parsed.bruteForce.timeComplexity}`);
       }
+    } else if (parsed.bruteForce?.complexitySource === "V2_PATTERN") {
+      console.log(`[COMPLEXITY ENGINE] SKIPPING V1 | Brute Force already verified by V2 Pattern: ${parsed.bruteForce.timeComplexity}`);
     }
     
     // Correct better complexity
-    if (parsed.better?.code) {
+    if (parsed.better?.code && parsed.better.complexitySource !== "V2_PATTERN") {
       const corrected = getCorrectedComplexity(
         parsed.better.timeComplexity,
         parsed.better.spaceComplexity,
@@ -896,15 +1026,17 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected better: TC=${parsed.better.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.better.spaceComplexity} → ${corrected.spaceComplexity}`);
-        await reconcileComplexity(parsed.better, "Better", questionName, language, corrected);
+        console.log(`[COMPLEXITY ENGINE] ⚡ FORCE OVERRIDE | Better: AI=${parsed.better.timeComplexity} -> Engine=${corrected.timeComplexity}`);
+        parsed.better.timeComplexity = corrected.timeComplexity;
+        parsed.better.spaceComplexity = corrected.spaceComplexity;
+        parsed.better.complexitySource = "ENGINE_OVERRIDE";
       } else {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided better TC/SC without override (TC=${parsed.better.timeComplexity}, SC=${parsed.better.spaceComplexity})`);
+        console.log(`[COMPLEXITY ENGINE] MATCH | Better: ${parsed.better.timeComplexity}`);
       }
     }
-    
+
     // Correct optimal complexity
-    if (parsed.optimal?.code) {
+    if (parsed.optimal?.code && parsed.optimal.complexitySource !== "V2_PATTERN") {
       const corrected = getCorrectedComplexity(
         parsed.optimal.timeComplexity,
         parsed.optimal.spaceComplexity,
@@ -912,10 +1044,12 @@ Your prompt must handle these scenarios:
         language
       );
       if (corrected.corrected) {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=ENGINE | Detected optimal: TC=${parsed.optimal.timeComplexity} → ${corrected.timeComplexity}, SC=${parsed.optimal.spaceComplexity} → ${corrected.spaceComplexity}`);
-        await reconcileComplexity(parsed.optimal, "Optimal", questionName, language, corrected);
+         console.log(`[COMPLEXITY ENGINE] ⚡ FORCE OVERRIDE | Optimal: AI=${parsed.optimal.timeComplexity} -> Engine=${corrected.timeComplexity}`);
+         parsed.optimal.timeComplexity = corrected.timeComplexity;
+         parsed.optimal.spaceComplexity = corrected.spaceComplexity;
+         parsed.optimal.complexitySource = "ENGINE_OVERRIDE";
       } else {
-        console.log(`[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided optimal TC/SC without override (TC=${parsed.optimal.timeComplexity}, SC=${parsed.optimal.spaceComplexity})`);
+        console.log(`[COMPLEXITY ENGINE] MATCH | Optimal: ${parsed.optimal.timeComplexity}`);
       }
       
       // Add detected pattern to response
@@ -1044,14 +1178,14 @@ Return ONLY valid JSON, no markdown fences.`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
-    const response = await fetch(QUBRID_API_URL, {
+    const response = await fetch(AI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.QUBRID_API_KEY}`
+        "Authorization": `Bearer ${AI_API_KEY}`
       },
       body: JSON.stringify({
-        model: QUBRID_MODEL,
+        model: AI_MODEL,
         messages: [
           { role: "system", content: "You are a complexity analysis expert. Provide STRUCTURAL EVIDENCE for your claims. Quote actual code lines. If you cannot find evidence, admit the engine is correct." },
           { role: "user", content: prompt }
@@ -1610,7 +1744,7 @@ export default async function handler(req, res) {
     
     // FIX 8: Add metadata to solution for traceability
     solution._meta = {
-      model: QUBRID_MODEL,
+      model: AI_MODEL,
       generatedAt: new Date().toISOString(),
       isVariant,
       questionName: normalizedName
@@ -1662,6 +1796,17 @@ export default async function handler(req, res) {
         error: "Could not confidently analyze this problem. Please retry.",
         retryable: true
       });
+    }
+
+    // Final consistency check for progression notes
+    if (solution.note && solution.note.toLowerCase().includes("three approaches")) {
+      const approachCount = [solution.bruteForce, solution.better, solution.optimal].filter(Boolean).length;
+      if (approachCount < 3) {
+        console.log(`[POST-PROCESS] Fixing misaligned progression note (${approachCount} approaches found)`);
+        solution.note = approachCount === 2 
+          ? "No intermediate approach exists for this specific logic. Direct jump from brute force to optimal."
+          : "Single optimized approach provided for this problem.";
+      }
     }
 
     return res.json({ 

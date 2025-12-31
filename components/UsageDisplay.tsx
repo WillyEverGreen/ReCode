@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Sparkles, FileText, Infinity, Zap, ShieldCheck, Crown } from "lucide-react";
 import ProBadge from "./ProBadge";
-import UpgradeModal from "./UpgradeModal";
+// UpgradeModal removed - now redirects to pricing page
 
 interface Usage {
   getSolution: { used: number; limit: number; left: number | string };
@@ -19,7 +19,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // Navigation to pricing page handled via custom event
 
   const fetchUsage = async () => {
     try {
@@ -189,7 +189,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
         {usage.plan === 'trial' && !usage.unlimited && (
           <button
             type="button"
-            onClick={() => setShowUpgradeModal(true)}
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-pricing'))}
             className="group flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-[11px] font-semibold text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-400 transition-all shadow-sm shadow-yellow-900/30 w-full"
           >
             <span className="relative flex items-center justify-center">
@@ -209,14 +209,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = "" }) => {
         </div>
       </div>
 
-      {/* Upgrade Modal */}
-      <UpgradeModal 
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        onSuccess={() => {
-          fetchUsage(); // Refresh usage after upgrade
-        }}
-      />
+      {/* Upgrade handled via pricing page */}
     </div>
   );
 };

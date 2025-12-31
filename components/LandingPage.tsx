@@ -80,12 +80,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             >
               How it Works
             </a>
-            <a
-              href="#testimonials"
-              className="hover:text-white transition-colors"
-            >
-              Stories
-            </a>
+
             <a href="#pricing" className="hover:text-white transition-colors">
               Pricing
             </a>
@@ -301,8 +296,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       {/* Pricing - Clean Comparison */}
       <PricingSection onGetStarted={onGetStarted} />
 
-      {/* Testimonials - Minimal Cards */}
-      <TestimonialsSection />
+
 
       {/* FAQ Section */}
       <FAQSection />
