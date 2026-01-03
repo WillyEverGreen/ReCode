@@ -338,7 +338,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
               onUpgrade={onUpgrade}
             />
             {/* Settings Toggle (Only visible in Revise tab) */}
-            {activeTab === "revise" && (
+            {!question.criticalError && activeTab === "revise" && (
               <div className="relative">
                 <button
                   onClick={() => handleSettingsToggle(!showSettings)}
@@ -453,7 +453,10 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
           </div>
         </div>
 
-        {/* Tabs - Horizontal Scroll on Mobile */}
+
+      
+      {/* Tabs Header - Hidden if critical error */}
+      {!question.criticalError && (
         <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-hide">
           <div className="flex gap-4 sm:gap-8 min-w-max sm:min-w-0">
             <button
@@ -495,10 +498,46 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             </button>
           </div>
         </div>
+      )}
       </div>
 
       {/* Main Content Card */}
       <div className="bg-[#141414] border border-gray-800 rounded-2xl p-4 sm:p-8 md:p-12 min-h-[400px] sm:min-h-[600px] relative shadow-2xl shadow-black/50">
+        
+        {/* CRITICAL ERROR VIEW */}
+        {question.criticalError ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center animate-in fade-in zoom-in-95 duration-500">
+             <div className="bg-red-500/10 p-6 rounded-full mb-8 ring-1 ring-red-500/20 shadow-[0_0_40px_-10px_rgba(239,68,68,0.4)]">
+               <AlertTriangle className="w-16 h-16 text-red-500" />
+             </div>
+             <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">Critical Logic Error Detected</h2>
+             <div className="w-full max-w-3xl bg-red-950/30 border border-red-500/20 rounded-xl p-8 mb-8 text-left">
+               <div className="prose prose-invert prose-red max-w-none text-red-100/90 text-lg leading-relaxed">
+                 <MarkdownRenderer content={question.criticalError} />
+               </div>
+             </div>
+             <p className="text-gray-500 text-sm flex items-center gap-2">
+               <Activity className="w-4 h-4" />
+               Standard analysis is disabled because the code contains fundamental discrepancies.
+             </p>
+             
+             {/* Show Code for Reference */}
+             <div className="w-full max-w-3xl mt-12 text-left">
+                <div className="text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest pl-1">Your Submission</div>
+                <div className="rounded-xl overflow-hidden border border-gray-800/60 opacity-75 hover:opacity-100 transition-opacity">
+                   <SyntaxHighlighter
+                    language={question.language?.toLowerCase() || 'text'}
+                    style={atomDark}
+                    showLineNumbers={true}
+                    customStyle={{ margin: 0, padding: '1.5rem', background: '#0a0a0a', fontSize: '0.85rem' }}
+                   >
+                     {question.code || ''}
+                   </SyntaxHighlighter>
+                </div>
+             </div>
+          </div>
+        ) : (
+          <>
         {/* REVISION TAB */}
         {activeTab === "revise" && (
           <div className="space-y-12 animate-in fade-in duration-500">
@@ -665,6 +704,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             )}
           </div>
         )}
+        </>
+      )}
       </div>
     </div>
   );

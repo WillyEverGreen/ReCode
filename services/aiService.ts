@@ -154,7 +154,7 @@ const incrementUsage = async (type: 'addSolution') => {
       },
       body: JSON.stringify({ type })
     });
-    console.log(`[USAGE] Incremented ${type} counter`);
+
     
     // Dispatch event to refresh UsageDisplay component
     window.dispatchEvent(new Event("usage-updated"));
@@ -215,67 +215,82 @@ const mapQubridError = (error: any): Error => {
   return new Error("Something went wrong while processing. Please try again.");
 };
 
+import { stripComments } from "../utils/tokenUtils";
+
 // IMPROVED PROMPT: Concise, token-efficient, structured
 const generatePrompt = (data: SubmissionData): string => {
-  return `You are a DSA revision assistant.
-Convert the user's solution into structured, highly readable revision notes.
+  // Strip comments to save tokens and ensure AI ignores misleading comments
+  // This matches the user's request for "facts based on user code only"
+  let cleanCode = stripComments(data.code, data.language || 'javascript');
+
+  // SAFEGUARD: If stripping comments results in empty string (e.g. code was all comments?),
+  // fallback to original code to avoid confusing the AI.
+  if (!cleanCode || cleanCode.trim().length < 5) {
+     console.warn("[SafeGuard] Comment stripping resulted in empty code. Using original.");
+     cleanCode = data.code;
+  }
+
+  return `You are a strict code analysis engine.
+Your FIRST and MOST IMPORTANT task is to verify the FACTUAL CORRECTNESS of the user's code.
 
 INPUT
 Problem URL: ${data.problemUrl || "N/A"}
 
 USER CODE:
-${data.code}
+${cleanCode}
+
+STEP 1: LOGIC VERIFICATION
+- Analyze the code's logic step-by-step.
+- Does it actually solve the problem it seems to be addressing?
+- does it compile/run logically? (Ignore minor syntax typos, focus on logic).
+- IF THE CODE IS WRONG (logically incorrect, infinite loops, fundamentally broken approach):
+  - STOP traditional analysis.
+  - Return JSON with "criticalError".
+  - Explain EXACTLY why it is wrong.
+  - Do NOT generate positive revision notes for broken code.
+
+STEP 2: IF CODE IS CORRECT
+- Convert the user's solution into structured, highly readable revision notes.
+- ANALYZE BASED ON USER CODE ONLY. Do not hallucinate features not present.
 
 OUTPUT
-Return a JSON object with these fields. Use Markdown formatting for better readability.
+Return a JSON object.
 
-problemOverview:
-- 2–3 lines explaining the problem goal clearly.
+IF CODE IS WRONG:
+{
+  "criticalError": "Detailed explanation of why the code is incorrect...",
+  "title": "Incorrect Solution",
+  "language": "Inferred",
+  "dsaCategory": "Error",
+  "pattern": "N/A",
+  "timeComplexity": "N/A",
+  "spaceComplexity": "N/A",
+  "problemOverview": "The provided code is incorrect.",
+  "testCases": [],
+  "coreLogic": {},
+  "edgeCases": [],
+  "syntaxNotes": [],
+  "improvementMarkdown": "",
+  "revisionNotes": []
+}
 
-testCases:
-- Return an Array of strings (3-5 test cases).
-- CRITICAL: Each test case MUST be VERIFIED by tracing through the code.
-- Format: "Input: [actual value] → Output: [expected result]"
-- Include: 1 basic case, 1 edge case (empty/single), 1 boundary case
-- Example: "Input: nums=[2,7,11,15], target=9 → Output: [0,1]"
-
-coreLogic:
-- Return a Nested JSON Object with these keys:
-  - "Pattern": Name the pattern.
-  - "Trick": 15-second revision trick.
-  - "Approach": Array of strings (Step-by-step).
-  - "WhyItWorks": Intuition.
-
-edgeCases:
-- Return an Array of strings (4-6 edge cases).
-- Each must include SPECIFIC input and expected behavior.
-- Format: "**[Condition]:** Input: [value] → Output: [result]"
-- Example: "**Empty Array:** Input: [] → Output: 0 or throws error"
-
-syntaxNotes:
-- Return an Array of strings (No bullets).
-- Format: "\`Code snippet\`: Explanation"
-
-improvementMarkdown:
-- Possible improvements (if any).
-- Final polished code (only if improvement exists).
-
-
-improvementMarkdown:
-- **CRITICAL:** Analyze code critically for improvements
-- **DO NOT** say "stellar" or "excellent" unless code is TRULY optimal
-- **CHECK:**
-  1. Time Complexity: Can it be reduced?
-  2. Space Complexity: Can it be reduced?
-  3. Code quality: Readability, edge cases, best practices
-- **IF IMPROVEMENTS:** Provide detailed optimization suggestions with code
-- **IF PERFECT:** Return empty string (don't praise unnecessarily)
+IF CODE IS CORRECT:
+{
+  problemOverview: "2–3 lines explaining the problem goal.",
+  testCases: ["Input: ... -> Output: ..."],
+  coreLogic: { "Pattern": "...", "Trick": "...", "Approach": [], "WhyItWorks": "..." },
+  edgeCases: ["Condition -> Output"],
+  syntaxNotes: ["Snippet: explanation"],
+  improvementMarkdown: "Optimization suggestions...",
+  revisionNotes: ["Bullet points..."]
+  ... (standard fields)
+}
 
 RULES:
-- Infer problem title and language from code.
-- Use **Bold** for key terms to make them scannable.
-- Keep descriptions concise but informative.
-- BE CRITICAL: Only praise if truly optimal in time AND space complexity.`;
+- BE STRICT. If the logic is flawed, say so.
+- FACTS ONLY. Based on the actual code provided.
+- NO FLUFF.
+`;
 };
 
 // Request LLM to reconsider complexity analysis (for Add Solution feature)
@@ -516,7 +531,7 @@ Return ONLY valid JSON, no markdown fences.`;
         }
 
         const responseJson = await response.json();
-        console.log("[QUBRID DEBUG] Full response:", JSON.stringify(responseJson).slice(0, 500));
+
         
         // Handle BOTH response formats:
         // 1. Qubrid format: { content: "...", metrics: {...}, model: "..." }
@@ -536,7 +551,7 @@ Return ONLY valid JSON, no markdown fences.`;
           throw new Error("Unknown API response format");
         }
         
-        console.log("[QUBRID DEBUG] Raw response length:", text.length);
+
         
         // Clean up markdown code fences from JSON response
         if (text.startsWith("```json")) text = text.slice(7);
@@ -581,6 +596,7 @@ Return ONLY valid JSON, no markdown fences.`;
         // ═══════════════════════════════════════════════════════════════
         // COMPLEXITY VALIDATION: 7-LAYER GUARANTEE STACK
         // ═══════════════════════════════════════════════════════════════
+        if (!result.criticalError) {
         try {
           let corrected = getCorrectedComplexity(
             result.timeComplexity,
@@ -687,6 +703,7 @@ Return ONLY valid JSON, no markdown fences.`;
         } catch (engineError) {
           console.warn("[COMPLEXITY ENGINE] Error (using AI values):", engineError);
         }
+        }
         
         // NOTE: Algorithm Equivalence Guard (Layer 1) is applied in the Get Solution API
         // (api/solution/index.js) since Add Solution analyzes single code snippets,
@@ -764,7 +781,7 @@ export const generateSolution = async (
     if (data.fromCache) {
       console.log(`[${data.data.tier?.toUpperCase() || "CACHE"} HIT] Solution served from cache`);
     } else {
-      console.log("[QUBRID] Fresh solution generated and cached on server");
+
     }
 
     // Any successful call (cached or fresh) may change usage; refresh display

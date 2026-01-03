@@ -22,6 +22,7 @@ const questionSchema = new mongoose.Schema({
   syntaxNotes: mongoose.Schema.Types.Mixed, // Can be string or array
   improvementMarkdown: String,
   revisionNotes: [String],
+  criticalError: String,
 
   timestamp: { type: Number, default: Date.now },
 });

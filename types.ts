@@ -42,6 +42,9 @@ export interface AIAnalysisResult {
   improvementMarkdown: string; // Suggestions + Polished Code
   
   revisionNotes: string[]; // Quick revision bullets
+  
+  // Factual Correctness Guard
+  criticalError?: string; // If code is logically incorrect, this field is populated instead of standard analysis
 }
 
 export interface SavedQuestion extends Omit<SubmissionData, 'title' | 'language'>, AIAnalysisResult {
