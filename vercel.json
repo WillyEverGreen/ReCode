@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/admin/:path*", "destination": "/api/admin/[...route]" },
+    { "source": "/api/:path*", "destination": "/api/[...route]" },
     { "source": "/privacy", "destination": "/index.html" },
     { "source": "/terms", "destination": "/index.html" },
     { "source": "/refunds", "destination": "/index.html" },

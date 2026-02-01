@@ -1,0 +1,15 @@
+# Ignore individual API routes - we use unified api/[...route].js instead
+# Keep these files in the repo for reference but don't deploy them
+
+api/health.js
+api/ai/
+api/questions/
+api/solution/
+api/usage/
+api/admin/
+api/auth/
+api/payment/
+
+# Keep the unified router and shared libraries
+!api/[...route].js
+!api/_lib/
