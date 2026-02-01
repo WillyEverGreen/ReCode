@@ -1,40 +1,55 @@
 import { connectDB } from "../_lib/mongodb.js";
 import { handleCors } from "../_lib/auth.js";
-import { sendVerificationEmail, sendPasswordResetEmail } from "../_lib/email.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "../_lib/email.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../models/User.js";
 import Otp from "../../models/Otp.js";
 
 // Generate 6-digit OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  // Get route from query or parse from URL
+  // Get route from query (set by server.js middleware)
   let { route } = req.query;
-  
+
   // Fallback: parse from URL path if route is not set
-  if (!route || route.length === 0) {
-    const urlPath = req.url.split('?')[0]; // Remove query string
-    const pathParts = urlPath.split('/').filter(Boolean);
+  if (!route || (Array.isArray(route) && route.length === 0)) {
+    const urlPath = req.url.split("?")[0]; // Remove query string
+    const pathParts = urlPath.split("/").filter(Boolean);
     // URL is like /api/auth/login, so we need the part after "auth"
-    const authIndex = pathParts.indexOf('auth');
+    const authIndex = pathParts.indexOf("auth");
     if (authIndex !== -1 && authIndex < pathParts.length - 1) {
       route = pathParts.slice(authIndex + 1);
+    } else {
+      // If still no route found, just use all path parts
+      route = pathParts;
     }
   }
-  
-  const action = route?.[0];
-  console.log("[AUTH DEBUG] URL:", req.url, "| Route:", route, "| Action:", action);
+
+  const action = Array.isArray(route) ? route[0] : route;
+  console.log(
+    "[AUTH DEBUG] URL:",
+    req.url,
+    "| Route:",
+    JSON.stringify(route),
+    "| Action:",
+    action,
+  );
 
   try {
     await connectDB();
 
     // ==================== SIGNUP ====================
     if (action === "signup") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { username, email, password } = req.body;
 
@@ -44,7 +59,9 @@ export default async function handler(req, res) {
       }
 
       // Check existing
-      const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+      const existingUser = await User.findOne({
+        $or: [{ email }, { username }],
+      });
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
@@ -81,7 +98,8 @@ export default async function handler(req, res) {
 
     // ==================== LOGIN ====================
     if (action === "login") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email, password } = req.body;
 
@@ -91,7 +109,9 @@ export default async function handler(req, res) {
       }
 
       if (!user.isVerified) {
-        return res.status(403).json({ message: "Please verify your email first" });
+        return res
+          .status(403)
+          .json({ message: "Please verify your email first" });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
@@ -99,7 +119,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "30d",
+      });
 
       return res.json({
         token,
@@ -109,7 +131,8 @@ export default async function handler(req, res) {
 
     // ==================== VERIFY-EMAIL ====================
     if (action === "verify-email") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email, otp } = req.body;
       if (!email || !otp) {
@@ -130,7 +153,9 @@ export default async function handler(req, res) {
       await user.save();
       await Otp.deleteOne({ _id: otpRecord._id });
 
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "30d",
+      });
 
       return res.json({
         message: "Email verified successfully",
@@ -141,7 +166,8 @@ export default async function handler(req, res) {
 
     // ==================== FORGOT-PASSWORD ====================
     if (action === "forgot-password") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email } = req.body;
       if (!email) {
@@ -168,7 +194,8 @@ export default async function handler(req, res) {
 
     // ==================== VERIFY-OTP ====================
     if (action === "verify-otp") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email, otp } = req.body;
       if (!email || !otp) {
@@ -185,11 +212,14 @@ export default async function handler(req, res) {
 
     // ==================== RESET-PASSWORD ====================
     if (action === "reset-password") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email, otp, newPassword } = req.body;
       if (!email || !otp || !newPassword) {
-        return res.status(400).json({ message: "Email, OTP, and new password are required" });
+        return res
+          .status(400)
+          .json({ message: "Email, OTP, and new password are required" });
       }
 
       const otpRecord = await Otp.findOne({ email, otp });
@@ -208,12 +238,15 @@ export default async function handler(req, res) {
       await user.save();
       await Otp.deleteOne({ _id: otpRecord._id });
 
-      return res.json({ message: "Password reset successfully. You can now login." });
+      return res.json({
+        message: "Password reset successfully. You can now login.",
+      });
     }
 
     // ==================== RESEND-OTP ====================
     if (action === "resend-otp") {
-      if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+      if (req.method !== "POST")
+        return res.status(405).json({ error: "Method not allowed" });
 
       const { email } = req.body;
       if (!email) {
@@ -241,9 +274,10 @@ export default async function handler(req, res) {
 
     // Unknown route
     return res.status(404).json({ error: "Auth route not found" });
-
   } catch (error) {
     console.error("Auth error:", error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 }

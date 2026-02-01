@@ -42,10 +42,14 @@ const HISTORY_EXPIRY_FREE = 24 * 60 * 60 * 1000; // 24 hours for free users
 const getHistoryStorageKey = (userId: string | null): string => {
   if (!userId) return `${HISTORY_STORAGE_KEY_PREFIX}anonymous`;
   // Use first 8 chars of a simple hash of the token for privacy
-  const hash = userId.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0).toString(16).slice(0, 8);
+  const hash = userId
+    .split("")
+    .reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
+      return a & a;
+    }, 0)
+    .toString(16)
+    .slice(0, 8);
   return `${HISTORY_STORAGE_KEY_PREFIX}${hash}`;
 };
 
@@ -56,7 +60,9 @@ const GetSolution: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
-  const [activeApproach, setActiveApproach] = useState<"brute" | "better" | "optimal">("optimal");
+  const [activeApproach, setActiveApproach] = useState<
+    "brute" | "better" | "optimal"
+  >("optimal");
   const [copiedCode, setCopiedCode] = useState(false);
   const [history, setHistory] = useState<SolutionHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -68,13 +74,13 @@ const GetSolution: React.FC = () => {
     // Get user token for user-specific history
     const token = localStorage.getItem("token");
     setUserId(token);
-    
+
     // Check if user is Pro
     const checkPlan = async () => {
       try {
         if (token) {
           const res = await fetch("/api/usage", {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
             const data = await res.json();
@@ -86,15 +92,15 @@ const GetSolution: React.FC = () => {
       }
     };
     checkPlan();
-    
+
     // Set up periodic cleanup for free users (every minute)
     const cleanupInterval = setInterval(() => {
       cleanupExpiredHistory();
     }, 60000);
-    
+
     return () => clearInterval(cleanupInterval);
   }, []);
-  
+
   // Load history when userId changes
   useEffect(() => {
     loadHistory();
@@ -116,21 +122,25 @@ const GetSolution: React.FC = () => {
       console.error("Failed to load history:", e);
     }
   };
-  
+
   // Cleanup expired history items (for free users)
   const cleanupExpiredHistory = () => {
     if (isPro) return; // Pro users keep all history
-    
+
     const now = Date.now();
     const storageKey = getHistoryStorageKey(userId);
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       const items: SolutionHistoryItem[] = JSON.parse(stored);
-      const validItems = items.filter(item => now - item.timestamp < HISTORY_EXPIRY_FREE);
+      const validItems = items.filter(
+        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE,
+      );
       if (validItems.length !== items.length) {
         localStorage.setItem(storageKey, JSON.stringify(validItems));
         setHistory(validItems);
-        console.log(`[HISTORY] Cleaned up ${items.length - validItems.length} expired items`);
+        console.log(
+          `[HISTORY] Cleaned up ${items.length - validItems.length} expired items`,
+        );
       }
     }
   };
@@ -139,8 +149,8 @@ const GetSolution: React.FC = () => {
   useEffect(() => {
     if (!isPro && history.length > 0) {
       const now = Date.now();
-      const validItems = history.filter(item => 
-        now - item.timestamp < HISTORY_EXPIRY_FREE
+      const validItems = history.filter(
+        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE,
       );
       if (validItems.length !== history.length) {
         setHistory(validItems);
@@ -149,18 +159,18 @@ const GetSolution: React.FC = () => {
       }
     }
   }, [isPro]);
-  
+
   // Helper function to format expiry time nicely
   const formatExpiryTime = (timestamp: number): string => {
     const expiryDate = new Date(timestamp + HISTORY_EXPIRY_FREE);
     const now = new Date();
     const diffMs = expiryDate.getTime() - now.getTime();
-    
+
     if (diffMs <= 0) return "Expired";
-    
+
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (diffHours > 0) {
       return `Expires in ${diffHours}h ${diffMins}m`;
     }
@@ -193,7 +203,7 @@ const GetSolution: React.FC = () => {
 
   // Delete from history (user-specific)
   const deleteFromHistory = (id: string) => {
-    const updatedHistory = history.filter(item => item.id !== id);
+    const updatedHistory = history.filter((item) => item.id !== id);
     setHistory(updatedHistory);
     const storageKey = getHistoryStorageKey(userId);
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
@@ -213,7 +223,7 @@ const GetSolution: React.FC = () => {
       const result = await generateSolution(
         questionName.trim(),
         selectedLanguage,
-        problemDescription.trim() || undefined
+        problemDescription.trim() || undefined,
       );
       setSolution(result);
       setActiveApproach("optimal");
@@ -243,16 +253,25 @@ const GetSolution: React.FC = () => {
     <ReactMarkdown
       components={{
         h2: ({ node, ...props }) => (
-          <h2 className="text-lg font-semibold text-[#e6c888] mt-6 mb-3" {...props} />
+          <h2
+            className="text-lg font-semibold text-[#e6c888] mt-6 mb-3"
+            {...props}
+          />
         ),
         p: ({ node, ...props }) => (
           <p className="text-[#cccccc] mb-3 leading-relaxed" {...props} />
         ),
         ul: ({ node, ...props }) => (
-          <ul className="list-disc ml-5 mb-3 text-[#cccccc] space-y-1" {...props} />
+          <ul
+            className="list-disc ml-5 mb-3 text-[#cccccc] space-y-1"
+            {...props}
+          />
         ),
         ol: ({ node, ...props }) => (
-          <ol className="list-decimal ml-5 mb-3 text-[#cccccc] space-y-1" {...props} />
+          <ol
+            className="list-decimal ml-5 mb-3 text-[#cccccc] space-y-1"
+            {...props}
+          />
         ),
         strong: ({ node, ...props }) => (
           <strong className="font-bold text-white" {...props} />
@@ -261,7 +280,10 @@ const GetSolution: React.FC = () => {
           const isInline = !String(children).includes("\n");
           if (isInline) {
             return (
-              <code className="bg-gray-800/50 text-[#e6c888] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+              <code
+                className="bg-gray-800/50 text-[#e6c888] px-1.5 py-0.5 rounded text-sm font-mono"
+                {...props}
+              >
                 {children}
               </code>
             );
@@ -272,7 +294,12 @@ const GetSolution: React.FC = () => {
               style={atomDark}
               language="text"
               PreTag="div"
-              customStyle={{ margin: 0, padding: "1rem", backgroundColor: "#0c0c0c", borderRadius: "8px" }}
+              customStyle={{
+                margin: 0,
+                padding: "1rem",
+                backgroundColor: "#0c0c0c",
+                borderRadius: "8px",
+              }}
               {...props}
             />
           );
@@ -295,7 +322,8 @@ const GetSolution: React.FC = () => {
             Get Solution
           </h2>
           <p className="text-gray-400 text-sm mt-1">
-            Get brute force, better, and optimal solutions with step-by-step explanations.
+            Get brute force, better, and optimal solutions with step-by-step
+            explanations.
           </p>
         </div>
         {/* History Button */}
@@ -335,7 +363,7 @@ const GetSolution: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {history.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-4">
               No solutions generated yet. Your history will appear here.
@@ -351,9 +379,13 @@ const GetSolution: React.FC = () => {
                     onClick={() => loadFromHistory(item)}
                     className="flex-1 text-left"
                   >
-                    <div className="text-white font-medium">{item.questionName}</div>
+                    <div className="text-white font-medium">
+                      {item.questionName}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                      <span className="px-2 py-0.5 bg-gray-700 rounded">{item.language}</span>
+                      <span className="px-2 py-0.5 bg-gray-700 rounded">
+                        {item.language}
+                      </span>
                       {!isPro && (
                         <span className="text-yellow-500/70 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -372,7 +404,7 @@ const GetSolution: React.FC = () => {
               ))}
             </div>
           )}
-          
+
           {!isPro && history.length > 0 && (
             <div className="mt-4 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
               <p className="text-xs text-yellow-200/80 flex items-center gap-2">
@@ -423,7 +455,8 @@ const GetSolution: React.FC = () => {
               disabled={isLoading}
             />
             <p className="text-xs text-gray-500 mt-2">
-              Note: Use exact problem names (e.g. from LeetCode,GFG) for better accuracy.
+              Note: Use exact problem names (e.g. from LeetCode,GFG) for better
+              accuracy.
             </p>
           </div>
 
@@ -431,7 +464,9 @@ const GetSolution: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Problem Description{" "}
-              <span className="text-gray-500 font-normal">(optional - for new/obscure problems)</span>
+              <span className="text-gray-500 font-normal">
+                (optional - for new/obscure problems)
+              </span>
             </label>
             <textarea
               value={problemDescription}
@@ -457,8 +492,8 @@ const GetSolution: React.FC = () => {
             disabled={isLoading || !questionName.trim()}
             className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
               isLoading || !questionName.trim()
-                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                : 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-lg shadow-yellow-900/20'
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                : "bg-yellow-600 hover:bg-yellow-500 text-white shadow-lg shadow-yellow-900/20"
             }`}
           >
             {isLoading ? (
@@ -507,7 +542,9 @@ const GetSolution: React.FC = () => {
                 {selectedLanguage}
               </span>
             </div>
-            <p className="text-[#cccccc] mt-4 leading-relaxed">{solution.problemStatement}</p>
+            <p className="text-[#cccccc] mt-4 leading-relaxed">
+              {solution.problemStatement}
+            </p>
           </div>
 
           {/* Key Insights */}
@@ -527,14 +564,6 @@ const GetSolution: React.FC = () => {
             </div>
           )}
 
-          {/* Note about approach availability */}
-          {solution.note && (
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 text-blue-300 text-sm flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{solution.note}</span>
-            </div>
-          )}
-
           {/* Approach Tabs */}
           <div className="flex gap-3">
             <button
@@ -547,9 +576,11 @@ const GetSolution: React.FC = () => {
             >
               <Zap className="w-4 h-4 self-center" />
               Brute Force
-              <span className="text-xs opacity-60 font-mono">{solution.bruteForce.timeComplexity}</span>
+              <span className="text-xs opacity-60 font-mono">
+                {solution.bruteForce.timeComplexity}
+              </span>
             </button>
-            
+
             {solution.better && (
               <button
                 onClick={() => setActiveApproach("better")}
@@ -561,10 +592,12 @@ const GetSolution: React.FC = () => {
               >
                 <TrendingUp className="w-4 h-4 self-center" />
                 Better
-                <span className="text-xs opacity-60 font-mono">{solution.better.timeComplexity}</span>
+                <span className="text-xs opacity-60 font-mono">
+                  {solution.better.timeComplexity}
+                </span>
               </button>
             )}
-            
+
             <button
               onClick={() => setActiveApproach("optimal")}
               className={`flex items-baseline gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -575,7 +608,9 @@ const GetSolution: React.FC = () => {
             >
               <Crown className="w-4 h-4 self-center" />
               Optimal
-              <span className="text-xs opacity-60 font-mono">{solution.optimal.timeComplexity}</span>
+              <span className="text-xs opacity-60 font-mono">
+                {solution.optimal.timeComplexity}
+              </span>
             </button>
           </div>
 
@@ -586,13 +621,19 @@ const GetSolution: React.FC = () => {
               <div className="p-6 border-b border-gray-800">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-xl font-bold text-white flex items-center gap-2">
-                    {activeApproach === "brute" && <Zap className="w-5 h-5 text-red-400" />}
-                    {activeApproach === "better" && <TrendingUp className="w-5 h-5 text-yellow-400" />}
-                    {activeApproach === "optimal" && <Crown className="w-5 h-5 text-green-400" />}
+                    {activeApproach === "brute" && (
+                      <Zap className="w-5 h-5 text-red-400" />
+                    )}
+                    {activeApproach === "better" && (
+                      <TrendingUp className="w-5 h-5 text-yellow-400" />
+                    )}
+                    {activeApproach === "optimal" && (
+                      <Crown className="w-5 h-5 text-green-400" />
+                    )}
                     {currentApproach.name}
                   </h4>
                 </div>
-                
+
                 {/* Complexity Note - Only shown when explaining missing approaches or why brute=optimal */}
                 {(currentApproach as any).complexityNote && (
                   <div className="mb-4 bg-gradient-to-r from-amber-500/5 to-transparent border-l-4 border-amber-500/50 p-3 rounded-r-lg">
@@ -602,40 +643,49 @@ const GetSolution: React.FC = () => {
                     </p>
                   </div>
                 )}
-                
+
                 {/* Complexity Mismatch Note - Shown when engine corrected LLM's TC/SC */}
                 {(currentApproach as any).complexityMismatchNote && (
                   <div className="mb-4 bg-gradient-to-r from-blue-500/5 to-transparent border-l-4 border-blue-500/50 p-3 rounded-r-lg">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="text-sm text-blue-100/90 leading-relaxed">
-                        <MarkdownRenderer content={(currentApproach as any).complexityMismatchNote} />
+                        <MarkdownRenderer
+                          content={
+                            (currentApproach as any).complexityMismatchNote
+                          }
+                        />
                       </div>
                     </div>
                   </div>
                 )}
-                
-                
+
                 {/* Complexity Cards */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#0c0c0c] border border-gray-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">
                       <Clock className="w-3 h-3" /> Time
                     </div>
-                    <div className="text-white font-mono">{currentApproach.timeComplexity}</div>
+                    <div className="text-white font-mono">
+                      {currentApproach.timeComplexity}
+                    </div>
                   </div>
                   <div className="bg-[#0c0c0c] border border-gray-800 p-4 rounded-lg">
                     <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-1">
                       <Activity className="w-3 h-3" /> Space
                     </div>
-                    <div className="text-white font-mono">{currentApproach.spaceComplexity}</div>
+                    <div className="text-white font-mono">
+                      {currentApproach.spaceComplexity}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Intuition */}
               <div className="p-6 border-b border-gray-800">
-                <h5 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Intuition</h5>
+                <h5 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  Intuition
+                </h5>
                 <p className="text-[#cccccc] leading-relaxed bg-[#0c0c0c] p-4 rounded-lg border-l-4 border-[#e6c888]">
                   {currentApproach.intuition}
                 </p>
@@ -643,7 +693,9 @@ const GetSolution: React.FC = () => {
 
               {/* Steps */}
               <div className="p-6 border-b border-gray-800">
-                <h5 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Step-by-Step Approach</h5>
+                <h5 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
+                  Step-by-Step Approach
+                </h5>
                 <ol className="space-y-3">
                   {currentApproach.steps.map((step, idx) => (
                     <li key={idx} className="flex gap-3 text-[#cccccc]">
@@ -659,17 +711,25 @@ const GetSolution: React.FC = () => {
               {/* Code */}
               <div className="p-0">
                 <div className="px-6 py-3 bg-[#0a0a0a] border-b border-gray-800 flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">{selectedLanguage} Code</span>
+                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    {selectedLanguage} Code
+                  </span>
                   <button
                     onClick={() => copyCode(currentApproach.code)}
                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
                   >
-                    {copiedCode ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedCode ? 'Copied!' : 'Copy Code'}
+                    {copiedCode ? (
+                      <Check className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    {copiedCode ? "Copied!" : "Copy Code"}
                   </button>
                 </div>
                 <SyntaxHighlighter
-                  language={selectedLanguage.toLowerCase().replace("c++", "cpp")}
+                  language={selectedLanguage
+                    .toLowerCase()
+                    .replace("c++", "cpp")}
                   style={atomDark}
                   showLineNumbers
                   customStyle={{
