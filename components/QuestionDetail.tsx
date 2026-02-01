@@ -19,10 +19,115 @@ import {
   Activity,
   BrainCircuit,
   Crown,
-  Download,
 } from 'lucide-react';
-import ProBadge from './ProBadge';
 import ExportDropdown from './ExportDropdown';
+
+// Helper to render markdown with syntax highlighting
+const MarkdownRenderer = ({
+  content,
+}: {
+  content: string | string[] | Record<string, any>;
+}) => {
+  // Handle array content by joining with newlines
+  let markdownContent = '';
+
+  // Helper: Normalize list items and remove explicit numbering/bold wrappers
+  const formatListItem = (item: any) => {
+    const clean = String(item)
+      // Remove any leading list marker like "- ", "* ", "1. ", "• "
+      .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
+      // If item starts with **...**, drop the asterisks and keep the text
+      .replace(/^\*\*([^*]+)\*\*\s*/, '$1 ');
+    return `- ${clean}`;
+  };
+
+  if (Array.isArray(content)) {
+    markdownContent = content.map(formatListItem).join('\n');
+  } else if (typeof content === 'object' && content !== null) {
+    // Handle object content (like coreLogic)
+    markdownContent = Object.entries(content)
+      .map(([key, value]) => {
+        const formattedValue = Array.isArray(value)
+          ? value.map(formatListItem).join('\n')
+          : value;
+        return `### ${key}\n${formattedValue}`;
+      })
+      .join('\n\n');
+  } else {
+    // Use content as-is, ReactMarkdown will handle parsing
+    markdownContent = content as string;
+  }
+
+  return (
+    <ReactMarkdown
+      components={{
+        h2: ({ _node, ...props }) => (
+          <h2
+            className="text-xl font-semibold text-[#e6c888] mt-8 mb-4 border-b border-gray-800 pb-2 flex items-center gap-2"
+            {...props}
+          />
+        ),
+        h3: ({ _node, ...props }) => (
+          <h3 className="text-lg font-medium text-white mt-6 mb-3" {...props} />
+        ),
+        p: ({ _node, ...props }) => (
+          <p className="text-[#cccccc] mb-4 leading-loose" {...props} />
+        ),
+        ul: ({ _node, ...props }) => (
+          <ul
+            className="list-disc ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
+            {...props}
+          />
+        ),
+        ol: ({ _node, ...props }) => (
+          <ol
+            className="list-decimal ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
+            {...props}
+          />
+        ),
+        strong: ({ _node, ...props }) => (
+          <strong className="font-bold text-white" {...props} />
+        ),
+        code({ _node, className, children, ...props }) {
+          const match = /language-(\w+)/.exec(className || '');
+          const isInline = !match && !String(children).includes('\n');
+
+          if (isInline) {
+            return (
+              <code
+                className="bg-gray-800/50 text-[#e6c888] px-2 py-0.5 rounded-md border border-gray-700/50 text-sm font-mono"
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          }
+
+          return (
+            <div className="my-6 rounded-xl overflow-hidden border border-gray-800 shadow-lg">
+              <SyntaxHighlighter
+                style={atomDark}
+                language={match ? match[1] : 'text'}
+                PreTag="div"
+                wrapLongLines={true}
+                customStyle={{
+                  margin: 0,
+                  padding: '1.5rem',
+                  backgroundColor: '#0c0c0c',
+                }}
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            </div>
+          );
+        },
+      }}
+    >
+      {markdownContent || ''}
+    </ReactMarkdown>
+  );
+};
 
 interface QuestionDetailProps {
   question: SavedQuestion;
@@ -41,7 +146,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   onUpdateSettings,
   onBack,
   onDelete,
-  onUpdateQuestion,
+  _onUpdateQuestion,
   isPro,
   onUpgrade,
 }) => {
@@ -62,7 +167,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     if (open) setShowSettings(false);
   };
 
-  const handleExport = () => {
+  const _handleExport = () => {
     // Helper to format array content
     const formatSection = (title: string, content?: string | string[]) => {
       if (!content || (Array.isArray(content) && content.length === 0))
@@ -173,115 +278,6 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  // Helper to render markdown with syntax highlighting
-  const MarkdownRenderer = ({
-    content,
-  }: {
-    content: string | string[] | Record<string, any>;
-  }) => {
-    // Handle array content by joining with newlines
-    let markdownContent = '';
-
-    // Helper: Normalize list items and remove explicit numbering/bold wrappers
-    const formatListItem = (item: any) => {
-      const clean = String(item)
-        // Remove any leading list marker like "- ", "* ", "1. ", "• "
-        .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
-        // If item starts with **...**, drop the asterisks and keep the text
-        .replace(/^\*\*([^*]+)\*\*\s*/, '$1 ');
-      return `- ${clean}`;
-    };
-
-    if (Array.isArray(content)) {
-      markdownContent = content.map(formatListItem).join('\n');
-    } else if (typeof content === 'object' && content !== null) {
-      // Handle object content (like coreLogic)
-      markdownContent = Object.entries(content)
-        .map(([key, value]) => {
-          const formattedValue = Array.isArray(value)
-            ? value.map(formatListItem).join('\n')
-            : value;
-          return `### ${key}\n${formattedValue}`;
-        })
-        .join('\n\n');
-    } else {
-      // Use content as-is, ReactMarkdown will handle parsing
-      markdownContent = content as string;
-    }
-
-    return (
-      <ReactMarkdown
-        components={{
-          h2: ({ node, ...props }) => (
-            <h2
-              className="text-xl font-semibold text-[#e6c888] mt-8 mb-4 border-b border-gray-800 pb-2 flex items-center gap-2"
-              {...props}
-            />
-          ),
-          h3: ({ node, ...props }) => (
-            <h3
-              className="text-lg font-medium text-white mt-6 mb-3"
-              {...props}
-            />
-          ),
-          p: ({ node, ...props }) => (
-            <p className="text-[#cccccc] mb-4 leading-loose" {...props} />
-          ),
-          ul: ({ node, ...props }) => (
-            <ul
-              className="list-disc ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
-              {...props}
-            />
-          ),
-          ol: ({ node, ...props }) => (
-            <ol
-              className="list-decimal ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
-              {...props}
-            />
-          ),
-          strong: ({ node, ...props }) => (
-            <strong className="font-bold text-white" {...props} />
-          ),
-          code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            const isInline = !match && !String(children).includes('\n');
-
-            if (isInline) {
-              return (
-                <code
-                  className="bg-gray-800/50 text-[#e6c888] px-2 py-0.5 rounded-md border border-gray-700/50 text-sm font-mono"
-                  {...props}
-                >
-                  {children}
-                </code>
-              );
-            }
-
-            return (
-              <div className="my-6 rounded-xl overflow-hidden border border-gray-800 shadow-lg">
-                <SyntaxHighlighter
-                  children={String(children).replace(/\n$/, '')}
-                  style={atomDark}
-                  language={match ? match[1] : 'text'}
-                  PreTag="div"
-                  wrapLongLines={true}
-                  customStyle={{
-                    margin: 0,
-                    padding: '1.5rem',
-                    backgroundColor: '#0c0c0c',
-                  }}
-                  {...props}
-                />
-              </div>
-            );
-          },
-        }}
-      >
-        {markdownContent || ''}
-      </ReactMarkdown>
-    );
   };
 
   return (

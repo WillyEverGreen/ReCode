@@ -283,7 +283,7 @@ export const exportAsPDF = (data: ExportData): void => {
       setTextColor(colors.gold);
       pdf.text(prefix, margin + 5, yPos);
       setTextColor(colors.textSecondary);
-      lines.forEach((line: string, idx: number) => {
+      lines.forEach((line: string) => {
         checkPageBreak();
         pdf.text(line, margin + 15, yPos);
         yPos += lineHeight;
@@ -349,7 +349,9 @@ export const exportAsPDF = (data: ExportData): void => {
             tcReason = analysis.timeComplexityReason;
           if (!scReason && analysis?.spaceComplexityReason)
             scReason = analysis.spaceComplexityReason;
-        } catch (e) {}
+        } catch {
+          // Silently ignore complexity engine errors
+        }
       }
       if (data.timeComplexity) {
         addComplexityLine('Time Complexity', data.timeComplexity);
@@ -528,7 +530,9 @@ export const exportAsText = (data: ExportData): void => {
           tcReason = analysis.timeComplexityReason;
         if (!scReason && analysis?.spaceComplexityReason)
           scReason = analysis.spaceComplexityReason;
-      } catch (e) {}
+      } catch {
+        // Silently ignore complexity engine errors
+      }
     }
     if (data.timeComplexity) {
       text += `Time Complexity: ${data.timeComplexity}\n`;

@@ -1,7 +1,6 @@
 import { SubmissionData, AIAnalysisResult, SolutionResult } from '../types';
 
 // Import Complexity Analysis Engine (for validating/correcting AI output)
-// @ts-ignore - JS module
 import { getCorrectedComplexity } from '../utils/complexityEngine.js';
 
 // In-flight request guard (only for analyzeSubmission - backend handles solution)
@@ -21,15 +20,16 @@ const QUBRID_MODEL = 'Qwen/Qwen3-Coder-30B-A3B-Instruct';
 
 // LAYER 1: Algorithm Equivalence Guard
 // Prevents fake "better" approaches with same TC/SC
-function isSameAlgorithm(a: any, b: any): boolean {
-  if (!a || !b) return false;
-  const norm = (s = '') => s.toLowerCase().replace(/\s+/g, '');
-  return (
-    norm(a.pattern) === norm(b.pattern) &&
-    norm(a.timeComplexity) === norm(b.timeComplexity) &&
-    norm(a.spaceComplexity) === norm(b.spaceComplexity)
-  );
-}
+// Currently unused but kept for future validation logic
+// function isSameAlgorithm(a: any, b: any): boolean {
+//   if (!a || !b) return false;
+//   const norm = (s = '') => s.toLowerCase().replace(/\s+/g, '');
+//   return (
+//     norm(a.pattern) === norm(b.pattern) &&
+//     norm(a.timeComplexity) === norm(b.timeComplexity) &&
+//     norm(a.spaceComplexity) === norm(b.spaceComplexity)
+//   );
+// }
 
 // LAYER 2: Amortized Complexity Detector
 // Overrides static analysis for amortized patterns
@@ -634,7 +634,7 @@ Return ONLY valid JSON, no markdown fences.`;
         let result: AIAnalysisResult;
         try {
           result = JSON.parse(text) as AIAnalysisResult;
-        } catch (parseError) {
+        } catch {
           console.error(
             '[QUBRID] JSON parse error, trying recovery:',
             text.slice(0, 200)
@@ -889,7 +889,6 @@ export const generateSolution = async (
       console.log(
         `[${data.data.tier?.toUpperCase() || 'CACHE'} HIT] Solution served from cache`
       );
-    } else {
     }
 
     // Any successful call (cached or fresh) may change usage; refresh display

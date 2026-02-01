@@ -1,6 +1,4 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 // Example component tests - these are templates that need to be adapted
 // to your actual component structure
@@ -15,7 +13,6 @@ describe('InputForm Component', () => {
 
   it('should show how to test user interactions', async () => {
     // Template for testing user interactions
-    const user = userEvent.setup();
     const mockCallback = vi.fn();
 
     // When you have an actual component:

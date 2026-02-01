@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Sparkles,
   FileText,
-  Infinity,
-  Zap,
+  Infinity as InfinityIcon,
   ShieldCheck,
   Crown,
 } from 'lucide-react';
@@ -155,7 +154,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = '' }) => {
             <div className={`text-xs font-bold ${getSolutionColors.text}`}>
               {usage.getSolution.left === 'unlimited' ? (
                 <span className="flex items-center gap-1 text-[#e2b857]">
-                  <Infinity className="w-3 h-3" />
+                  <InfinityIcon className="w-3 h-3" />
                   Unlimited
                 </span>
               ) : (
@@ -189,7 +188,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = '' }) => {
             <div className={`text-xs font-bold ${addSolutionColors.text}`}>
               {usage.addSolution.left === 'unlimited' ? (
                 <span className="flex items-center gap-1 text-[#e2b857]">
-                  <Infinity className="w-3 h-3" />
+                  <InfinityIcon className="w-3 h-3" />
                   Unlimited
                 </span>
               ) : (
@@ -232,7 +231,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = '' }) => {
         )}
 
         <div className="flex items-center justify-center gap-1.5 text-[9px] text-gray-600">
-          <Infinity className="w-2.5 h-2.5" />
+          <InfinityIcon className="w-2.5 h-2.5" />
           <span>
             {usage.unlimited
               ? 'Unlimited access'

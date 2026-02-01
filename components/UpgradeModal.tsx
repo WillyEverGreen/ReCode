@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Sparkles,
-  Check,
-  Zap,
-  FileText,
-  BookOpen,
-  Shield,
-} from 'lucide-react';
+import { X, Sparkles, Zap, FileText, BookOpen, Shield } from 'lucide-react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -208,7 +200,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         {/* Features */}
         <div className="p-8 pb-6 border-b border-gray-800">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
-            What's included
+            What&apos;s included
           </h3>
           <div className="space-y-3">
             {proFeatures.map((feature, index) => (
