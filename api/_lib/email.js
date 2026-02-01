@@ -1,37 +1,37 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 
 // Email transporter - uses Gmail or other SMTP
 let transporter = null;
 
 function getTransporter() {
   if (transporter) return transporter;
-  
+
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   const emailHost = process.env.EMAIL_HOST;
   const emailPort = process.env.EMAIL_PORT;
   const resendApiKey = process.env.RESEND_API_KEY; // Auto-detect Resend
-  console.log("[EMAIL CONFIG] FROM:", process.env.EMAIL_FROM); // DEBUG: Verify env var
-  
+  console.log('[EMAIL CONFIG] FROM:', process.env.EMAIL_FROM); // DEBUG: Verify env var
+
   // 1. Resend (Highest Priority)
   if (resendApiKey) {
-    console.log("[EMAIL] Initializing Resend SMTP...");
+    console.log('[EMAIL] Initializing Resend SMTP...');
     transporter = nodemailer.createTransport({
-      host: "smtp.resend.com",
+      host: 'smtp.resend.com',
       port: 587,
       secure: false, // StartTLS
       auth: {
-        user: "resend",
+        user: 'resend',
         pass: resendApiKey,
       },
     });
-    console.log("[EMAIL] Resend Transporter Ready.");
+    console.log('[EMAIL] Resend Transporter Ready.');
     return transporter;
   }
 
   // 2. Custom SMTP
   if (emailHost) {
-    console.log("[EMAIL] Using Custom SMTP:", emailHost);
+    console.log('[EMAIL] Using Custom SMTP:', emailHost);
     transporter = nodemailer.createTransport({
       host: emailHost,
       port: Number(emailPort) || 587,
@@ -42,13 +42,13 @@ function getTransporter() {
       },
     });
     return transporter;
-  } 
-  
+  }
+
   // 3. Gmail Fallback
   if (emailUser && emailPass) {
-    console.log("[EMAIL] Using Gmail Fallback.");
+    console.log('[EMAIL] Using Gmail Fallback.');
     transporter = nodemailer.createTransport({
-      service: "gmail",
+      service: 'gmail',
       auth: {
         user: emailUser,
         pass: emailPass,
@@ -56,13 +56,21 @@ function getTransporter() {
     });
     return transporter;
   }
-  
-  console.log("[EMAIL] NO EMAIL PROVIDER CONFIGURED. Checks: RESEND (" + (resendApiKey ? "Yes" : "No") + "), SMTP Host (" + (emailHost ? "Yes" : "No") + "), Gmail User (" + (emailUser ? "Yes" : "No") + ")");
+
+  console.log(
+    '[EMAIL] NO EMAIL PROVIDER CONFIGURED. Checks: RESEND (' +
+      (resendApiKey ? 'Yes' : 'No') +
+      '), SMTP Host (' +
+      (emailHost ? 'Yes' : 'No') +
+      '), Gmail User (' +
+      (emailUser ? 'Yes' : 'No') +
+      ')'
+  );
   return null;
 }
 
 // Branded email template
-function getEmailTemplate(content, title = "ReCode") {
+function getEmailTemplate(content, title = 'ReCode') {
   return `
 <!DOCTYPE html>
 <html>
@@ -108,10 +116,10 @@ function getEmailTemplate(content, title = "ReCode") {
 export async function sendVerificationEmail(to, otp) {
   const transport = getTransporter();
   if (!transport) {
-    console.log("[EMAIL] Transporter not configured, OTP:", otp);
+    console.log('[EMAIL] Transporter not configured, OTP:', otp);
     return false;
   }
-  
+
   const content = `
     <h2 style="color: #ffffff; font-size: 22px; margin: 0 0 16px 0; text-align: center;">
       Verify Your Email
@@ -131,18 +139,21 @@ export async function sendVerificationEmail(to, otp) {
       If you didn't request this, please ignore this email.
     </p>
   `;
-  
+
   try {
     await transport.sendMail({
-      from: process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<') ? process.env.EMAIL_FROM : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from:
+        process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<')
+          ? process.env.EMAIL_FROM
+          : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
-      subject: "Verify Your Email - ReCode",
-      html: getEmailTemplate(content, "Verify Email"),
+      subject: 'Verify Your Email - ReCode',
+      html: getEmailTemplate(content, 'Verify Email'),
     });
-    console.log("[EMAIL] Verification email sent to:", to);
+    console.log('[EMAIL] Verification email sent to:', to);
     return true;
   } catch (error) {
-    console.error("[EMAIL] Send error:", error.message);
+    console.error('[EMAIL] Send error:', error.message);
     return false;
   }
 }
@@ -151,10 +162,10 @@ export async function sendVerificationEmail(to, otp) {
 export async function sendPasswordResetEmail(to, otp) {
   const transport = getTransporter();
   if (!transport) {
-    console.log("[EMAIL] Transporter not configured, OTP:", otp);
+    console.log('[EMAIL] Transporter not configured, OTP:', otp);
     return false;
   }
-  
+
   const content = `
     <h2 style="color: #ffffff; font-size: 22px; margin: 0 0 16px 0; text-align: center;">
       Reset Your Password
@@ -174,18 +185,21 @@ export async function sendPasswordResetEmail(to, otp) {
       If you didn't request this, your account is safe - just ignore this email.
     </p>
   `;
-  
+
   try {
     await transport.sendMail({
-      from: process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<') ? process.env.EMAIL_FROM : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from:
+        process.env.EMAIL_FROM && process.env.EMAIL_FROM.includes('<')
+          ? process.env.EMAIL_FROM
+          : `"ReCode" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to,
-      subject: "Password Reset - ReCode",
-      html: getEmailTemplate(content, "Password Reset"),
+      subject: 'Password Reset - ReCode',
+      html: getEmailTemplate(content, 'Password Reset'),
     });
-    console.log("[EMAIL] Password reset email sent to:", to);
+    console.log('[EMAIL] Password reset email sent to:', to);
     return true;
   } catch (error) {
-    console.error("[EMAIL] Send error:", error.message);
+    console.error('[EMAIL] Send error:', error.message);
     return false;
   }
 }

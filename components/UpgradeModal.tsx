@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, Zap, FileText, BookOpen, Shield } from 'lucide-react';
+import {
+  X,
+  Sparkles,
+  Check,
+  Zap,
+  FileText,
+  BookOpen,
+  Shield,
+} from 'lucide-react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -15,7 +23,11 @@ declare global {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const UpgradeModal: React.FC<UpgradeModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,9 +35,18 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
 
   const proFeatures = [
     { icon: <Zap className="w-5 h-5" />, text: '10 Get Solution requests/day' },
-    { icon: <FileText className="w-5 h-5" />, text: '10 Add Solution analyses/day' },
-    { icon: <BookOpen className="w-5 h-5" />, text: 'Lifetime solution history' },
-    { icon: <Sparkles className="w-5 h-5" />, text: 'Export to PDF, Markdown & Text' },
+    {
+      icon: <FileText className="w-5 h-5" />,
+      text: '10 Add Solution analyses/day',
+    },
+    {
+      icon: <BookOpen className="w-5 h-5" />,
+      text: 'Lifetime solution history',
+    },
+    {
+      icon: <Sparkles className="w-5 h-5" />,
+      text: 'Export to PDF, Markdown & Text',
+    },
     { icon: <Shield className="w-5 h-5" />, text: 'Priority support' },
   ];
 
@@ -42,18 +63,23 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
       }
 
       // Create order
-      const orderResponse = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const orderResponse = await fetch(
+        `${API_BASE_URL}/api/payment/create-order`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
+      );
 
       const orderData = await orderResponse.json();
 
       if (!orderResponse.ok) {
-        throw new Error(orderData.message || orderData.error || 'Failed to create order');
+        throw new Error(
+          orderData.message || orderData.error || 'Failed to create order'
+        );
       }
 
       // Load Razorpay script if not already loaded
@@ -62,7 +88,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
-        
+
         await new Promise((resolve) => {
           script.onload = resolve;
         });
@@ -78,46 +104,50 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
         order_id: orderData.orderId,
         prefill: {
           name: orderData.user.name,
-          email: orderData.user.email
+          email: orderData.user.email,
         },
         theme: {
-          color: '#EAB308' // Yellow color matching your theme
+          color: '#EAB308', // Yellow color matching your theme
         },
         handler: async function (response: any) {
           try {
             // Verify payment
-            const verifyResponse = await fetch(`${API_BASE_URL}/api/payment/verify-payment`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
+            const verifyResponse = await fetch(
+              `${API_BASE_URL}/api/payment/verify-payment`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              }
+            );
 
             const verifyData = await verifyResponse.json();
 
             if (!verifyResponse.ok) {
-              throw new Error(verifyData.message || 'Payment verification failed');
+              throw new Error(
+                verifyData.message || 'Payment verification failed'
+              );
             }
 
             // Success!
             console.log('[PAYMENT] Payment successful!', verifyData);
             setIsProcessing(false);
-            
+
             // Call success callback
             if (onSuccess) {
               onSuccess();
             }
-            
+
             // Close modal and refresh page
             onClose();
             window.location.reload(); // Refresh to update user plan
-
           } catch (err: any) {
             console.error('[PAYMENT] Verification error:', err);
             setError(err.message || 'Payment verification failed');
@@ -125,15 +155,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setIsProcessing(false);
-          }
-        }
+          },
+        },
       };
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-
     } catch (err: any) {
       console.error('[PAYMENT] Error:', err);
       setError(err.message || 'Failed to initiate payment');
@@ -171,7 +200,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
             <span className="text-4xl font-bold text-white">₹249</span>
             <span className="text-gray-400">/month</span>
           </div>
-          <p className="text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
+          <p className="text-sm text-gray-500">
+            Cancel anytime. No hidden fees.
+          </p>
         </div>
 
         {/* Features */}
@@ -217,7 +248,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onSuccess 
               </>
             )}
           </button>
-          
+
           <p className="text-center text-xs text-gray-500 mt-4">
             Secure payment powered by Razorpay
           </p>

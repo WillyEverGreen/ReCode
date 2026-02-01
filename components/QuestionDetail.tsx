@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { SavedQuestion, UserSettings } from "../types";
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SavedQuestion, UserSettings } from '../types';
 import {
   ArrowLeft,
   Clock,
@@ -20,9 +20,9 @@ import {
   BrainCircuit,
   Crown,
   Download,
-} from "lucide-react";
-import ProBadge from "./ProBadge";
-import ExportDropdown from "./ExportDropdown";
+} from 'lucide-react';
+import ProBadge from './ProBadge';
+import ExportDropdown from './ExportDropdown';
 
 interface QuestionDetailProps {
   question: SavedQuestion;
@@ -45,9 +45,9 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   isPro,
   onUpgrade,
 }) => {
-  const [activeTab, setActiveTab] = useState<
-    "revise" | "code" | "suggestions"
-  >("revise");
+  const [activeTab, setActiveTab] = useState<'revise' | 'code' | 'suggestions'>(
+    'revise'
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
@@ -65,7 +65,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   const handleExport = () => {
     // Helper to format array content
     const formatSection = (title: string, content?: string | string[]) => {
-      if (!content || (Array.isArray(content) && content.length === 0)) return "";
+      if (!content || (Array.isArray(content) && content.length === 0))
+        return '';
       let text = `## ${title}\n\n`;
       if (Array.isArray(content)) {
         content.forEach((item) => {
@@ -92,7 +93,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     content += `---\n\n`;
 
     // 1. Problem Overview
-    content += formatSection("Problem Overview", question.problemOverview);
+    content += formatSection('Problem Overview', question.problemOverview);
 
     // 2. Core Logic
     if (question.coreLogic) {
@@ -100,11 +101,11 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
       if (typeof question.coreLogic === 'string') {
         content += `${question.coreLogic}\n\n`;
       } else if (Array.isArray(question.coreLogic)) {
-        question.coreLogic.forEach(item => content += `- ${item}\n`);
+        question.coreLogic.forEach((item) => (content += `- ${item}\n`));
         content += `\n`;
       } else {
         Object.entries(question.coreLogic).forEach(([key, val]) => {
-            content += `### ${key}\n${Array.isArray(val) ? val.join('\n') : val}\n\n`;
+          content += `### ${key}\n${Array.isArray(val) ? val.join('\n') : val}\n\n`;
         });
       }
     }
@@ -112,10 +113,12 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     // 3. Complexity Analysis
     content += `## Complexity Analysis\n\n`;
     content += `**Time Complexity:** ${question.timeComplexity}\n`;
-    if (question.timeComplexityReason) content += `> ${question.timeComplexityReason}\n\n`;
-    
+    if (question.timeComplexityReason)
+      content += `> ${question.timeComplexityReason}\n\n`;
+
     content += `**Space Complexity:** ${question.spaceComplexity}\n`;
-    if (question.spaceComplexityReason) content += `> ${question.spaceComplexityReason}\n\n`;
+    if (question.spaceComplexityReason)
+      content += `> ${question.spaceComplexityReason}\n\n`;
 
     // 4. Fast Recall Checklist
     if (question.revisionNotes && question.revisionNotes.length > 0) {
@@ -124,9 +127,9 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
         // Strip leading markdown bullets/numbers AND outer **bold** wrapper on the first phrase
         const cleaned = String(note)
           // Remove any leading list marker like "- ", "* ", "1. "
-          .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
+          .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
           // If note starts with **...**, drop the asterisks and keep the text
-          .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
+          .replace(/^\*\*([^*]+)\*\*\s*/, '$1 ');
         content += `- ${cleaned}\n`;
       });
       content += `\n`;
@@ -135,34 +138,37 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
     // 5. Code
     if (question.code) {
       content += `## My Solution\n\n`;
-      content += "```" + (question.language?.toLowerCase() || "") + "\n";
+      content += '```' + (question.language?.toLowerCase() || '') + '\n';
       content += question.code;
-      content += "\n```\n\n";
+      content += '\n```\n\n';
     }
 
     // 6. Edge Cases
-    content += formatSection("Edge Cases to Consider", question.edgeCases);
+    content += formatSection('Edge Cases to Consider', question.edgeCases);
 
     // 7. Test Cases
-    content += formatSection("Test Cases", question.testCases);
-    
+    content += formatSection('Test Cases', question.testCases);
+
     // 8. Syntax Notes
-    content += formatSection("Language Specific Syntax Notes", question.syntaxNotes);
+    content += formatSection(
+      'Language Specific Syntax Notes',
+      question.syntaxNotes
+    );
 
     // 9. AI Suggestions
     if (question.improvementMarkdown) {
-       content += `## AI Suggestions & Improvements\n\n`;
-       content += `${question.improvementMarkdown}\n\n`;
+      content += `## AI Suggestions & Improvements\n\n`;
+      content += `${question.improvementMarkdown}\n\n`;
     }
-    
+
     content += `\n---\n*Exported from ReCode - Your DSA Revision Companion*`;
 
     // Trigger download
-    const blob = new Blob([content], { type: "text/markdown" });
+    const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `${question.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}-notes.md`;
+    a.download = `${question.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-notes.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -170,32 +176,36 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   };
 
   // Helper to render markdown with syntax highlighting
-  const MarkdownRenderer = ({ content }: { content: string | string[] | Record<string, any> }) => {
+  const MarkdownRenderer = ({
+    content,
+  }: {
+    content: string | string[] | Record<string, any>;
+  }) => {
     // Handle array content by joining with newlines
-    let markdownContent = "";
-    
+    let markdownContent = '';
+
     // Helper: Normalize list items and remove explicit numbering/bold wrappers
     const formatListItem = (item: any) => {
-      let clean = String(item)
+      const clean = String(item)
         // Remove any leading list marker like "- ", "* ", "1. ", "• "
-        .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
+        .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
         // If item starts with **...**, drop the asterisks and keep the text
-        .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
+        .replace(/^\*\*([^*]+)\*\*\s*/, '$1 ');
       return `- ${clean}`;
     };
 
     if (Array.isArray(content)) {
-      markdownContent = content.map(formatListItem).join("\n");
-    } else if (typeof content === "object" && content !== null) {
+      markdownContent = content.map(formatListItem).join('\n');
+    } else if (typeof content === 'object' && content !== null) {
       // Handle object content (like coreLogic)
       markdownContent = Object.entries(content)
         .map(([key, value]) => {
-          const formattedValue = Array.isArray(value) 
-            ? value.map(formatListItem).join("\n") 
+          const formattedValue = Array.isArray(value)
+            ? value.map(formatListItem).join('\n')
             : value;
           return `### ${key}\n${formattedValue}`;
         })
-        .join("\n\n");
+        .join('\n\n');
     } else {
       // Use content as-is, ReactMarkdown will handle parsing
       markdownContent = content as string;
@@ -211,7 +221,10 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             />
           ),
           h3: ({ node, ...props }) => (
-            <h3 className="text-lg font-medium text-white mt-6 mb-3" {...props} />
+            <h3
+              className="text-lg font-medium text-white mt-6 mb-3"
+              {...props}
+            />
           ),
           p: ({ node, ...props }) => (
             <p className="text-[#cccccc] mb-4 leading-loose" {...props} />
@@ -232,8 +245,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             <strong className="font-bold text-white" {...props} />
           ),
           code({ node, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "");
-            const isInline = !match && !String(children).includes("\n");
+            const match = /language-(\w+)/.exec(className || '');
+            const isInline = !match && !String(children).includes('\n');
 
             if (isInline) {
               return (
@@ -249,15 +262,15 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
             return (
               <div className="my-6 rounded-xl overflow-hidden border border-gray-800 shadow-lg">
                 <SyntaxHighlighter
-                  children={String(children).replace(/\n$/, "")}
+                  children={String(children).replace(/\n$/, '')}
                   style={atomDark}
-                  language={match ? match[1] : "text"}
+                  language={match ? match[1] : 'text'}
                   PreTag="div"
                   wrapLongLines={true}
                   customStyle={{
                     margin: 0,
-                    padding: "1.5rem",
-                    backgroundColor: "#0c0c0c",
+                    padding: '1.5rem',
+                    backgroundColor: '#0c0c0c',
                   }}
                   {...props}
                 />
@@ -266,7 +279,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
           },
         }}
       >
-        {markdownContent || ""}
+        {markdownContent || ''}
       </ReactMarkdown>
     );
   };
@@ -318,7 +331,10 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 spaceComplexityReason: question.spaceComplexityReason,
                 revisionNotes: question.revisionNotes,
                 edgeCases: question.edgeCases,
-                approach: typeof question.approach === 'string' ? question.approach : undefined,
+                approach:
+                  typeof question.approach === 'string'
+                    ? question.approach
+                    : undefined,
                 explanation: question.explanation,
                 pattern: question.pattern,
                 dsaCategory: question.dsaCategory,
@@ -338,7 +354,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
               onUpgrade={onUpgrade}
             />
             {/* Settings Toggle (Only visible in Revise tab) */}
-            {!question.criticalError && activeTab === "revise" && (
+            {!question.criticalError && activeTab === 'revise' && (
               <div className="relative">
                 <button
                   onClick={() => handleSettingsToggle(!showSettings)}
@@ -357,7 +373,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                     />
 
                     {/* Settings Menu */}
-                    <div 
+                    <div
                       className="absolute right-0 mt-2 w-64 bg-[#141414] border border-gray-800 rounded-lg shadow-xl p-3 z-20"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -377,8 +393,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                         <div
                           className={`w-4 h-4 rounded border flex items-center justify-center ${
                             userSettings.showTestCases
-                              ? "bg-[#e6c888] border-[#e6c888]"
-                              : "border-gray-600"
+                              ? 'bg-[#e6c888] border-[#e6c888]'
+                              : 'border-gray-600'
                           }`}
                         >
                           {userSettings.showTestCases && (
@@ -402,8 +418,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                         <div
                           className={`w-4 h-4 rounded border flex items-center justify-center ${
                             userSettings.showEdgeCases
-                              ? "bg-[#e6c888] border-[#e6c888]"
-                              : "border-gray-600"
+                              ? 'bg-[#e6c888] border-[#e6c888]'
+                              : 'border-gray-600'
                           }`}
                         >
                           {userSettings.showEdgeCases && (
@@ -424,8 +440,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                         <div
                           className={`w-4 h-4 rounded border flex items-center justify-center ${
                             userSettings.showSyntaxNotes
-                              ? "bg-[#e6c888] border-[#e6c888]"
-                              : "border-gray-600"
+                              ? 'bg-[#e6c888] border-[#e6c888]'
+                              : 'border-gray-600'
                           }`}
                         >
                           {userSettings.showSyntaxNotes && (
@@ -442,7 +458,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
 
             <button
               onClick={() => {
-                if (confirm("Are you sure you want to delete this question?"))
+                if (confirm('Are you sure you want to delete this question?'))
                   onDelete(question.id);
               }}
               className="p-1.5 sm:p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
@@ -453,259 +469,272 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
           </div>
         </div>
 
-
-      
-      {/* Tabs Header - Hidden if critical error */}
-      {!question.criticalError && (
-        <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-4 sm:gap-8 min-w-max sm:min-w-0">
-            <button
-              onClick={() => setActiveTab("revise")}
-              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "revise"
-                  ? "border-[#e6c888] text-[#e6c888]"
-                  : "border-transparent text-gray-400 hover:text-white"
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Quick Revise</span>
-              <span className="xs:hidden">Revise</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("code")}
-              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "code"
-                  ? "border-[#e6c888] text-[#e6c888]"
-                  : "border-transparent text-gray-400 hover:text-white"
-              }`}
-            >
-              <FileCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">My Code</span>
-              <span className="xs:hidden">Code</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("suggestions")}
-              className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-                activeTab === "suggestions"
-                  ? "border-[#e6c888] text-[#e6c888]"
-                  : "border-transparent text-gray-400 hover:text-white"
-              }`}
-            >
-              <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">AI Suggestions</span>
-              <span className="xs:hidden">AI</span>
-
-            </button>
+        {/* Tabs Header - Hidden if critical error */}
+        {!question.criticalError && (
+          <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-4 sm:gap-8 min-w-max sm:min-w-0">
+              <button
+                onClick={() => setActiveTab('revise')}
+                className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === 'revise'
+                    ? 'border-[#e6c888] text-[#e6c888]'
+                    : 'border-transparent text-gray-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Quick Revise</span>
+                <span className="xs:hidden">Revise</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === 'code'
+                    ? 'border-[#e6c888] text-[#e6c888]'
+                    : 'border-transparent text-gray-400 hover:text-white'
+                }`}
+              >
+                <FileCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">My Code</span>
+                <span className="xs:hidden">Code</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('suggestions')}
+                className={`flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === 'suggestions'
+                    ? 'border-[#e6c888] text-[#e6c888]'
+                    : 'border-transparent text-gray-400 hover:text-white'
+                }`}
+              >
+                <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">AI Suggestions</span>
+                <span className="xs:hidden">AI</span>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* Main Content Card */}
       <div className="bg-[#141414] border border-gray-800 rounded-2xl p-4 sm:p-8 md:p-12 min-h-[400px] sm:min-h-[600px] relative shadow-2xl shadow-black/50">
-        
         {/* CRITICAL ERROR VIEW */}
         {question.criticalError ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center animate-in fade-in zoom-in-95 duration-500">
-             <div className="bg-red-500/10 p-6 rounded-full mb-8 ring-1 ring-red-500/20 shadow-[0_0_40px_-10px_rgba(239,68,68,0.4)]">
-               <AlertTriangle className="w-16 h-16 text-red-500" />
-             </div>
-             <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">Critical Logic Error Detected</h2>
-             <div className="w-full max-w-3xl bg-red-950/30 border border-red-500/20 rounded-xl p-8 mb-8 text-left">
-               <div className="prose prose-invert prose-red max-w-none text-red-100/90 text-lg leading-relaxed">
-                 <MarkdownRenderer content={question.criticalError} />
-               </div>
-             </div>
-             <p className="text-gray-500 text-sm flex items-center gap-2">
-               <Activity className="w-4 h-4" />
-               Standard analysis is disabled because the code contains fundamental discrepancies.
-             </p>
-             
-             {/* Show Code for Reference */}
-             <div className="w-full max-w-3xl mt-12 text-left">
-                <div className="text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest pl-1">Your Submission</div>
-                <div className="rounded-xl overflow-hidden border border-gray-800/60 opacity-75 hover:opacity-100 transition-opacity">
-                   <SyntaxHighlighter
-                    language={question.language?.toLowerCase() || 'text'}
-                    style={atomDark}
-                    showLineNumbers={true}
-                    customStyle={{ margin: 0, padding: '1.5rem', background: '#0a0a0a', fontSize: '0.85rem' }}
-                   >
-                     {question.code || ''}
-                   </SyntaxHighlighter>
-                </div>
-             </div>
+            <div className="bg-red-500/10 p-6 rounded-full mb-8 ring-1 ring-red-500/20 shadow-[0_0_40px_-10px_rgba(239,68,68,0.4)]">
+              <AlertTriangle className="w-16 h-16 text-red-500" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">
+              Critical Logic Error Detected
+            </h2>
+            <div className="w-full max-w-3xl bg-red-950/30 border border-red-500/20 rounded-xl p-8 mb-8 text-left">
+              <div className="prose prose-invert prose-red max-w-none text-red-100/90 text-lg leading-relaxed">
+                <MarkdownRenderer content={question.criticalError} />
+              </div>
+            </div>
+            <p className="text-gray-500 text-sm flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Standard analysis is disabled because the code contains
+              fundamental discrepancies.
+            </p>
+
+            {/* Show Code for Reference */}
+            <div className="w-full max-w-3xl mt-12 text-left">
+              <div className="text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest pl-1">
+                Your Submission
+              </div>
+              <div className="rounded-xl overflow-hidden border border-gray-800/60 opacity-75 hover:opacity-100 transition-opacity">
+                <SyntaxHighlighter
+                  language={question.language?.toLowerCase() || 'text'}
+                  style={atomDark}
+                  showLineNumbers={true}
+                  customStyle={{
+                    margin: 0,
+                    padding: '1.5rem',
+                    background: '#0a0a0a',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {question.code || ''}
+                </SyntaxHighlighter>
+              </div>
+            </div>
           </div>
         ) : (
           <>
-        {/* REVISION TAB */}
-        {activeTab === "revise" && (
-          <div className="space-y-12 animate-in fade-in duration-500">
-            {/* 1. Problem Overview */}
-            <div className="custom-markdown">
-              <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" /> Problem Overview
-              </h2>
-              <p className="text-[#cccccc] leading-loose mb-6 text-lg">
-                {question.problemOverview}
-              </p>
+            {/* REVISION TAB */}
+            {activeTab === 'revise' && (
+              <div className="space-y-12 animate-in fade-in duration-500">
+                {/* 1. Problem Overview */}
+                <div className="custom-markdown">
+                  <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" /> Problem Overview
+                  </h2>
+                  <p className="text-[#cccccc] leading-loose mb-6 text-lg">
+                    {question.problemOverview}
+                  </p>
 
-              {/* Test Cases */}
-              {userSettings.showTestCases && question.testCases && (
-                <div className="mt-8 pt-6 border-t border-gray-800/50">
-                  <div className="flex items-center gap-2 text-sm font-bold text-[#e6c888] mb-4 uppercase tracking-wider">
-                    <TestTube2 className="w-4 h-4" /> Test Cases
+                  {/* Test Cases */}
+                  {userSettings.showTestCases && question.testCases && (
+                    <div className="mt-8 pt-6 border-t border-gray-800/50">
+                      <div className="flex items-center gap-2 text-sm font-bold text-[#e6c888] mb-4 uppercase tracking-wider">
+                        <TestTube2 className="w-4 h-4" /> Test Cases
+                      </div>
+                      <MarkdownRenderer content={question.testCases} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Complexity Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-[#0c0c0c] border border-gray-800 p-6 rounded-xl hover:border-[#e6c888]/30 transition-colors group">
+                    <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-3 group-hover:text-[#e6c888] transition-colors">
+                      <Clock className="w-4 h-4" /> Time Complexity
+                    </div>
+                    <div className="text-white font-mono text-lg">
+                      {question.timeComplexity}
+                    </div>
+                    {question.timeComplexityReason && (
+                      <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                        {question.timeComplexityReason}
+                      </p>
+                    )}
                   </div>
-                  <MarkdownRenderer content={question.testCases} />
+                  <div className="bg-[#0c0c0c] border border-gray-800 p-6 rounded-xl hover:border-[#e6c888]/30 transition-colors group">
+                    <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-3 group-hover:text-[#e6c888] transition-colors">
+                      <Activity className="w-4 h-4" /> Space Complexity
+                    </div>
+                    <div className="text-white font-mono text-lg">
+                      {question.spaceComplexity}
+                    </div>
+                    {question.spaceComplexityReason && (
+                      <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                        {question.spaceComplexityReason}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Complexity Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#0c0c0c] border border-gray-800 p-6 rounded-xl hover:border-[#e6c888]/30 transition-colors group">
-                <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-3 group-hover:text-[#e6c888] transition-colors">
-                  <Clock className="w-4 h-4" /> Time Complexity
+                {/* Checklist */}
+                {question.revisionNotes &&
+                  question.revisionNotes.length > 0 && (
+                    <div className="bg-[#0c0c0c] p-8 rounded-xl border border-gray-800">
+                      <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                        <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast
+                        Recall Checklist
+                      </h3>
+                      <ul className="space-y-4">
+                        {question.revisionNotes.map((rawNote, idx) => {
+                          // Normalize note for display: remove leading list markers and outer **bold** wrapper
+                          const note = String(rawNote)
+                            .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
+                            .replace(/^\*\*([^*]+)\*\*\s*/, '$1 ');
+                          return (
+                            <li key={idx} className="flex gap-4 text-[#cccccc]">
+                              <span className="flex-shrink-0 w-6 h-6 bg-[#e6c888]/10 text-[#e6c888] rounded-full flex items-center justify-center text-xs border border-[#e6c888]/20 mt-0.5 font-mono">
+                                {idx + 1}
+                              </span>
+                              <span className="leading-relaxed text-lg">
+                                {note}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                {/* Core Logic */}
+                <div className="custom-markdown">
+                  <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
+                    <BrainCircuit className="w-5 h-5" /> Core Logic & Approach
+                  </h2>
+                  <MarkdownRenderer content={question.coreLogic} />
                 </div>
-                <div className="text-white font-mono text-lg">
-                  {question.timeComplexity}
-                </div>
-                {question.timeComplexityReason && (
-                  <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                    {question.timeComplexityReason}
-                  </p>
+
+                {/* Edge Cases */}
+                {userSettings.showEdgeCases && question.edgeCases && (
+                  <div className="custom-markdown border-t border-gray-800/50 pt-8">
+                    <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" /> High Yield Edge
+                      Cases
+                    </h2>
+                    <MarkdownRenderer content={question.edgeCases} />
+                  </div>
+                )}
+
+                {/* Syntax Notes */}
+                {userSettings.showSyntaxNotes && question.syntaxNotes && (
+                  <div className="custom-markdown border-t border-gray-800/50 pt-8">
+                    <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
+                      <Code2 className="w-5 h-5" /> Language Syntax to Remember
+                    </h2>
+                    <MarkdownRenderer content={question.syntaxNotes} />
+                  </div>
                 )}
               </div>
-              <div className="bg-[#0c0c0c] border border-gray-800 p-6 rounded-xl hover:border-[#e6c888]/30 transition-colors group">
-                <div className="flex items-center gap-2 text-gray-500 text-xs uppercase tracking-wider font-bold mb-3 group-hover:text-[#e6c888] transition-colors">
-                  <Activity className="w-4 h-4" /> Space Complexity
+            )}
+
+            {/* CODE TAB */}
+            {activeTab === 'code' && (
+              <div className="animate-in fade-in h-full">
+                <div className="relative rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
+                  <div className="absolute top-0 right-0 px-4 py-2 bg-[#0c0c0c] rounded-bl-xl border-l border-b border-gray-800 text-xs text-gray-500 font-mono z-10 uppercase tracking-wider font-bold">
+                    {question.language}
+                  </div>
+                  <SyntaxHighlighter
+                    language={question.language.toLowerCase()}
+                    style={atomDark}
+                    wrapLongLines={true}
+                    showLineNumbers={true}
+                    customStyle={{
+                      margin: 0,
+                      padding: '2rem',
+                      backgroundColor: '#0c0c0c',
+                      fontSize: '0.9rem',
+                      lineHeight: '1.6',
+                    }}
+                  >
+                    {question.code}
+                  </SyntaxHighlighter>
                 </div>
-                <div className="text-white font-mono text-lg">
-                  {question.spaceComplexity}
-                </div>
-                {question.spaceComplexityReason && (
-                  <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                    {question.spaceComplexityReason}
-                  </p>
+              </div>
+            )}
+
+            {/* SUGGESTIONS TAB */}
+            {activeTab === 'suggestions' && (
+              <div className="animate-in fade-in custom-markdown text-[#cccccc]">
+                {!question.improvementMarkdown ||
+                question.improvementMarkdown.length < 50 ||
+                question.improvementMarkdown
+                  .toLowerCase()
+                  .includes('no major improvements') ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-800 rounded-2xl bg-gray-900/20">
+                    <div className="bg-yellow-500/10 p-4 rounded-full mb-6 ring-1 ring-yellow-500/20">
+                      <Crown className="w-12 h-12 text-yellow-500" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Stellar Solution!
+                    </h3>
+                    <p className="text-gray-400 max-w-md mx-auto leading-relaxed">
+                      Your code is already optimal. No major improvements
+                      needed. Keep up the great work!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-xl mb-8 flex items-start gap-4">
+                      <Lightbulb className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-base text-blue-200/80 leading-relaxed">
+                        This section contains suggested improvements and the
+                        final polished code.
+                      </p>
+                    </div>
+                    <MarkdownRenderer content={question.improvementMarkdown} />
+                  </>
                 )}
               </div>
-            </div>
-
-            {/* Checklist */}
-            {question.revisionNotes && question.revisionNotes.length > 0 && (
-              <div className="bg-[#0c0c0c] p-8 rounded-xl border border-gray-800">
-                <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-[#e6c888]" /> Fast Recall Checklist
-                </h3>
-                <ul className="space-y-4">
-                  {question.revisionNotes.map((rawNote, idx) => {
-                    // Normalize note for display: remove leading list markers and outer **bold** wrapper
-                    const note = String(rawNote)
-                      .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, "")
-                      .replace(/^\*\*([^*]+)\*\*\s*/, "$1 ");
-                    return (
-                      <li key={idx} className="flex gap-4 text-[#cccccc]">
-                        <span className="flex-shrink-0 w-6 h-6 bg-[#e6c888]/10 text-[#e6c888] rounded-full flex items-center justify-center text-xs border border-[#e6c888]/20 mt-0.5 font-mono">
-                          {idx + 1}
-                        </span>
-                        <span className="leading-relaxed text-lg">{note}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
             )}
-
-            {/* Core Logic */}
-            <div className="custom-markdown">
-              <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5" /> Core Logic & Approach
-              </h2>
-              <MarkdownRenderer content={question.coreLogic} />
-            </div>
-
-            {/* Edge Cases */}
-            {userSettings.showEdgeCases && question.edgeCases && (
-              <div className="custom-markdown border-t border-gray-800/50 pt-8">
-                <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" /> High Yield Edge Cases
-                </h2>
-                <MarkdownRenderer content={question.edgeCases} />
-              </div>
-            )}
-
-            {/* Syntax Notes */}
-            {userSettings.showSyntaxNotes && question.syntaxNotes && (
-              <div className="custom-markdown border-t border-gray-800/50 pt-8">
-                <h2 className="text-xl font-semibold text-[#e6c888] mb-4 flex items-center gap-2">
-                  <Code2 className="w-5 h-5" /> Language Syntax to Remember
-                </h2>
-                <MarkdownRenderer content={question.syntaxNotes} />
-              </div>
-            )}
-          </div>
+          </>
         )}
-
-        {/* CODE TAB */}
-        {activeTab === "code" && (
-          <div className="animate-in fade-in h-full">
-            <div className="relative rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
-              <div className="absolute top-0 right-0 px-4 py-2 bg-[#0c0c0c] rounded-bl-xl border-l border-b border-gray-800 text-xs text-gray-500 font-mono z-10 uppercase tracking-wider font-bold">
-                {question.language}
-              </div>
-              <SyntaxHighlighter
-                language={question.language.toLowerCase()}
-                style={atomDark}
-                wrapLongLines={true}
-                showLineNumbers={true}
-                customStyle={{
-                  margin: 0,
-                  padding: "2rem",
-                  backgroundColor: "#0c0c0c",
-                  fontSize: "0.9rem",
-                  lineHeight: "1.6",
-                }}
-              >
-                {question.code}
-              </SyntaxHighlighter>
-            </div>
-          </div>
-        )}
-
-        {/* SUGGESTIONS TAB */}
-        {activeTab === "suggestions" && (
-          <div className="animate-in fade-in custom-markdown text-[#cccccc]">
-            {!question.improvementMarkdown ||
-            question.improvementMarkdown.length < 50 ||
-            question.improvementMarkdown.toLowerCase().includes("no major improvements") ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-800 rounded-2xl bg-gray-900/20">
-                <div className="bg-yellow-500/10 p-4 rounded-full mb-6 ring-1 ring-yellow-500/20">
-                  <Crown className="w-12 h-12 text-yellow-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Stellar Solution!
-                </h3>
-                <p className="text-gray-400 max-w-md mx-auto leading-relaxed">
-                  Your code is already optimal. No major improvements needed. Keep
-                  up the great work!
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-xl mb-8 flex items-start gap-4">
-                  <Lightbulb className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-base text-blue-200/80 leading-relaxed">
-                    This section contains suggested improvements and the final
-                    polished code.
-                  </p>
-                </div>
-                <MarkdownRenderer content={question.improvementMarkdown} />
-              </>
-            )}
-          </div>
-        )}
-        </>
-      )}
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
-import { handleCors } from "./_lib/auth.js";
+import { handleCors } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
   return res.json({
-    status: "ok",
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
+    environment: process.env.NODE_ENV || 'development',
   });
 }

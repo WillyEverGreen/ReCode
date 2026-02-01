@@ -1,7 +1,16 @@
-import React, { useMemo, useState } from "react";
-import { SavedQuestion } from "../types";
-import { FolderGit2, Calendar, ArrowRight, LayoutGrid, Search, ChevronDown, ChevronRight, Crown } from "lucide-react";
-import ProBadge from "./ProBadge";
+import React, { useMemo, useState } from 'react';
+import { SavedQuestion } from '../types';
+import {
+  FolderGit2,
+  Calendar,
+  ArrowRight,
+  LayoutGrid,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Crown,
+} from 'lucide-react';
+import ProBadge from './ProBadge';
 
 interface DashboardProps {
   questions: SavedQuestion[];
@@ -16,8 +25,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   onAddNew,
   onShowPricing,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
+    new Set()
+  );
 
   // Filter questions based on search
   const filteredQuestions = useMemo(() => {
@@ -36,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, SavedQuestion[]> = {};
     filteredQuestions.forEach((q) => {
-      const cat = q.dsaCategory || "Uncategorized";
+      const cat = q.dsaCategory || 'Uncategorized';
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(q);
     });
@@ -108,12 +119,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               My Library
             </h2>
             <p className="text-gray-400 text-sm mt-1">
-              {filteredQuestions.length} Questions •{" "}
+              {filteredQuestions.length} Questions •{' '}
               {Object.keys(groupedQuestions).length} Categories
               {searchQuery && ` • Searching "${searchQuery}"`}
             </p>
           </div>
-          
+
           {/* Compact Pro Button - Mobile Only (inline with header) */}
           <button
             type="button"
@@ -124,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span>Pro</span>
           </button>
         </div>
-        
+
         {/* Search + Upgrade Button - Desktop */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           {/* Search Bar */}
@@ -138,7 +149,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all text-sm"
             />
           </div>
-          
+
           {/* Full Upgrade Button - Desktop Only */}
           <button
             type="button"
@@ -176,7 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No questions found for "{searchQuery}"</p>
           <button
-            onClick={() => setSearchQuery("")}
+            onClick={() => setSearchQuery('')}
             className="text-yellow-500 hover:text-yellow-400 mt-2 text-sm"
           >
             Clear search
@@ -186,74 +197,76 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Categories */}
       <div className="space-y-4">
-        {(Object.entries(groupedQuestions) as [string, SavedQuestion[]][]).map(([category, items]) => {
-          const isCollapsed = collapsedCategories.has(category);
-          
-          return (
-            <div key={category} className="space-y-3">
-              {/* Category Header - Clickable */}
-              <button
-                onClick={() => toggleCategory(category)}
-                className="w-full flex items-center justify-between gap-3 group"
-              >
-                <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2 flex-wrap">
-                  <FolderGit2 className="w-5 h-5 shrink-0" />
-                  <span className="break-words">{category}</span>
-                  <span className="text-xs font-normal text-gray-500 bg-gray-900 px-2 py-0.5 rounded-full border border-gray-800 shrink-0">
-                    {items.length}
-                  </span>
-                </h3>
-                {isCollapsed ? (
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
-                )}
-              </button>
+        {(Object.entries(groupedQuestions) as [string, SavedQuestion[]][]).map(
+          ([category, items]) => {
+            const isCollapsed = collapsedCategories.has(category);
 
-              {/* Questions Grid - Collapsible */}
-              {!isCollapsed && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {items.map((q) => (
-                    <div
-                      key={q.id}
-                      onClick={() => onSelectQuestion(q)}
-                      className="group bg-gray-900 border border-gray-800 hover:border-yellow-500/50 rounded-xl p-5 cursor-pointer transition-all hover:shadow-xl hover:shadow-yellow-900/10 flex flex-col justify-between"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="text-xs font-medium text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 max-w-full break-words leading-tight">
-                            {q.pattern}
-                          </span>
-                          {q.language && (
-                            <span className="text-xs text-gray-500 font-mono shrink-0">
-                              {q.language}
+            return (
+              <div key={category} className="space-y-3">
+                {/* Category Header - Clickable */}
+                <button
+                  onClick={() => toggleCategory(category)}
+                  className="w-full flex items-center justify-between gap-3 group"
+                >
+                  <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2 flex-wrap">
+                    <FolderGit2 className="w-5 h-5 shrink-0" />
+                    <span className="break-words">{category}</span>
+                    <span className="text-xs font-normal text-gray-500 bg-gray-900 px-2 py-0.5 rounded-full border border-gray-800 shrink-0">
+                      {items.length}
+                    </span>
+                  </h3>
+                  {isCollapsed ? (
+                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-yellow-500 transition-colors shrink-0" />
+                  )}
+                </button>
+
+                {/* Questions Grid - Collapsible */}
+                {!isCollapsed && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {items.map((q) => (
+                      <div
+                        key={q.id}
+                        onClick={() => onSelectQuestion(q)}
+                        className="group bg-gray-900 border border-gray-800 hover:border-yellow-500/50 rounded-xl p-5 cursor-pointer transition-all hover:shadow-xl hover:shadow-yellow-900/10 flex flex-col justify-between"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="text-xs font-medium text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 max-w-full break-words leading-tight">
+                              {q.pattern}
                             </span>
-                          )}
+                            {q.language && (
+                              <span className="text-xs text-gray-500 font-mono shrink-0">
+                                {q.language}
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="font-semibold text-gray-100 group-hover:text-yellow-500 transition-colors line-clamp-1">
+                            {q.title}
+                          </h4>
+
+                          <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+                            {q.problemOverview}
+                          </p>
                         </div>
 
-                        <h4 className="font-semibold text-gray-100 group-hover:text-yellow-500 transition-colors line-clamp-1">
-                          {q.title}
-                        </h4>
-
-                        <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
-                          {q.problemOverview}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(q.timestamp).toLocaleDateString()}
+                        <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(q.timestamp).toLocaleDateString()}
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-yellow-500 transition-transform group-hover:translate-x-1" />
                         </div>
-                        <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-yellow-500 transition-transform group-hover:translate-x-1" />
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+        )}
       </div>
     </div>
   );

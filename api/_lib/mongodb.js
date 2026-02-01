@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 // Cached connection for serverless environments
 let cached = global.mongoose;
@@ -17,9 +17,11 @@ export async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    cached.promise = mongoose
+      .connect(process.env.MONGO_URI, opts)
+      .then((mongoose) => {
+        return mongoose;
+      });
   }
 
   try {

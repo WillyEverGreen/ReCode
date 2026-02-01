@@ -23,24 +23,28 @@ export async function verifyPaymentHandler(req, res) {
 
     const token = authHeader.split(' ')[1];
     let userId;
-    
+
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || 'fallback-secret'
+      );
       userId = decoded.id;
     } catch (err) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
-      razorpay_signature 
-    } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Missing payment details',
-        required: ['razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature']
+        required: [
+          'razorpay_order_id',
+          'razorpay_payment_id',
+          'razorpay_signature',
+        ],
       });
     }
 
@@ -51,9 +55,9 @@ export async function verifyPaymentHandler(req, res) {
 
     if (generatedSignature !== razorpay_signature) {
       console.error('[PAYMENT] Invalid signature');
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Payment verification failed',
-        message: 'Invalid payment signature'
+        message: 'Invalid payment signature',
       });
     }
 
@@ -84,19 +88,18 @@ export async function verifyPaymentHandler(req, res) {
         email: user.email,
         plan: user.plan,
         planStartDate: user.planStartDate,
-        planEndDate: user.planEndDate
+        planEndDate: user.planEndDate,
       },
       payment: {
         orderId: razorpay_order_id,
-        paymentId: razorpay_payment_id
-      }
+        paymentId: razorpay_payment_id,
+      },
     });
-
   } catch (error) {
     console.error('[PAYMENT] Verify payment error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Payment verification failed',
-      message: error.message
+      message: error.message,
     });
   }
 }

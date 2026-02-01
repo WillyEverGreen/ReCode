@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const questionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true },
   problemUrl: String,
   language: String,
@@ -27,4 +27,4 @@ const questionSchema = new mongoose.Schema({
   timestamp: { type: Number, default: Date.now },
 });
 
-export default mongoose.model("Question", questionSchema);
+export default mongoose.model('Question', questionSchema);

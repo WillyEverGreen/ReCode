@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { Download, FileText, File, ChevronDown, ChevronRight, Crown } from 'lucide-react';
-import { exportAsMarkdown, exportAsPDF, exportAsText } from '../utils/exportUtils';
+import {
+  Download,
+  FileText,
+  File,
+  ChevronDown,
+  ChevronRight,
+  Crown,
+} from 'lucide-react';
+import {
+  exportAsMarkdown,
+  exportAsPDF,
+  exportAsText,
+} from '../utils/exportUtils';
 
 interface ExportDropdownProps {
   data: any; // Using any for brevity since we're passing through
@@ -11,18 +22,19 @@ interface ExportDropdownProps {
   onUpgrade?: () => void;
 }
 
-const ExportDropdown: React.FC<ExportDropdownProps> = ({ 
-  data, 
-  className = '', 
-  isOpen: controlledIsOpen, 
+const ExportDropdown: React.FC<ExportDropdownProps> = ({
+  data,
+  className = '',
+  isOpen: controlledIsOpen,
   onToggle,
   isPro = false,
-  onUpgrade
+  onUpgrade,
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  
+
   // Use controlled state if provided, otherwise use internal state
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const isOpen =
+    controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const setIsOpen = (open: boolean) => {
     if (onToggle) {
       onToggle(open);
@@ -44,7 +56,7 @@ const ExportDropdown: React.FC<ExportDropdownProps> = ({
         setIsOpen(false);
       },
       badge: 'Pro',
-      isLocked: !isPro
+      isLocked: !isPro,
     },
     {
       label: 'Markdown',

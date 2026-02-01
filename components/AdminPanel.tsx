@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Users,
@@ -11,8 +11,8 @@ import {
   AlertCircle,
   Lock,
   ArrowLeft,
-} from "lucide-react";
-import AppLogo from "./Logo-With-Name cropped.png";
+} from 'lucide-react';
+import AppLogo from './Logo-With-Name cropped.png';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -23,8 +23,8 @@ interface Stats {
   totalQuestions: number;
   cache: {
     mongo: { count: number };
-    redis: { 
-      connected: boolean; 
+    redis: {
+      connected: boolean;
       keys?: number;
       breakdown?: {
         baseSolutions: number;
@@ -37,7 +37,7 @@ interface Stats {
 }
 
 interface User {
-  id: string;
+  _id: string;
   email: string;
   createdAt: string;
   questionCount: number;
@@ -51,23 +51,23 @@ interface CachedSolution {
   createdAt: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [cachedSolutions, setCachedSolutions] = useState<CachedSolution[]>([]);
   const [cacheClearing, setCacheClearing] = useState(false);
-  const [cacheMessage, setCacheMessage] = useState("");
+  const [cacheMessage, setCacheMessage] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Check for existing admin token
   useEffect(() => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = sessionStorage.getItem('adminToken');
     if (token) {
       setIsAuthenticated(true);
       fetchStats(token);
@@ -79,28 +79,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.token) {
-        sessionStorage.setItem("adminToken", data.token);
+        sessionStorage.setItem('adminToken', data.token);
         setIsAuthenticated(true);
         fetchStats(data.token);
         fetchUsers(data.token);
         fetchCachedSolutions(data.token);
       } else {
-        setError(data.error || "Invalid password");
+        setError(data.error || 'Invalid password');
       }
     } catch (err) {
-      setError("Connection error. Is the server running?");
+      setError('Connection error. Is the server running?');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setStats(data.stats);
       }
     } catch (err) {
-      console.error("Failed to fetch stats:", err);
+      console.error('Failed to fetch stats:', err);
     }
   };
 
@@ -130,112 +130,118 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setUsers(data.users);
       }
     } catch (err) {
-      console.error("Failed to fetch users:", err);
+      console.error('Failed to fetch users:', err);
     }
   };
 
   const fetchCachedSolutions = async (token: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/cached-solutions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/cached-solutions`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await response.json();
       if (data.success) {
         setCachedSolutions(data.solutions);
       }
     } catch (err) {
-      console.error("Failed to fetch cached solutions:", err);
+      console.error('Failed to fetch cached solutions:', err);
     }
   };
 
   const handleDeleteCachedSolution = async (id: string) => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = sessionStorage.getItem('adminToken');
     if (!token) return;
 
     setDeletingId(id);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/cached-solutions/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/cached-solutions/${id}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await response.json();
       if (data.success) {
-        setCachedSolutions(prev => prev.filter(s => s._id !== id));
+        setCachedSolutions((prev) => prev.filter((s) => s._id !== id));
         fetchStats(token);
       }
     } catch (err) {
-      console.error("Failed to delete cached solution:", err);
+      console.error('Failed to delete cached solution:', err);
     } finally {
       setDeletingId(null);
     }
   };
 
   const handleClearCache = async () => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = sessionStorage.getItem('adminToken');
     if (!token) return;
 
     setCacheClearing(true);
-    setCacheMessage("");
+    setCacheMessage('');
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/cache`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      
+
       if (data.success) {
-        setCacheMessage("✅ All caches cleared successfully!");
+        setCacheMessage('✅ All caches cleared successfully!');
         fetchStats(token);
       } else {
-        setCacheMessage("❌ " + (data.error || "Failed to clear cache"));
+        setCacheMessage('❌ ' + (data.error || 'Failed to clear cache'));
       }
     } catch (err) {
-      setCacheMessage("❌ Connection error");
+      setCacheMessage('❌ Connection error');
     } finally {
       setCacheClearing(false);
     }
   };
 
   const handleSyncCache = async () => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = sessionStorage.getItem('adminToken');
     if (!token) return;
 
     setCacheClearing(true);
-    setCacheMessage("");
+    setCacheMessage('');
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/sync-cache`, {
-        method: "POST",
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setCacheMessage(`✅ ${data.message}`);
         fetchStats(token);
       } else {
-        setCacheMessage("❌ " + (data.error || "Failed to sync cache"));
+        setCacheMessage('❌ ' + (data.error || 'Failed to sync cache'));
       }
     } catch (err) {
-      setCacheMessage("❌ Connection error");
+      setCacheMessage('❌ Connection error');
     } finally {
       setCacheClearing(false);
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminToken");
+    sessionStorage.removeItem('adminToken');
     setIsAuthenticated(false);
     setStats(null);
     setUsers([]);
-    setPassword("");
+    setPassword('');
   };
 
   const handleRefresh = () => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = sessionStorage.getItem('adminToken');
     if (token) {
-      setCacheMessage(""); // Clear any previous messages
+      setCacheMessage(''); // Clear any previous messages
       fetchStats(token);
       fetchUsers(token);
       fetchCachedSolutions(token);
@@ -258,10 +264,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           <div className="bg-[#111318] border border-gray-800 rounded-2xl p-8">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-12 rounded-lg overflow-hidden">
-                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
+                <img
+                  src={AppLogo}
+                  alt="ReCode"
+                  className="h-full w-auto object-contain"
+                />
               </div>
             </div>
-            
+
             <h1 className="text-2xl font-bold text-center text-white mb-2">
               Admin Access
             </h1>
@@ -326,13 +336,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             </button>
             <div className="flex items-center gap-3">
               <div className="h-8 rounded-lg overflow-hidden">
-                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
+                <img
+                  src={AppLogo}
+                  alt="ReCode"
+                  className="h-full w-auto object-contain"
+                />
               </div>
               <span className="text-gray-500">|</span>
               <h1 className="text-xl font-bold text-white">Admin</h1>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={handleRefresh}
@@ -359,7 +373,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               <span className="text-gray-400 text-sm">Total Users</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {stats?.totalUsers ?? "-"}
+              {stats?.totalUsers ?? '-'}
             </div>
           </div>
 
@@ -369,7 +383,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               <span className="text-gray-400 text-sm">Total Questions</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {stats?.totalQuestions ?? "-"}
+              {stats?.totalQuestions ?? '-'}
             </div>
           </div>
 
@@ -379,9 +393,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               <span className="text-gray-400 text-sm">MongoDB Cache</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {stats?.cache?.mongo?.count ?? "-"}
+              {stats?.cache?.mongo?.count ?? '-'}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Base solutions stored</div>
+            <div className="text-xs text-gray-500 mt-1">
+              Base solutions stored
+            </div>
           </div>
 
           <div className="bg-[#111318] border border-gray-800 rounded-xl p-6">
@@ -390,19 +406,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               <span className="text-gray-400 text-sm">Redis Cache</span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {stats?.cache?.redis?.connected ? (stats?.cache?.redis?.keys ?? 0) : "N/A"}
+              {stats?.cache?.redis?.connected
+                ? (stats?.cache?.redis?.keys ?? 0)
+                : 'N/A'}
             </div>
-            {stats?.cache?.redis?.connected && stats?.cache?.redis?.breakdown && (
-              <div className="text-xs text-gray-500 mt-2 space-y-0.5">
-                <div>✓ {stats.cache.redis.breakdown.baseSolutions} base solutions</div>
-                {stats.cache.redis.breakdown.variants > 0 && (
-                  <div>✓ {stats.cache.redis.breakdown.variants} variants</div>
-                )}
-                {stats.cache.redis.breakdown.legacy > 0 && (
-                  <div className="text-yellow-500">⚠ {stats.cache.redis.breakdown.legacy} legacy (run sync to fix)</div>
-                )}
-              </div>
-            )}
+            {stats?.cache?.redis?.connected &&
+              stats?.cache?.redis?.breakdown && (
+                <div className="text-xs text-gray-500 mt-2 space-y-0.5">
+                  <div>
+                    ✓ {stats.cache.redis.breakdown.baseSolutions} base solutions
+                  </div>
+                  {stats.cache.redis.breakdown.variants > 0 && (
+                    <div>✓ {stats.cache.redis.breakdown.variants} variants</div>
+                  )}
+                  {stats.cache.redis.breakdown.legacy > 0 && (
+                    <div className="text-yellow-500">
+                      ⚠ {stats.cache.redis.breakdown.legacy} legacy (run sync to
+                      fix)
+                    </div>
+                  )}
+                </div>
+              )}
             {!stats?.cache?.redis?.connected && (
               <div className="text-xs text-red-400 mt-1">✗ Not connected</div>
             )}
@@ -415,7 +439,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <Trash2 className="w-5 h-5 text-red-400" />
             Cache Management
           </h2>
-          
+
           <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={handleClearCache}
@@ -429,7 +453,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               )}
               Clear All Caches
             </button>
-            
+
             <button
               onClick={handleSyncCache}
               disabled={cacheClearing}
@@ -442,16 +466,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               )}
               Sync MongoDB → Redis
             </button>
-            
+
             {cacheMessage && (
-              <span className={cacheMessage.includes("✅") ? "text-green-400" : "text-red-400"}>
+              <span
+                className={
+                  cacheMessage.includes('✅')
+                    ? 'text-green-400'
+                    : 'text-red-400'
+                }
+              >
                 {cacheMessage}
               </span>
             )}
           </div>
-          
+
           <p className="text-gray-500 text-sm mt-3">
-            Clear: Deletes all caches. Sync: Migrates MongoDB to Redis (removes legacy keys).
+            Clear: Deletes all caches. Sync: Migrates MongoDB to Redis (removes
+            legacy keys).
           </p>
         </div>
 
@@ -461,16 +492,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <Database className="w-5 h-5 text-purple-400" />
             Cached Solutions ({cachedSolutions.length})
           </h2>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Question</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Language</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Hits</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Cached</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Action</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Question
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Language
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Hits
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Cached
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -482,8 +523,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   </tr>
                 ) : (
                   cachedSolutions.map((solution) => (
-                    <tr key={solution._id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                      <td className="py-3 px-4 text-white max-w-xs truncate">{solution.questionName}</td>
+                    <tr
+                      key={solution._id}
+                      className="border-b border-gray-800/50 hover:bg-gray-800/30"
+                    >
+                      <td className="py-3 px-4 text-white max-w-xs truncate">
+                        {solution.questionName}
+                      </td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs">
                           {solution.language}
@@ -499,7 +545,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                       </td>
                       <td className="py-3 px-4">
                         <button
-                          onClick={() => handleDeleteCachedSolution(solution._id)}
+                          onClick={() =>
+                            handleDeleteCachedSolution(solution._id)
+                          }
                           disabled={deletingId === solution._id}
                           className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
                           title="Delete"
@@ -525,14 +573,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <Users className="w-5 h-5 text-blue-400" />
             Registered Users ({users.length})
           </h2>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Email</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Joined</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Questions</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Email
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Joined
+                  </th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">
+                    Questions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -544,7 +598,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   </tr>
                 ) : (
                   users.map((user) => (
-                    <tr key={user.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                    <tr
+                      key={user._id}
+                      className="border-b border-gray-800/50 hover:bg-gray-800/30"
+                    >
                       <td className="py-3 px-4 text-white">{user.email}</td>
                       <td className="py-3 px-4 text-gray-400">
                         {new Date(user.createdAt).toLocaleDateString()}

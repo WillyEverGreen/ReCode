@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Mail,
   Lock,
@@ -6,8 +6,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Key,
-} from "lucide-react";
-import { API_BASE_URL } from "../../config/api";
+} from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
 
 interface ForgotPasswordProps {
   onBack: () => void;
@@ -15,11 +15,11 @@ interface ForgotPasswordProps {
 }
 
 const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
-  const [step, setStep] = useState<"email" | "otp" | "password">("email");
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<'email' | 'otp' | 'password'>('email');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -32,31 +32,31 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
         throw new Error(
-          "Server error. Please make sure the backend is running."
+          'Server error. Please make sure the backend is running.'
         );
       }
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to send reset OTP");
+        throw new Error(data.message || 'Failed to send reset OTP');
       }
 
-      setSuccessMessage("OTP sent to your email. Please check your inbox.");
+      setSuccessMessage('OTP sent to your email. Please check your inbox.');
       setTimeout(() => {
         setSuccessMessage(null);
-        setStep("otp");
+        setStep('otp');
       }, 2000);
     } catch (err: any) {
-      setError(err.message || "Network error. Please check your connection.");
+      setError(err.message || 'Network error. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +70,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
 
     // Validate OTP length
     if (otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
+      setError('Please enter a valid 6-digit OTP');
       setIsLoading(false);
       return;
     }
@@ -78,32 +78,32 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
     try {
       // Verify OTP with backend
       const res = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
       });
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
         throw new Error(
-          "Server error. Please make sure the backend is running."
+          'Server error. Please make sure the backend is running.'
         );
       }
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Invalid or expired OTP");
+        throw new Error(data.message || 'Invalid or expired OTP');
       }
 
       // OTP verified successfully
-      setSuccessMessage("OTP verified successfully!");
+      setSuccessMessage('OTP verified successfully!');
       setTimeout(() => {
         setSuccessMessage(null);
-        setStep("password");
+        setStep('password');
       }, 1000);
     } catch (err: any) {
-      setError(err.message || "Failed to verify OTP. Please try again.");
+      setError(err.message || 'Failed to verify OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +112,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       return;
     }
 
@@ -122,30 +122,30 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, newPassword: password }),
       });
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
         throw new Error(
-          "Server error. Please make sure the backend is running."
+          'Server error. Please make sure the backend is running.'
         );
       }
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to reset password");
+        throw new Error(data.message || 'Failed to reset password');
       }
 
-      setSuccessMessage("Password reset successfully. You can now login.");
+      setSuccessMessage('Password reset successfully. You can now login.');
       setTimeout(() => {
         onLogin();
       }, 2000);
     } catch (err: any) {
-      setError(err.message || "Network error. Please check your connection.");
+      setError(err.message || 'Network error. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -156,18 +156,18 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
       <div className="w-full max-w-md bg-gray-900/50 border border-gray-800 rounded-2xl p-8 shadow-xl backdrop-blur-sm">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-white mb-2">
-            {step === "email"
-              ? "Reset Password"
-              : step === "otp"
-              ? "Verify OTP"
-              : "Set New Password"}
+            {step === 'email'
+              ? 'Reset Password'
+              : step === 'otp'
+                ? 'Verify OTP'
+                : 'Set New Password'}
           </h2>
           <p className="text-gray-400 text-sm">
-            {step === "email"
-              ? "Enter your email to receive a verification code"
-              : step === "otp"
-              ? "Enter the 6-digit code sent to your email"
-              : "Create a new password for your account"}
+            {step === 'email'
+              ? 'Enter your email to receive a verification code'
+              : step === 'otp'
+                ? 'Enter the 6-digit code sent to your email'
+                : 'Create a new password for your account'}
           </p>
         </div>
 
@@ -185,7 +185,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
           </div>
         )}
 
-        {step === "email" ? (
+        {step === 'email' ? (
           <form onSubmit={handleRequestReset} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -210,10 +210,10 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
               disabled={isLoading}
               className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
-              {isLoading ? "Sending..." : "Send OTP"}
+              {isLoading ? 'Sending...' : 'Send OTP'}
             </button>
           </form>
-        ) : step === "otp" ? (
+        ) : step === 'otp' ? (
           <form onSubmit={handleVerifyOtp} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -224,7 +224,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
                 <input
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   className="w-full bg-gray-950 border border-gray-800 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all text-center text-2xl tracking-widest"
                   placeholder="000000"
                   required
@@ -243,7 +243,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
               disabled={isLoading || otp.length !== 6}
               className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
-              {isLoading ? "Verifying..." : "Verify OTP"}
+              {isLoading ? 'Verifying...' : 'Verify OTP'}
             </button>
           </form>
         ) : (
@@ -291,7 +291,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
               disabled={isLoading || !!successMessage}
               className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-yellow-900/20"
             >
-              {isLoading ? "Resetting..." : "Reset Password"}
+              {isLoading ? 'Resetting...' : 'Reset Password'}
             </button>
           </form>
         )}

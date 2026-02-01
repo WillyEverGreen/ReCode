@@ -10,12 +10,14 @@ interface InputFormProps {
 const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [formData, setFormData] = useState<SubmissionData>({
     problemUrl: '',
-    code: ''
+    code: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,11 +36,16 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        
         {/* URL */}
         <div>
-          <label htmlFor="problemUrl" className="block text-sm font-medium text-gray-300 mb-1">
-            Problem URL <span className="text-gray-500 text-xs font-normal">(Optional)</span>
+          <label
+            htmlFor="problemUrl"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Problem URL{' '}
+            <span className="text-gray-500 text-xs font-normal">
+              (Optional)
+            </span>
           </label>
           <input
             type="text"
@@ -50,13 +57,17 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
             className="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Note: Providing an accurate URL or problem name helps the AI analyze complexity correctly.
+            Note: Providing an accurate URL or problem name helps the AI analyze
+            complexity correctly.
           </p>
         </div>
 
         {/* Code Editor Area */}
         <div>
-          <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-1">
+          <label
+            htmlFor="code"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
             Your Code <span className="text-red-500">*</span>
           </label>
           <div className="relative">

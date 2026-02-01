@@ -23,9 +23,12 @@ export async function createOrderHandler(req, res) {
 
     const token = authHeader.split(' ')[1];
     let userId;
-    
+
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || 'fallback-secret'
+      );
       userId = decoded.id;
     } catch (err) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -37,28 +40,28 @@ export async function createOrderHandler(req, res) {
     }
 
     if (user.plan === 'pro') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Already a Pro user',
-        message: 'You are already subscribed to the Pro plan'
+        message: 'You are already subscribed to the Pro plan',
       });
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('[PAYMENT] Razorpay credentials not configured');
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Payment system not configured',
-        message: 'Please contact support'
+        message: 'Please contact support',
       });
     }
 
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
     const amount = 24900;
     const currency = 'INR';
-    
+
     const order = await razorpay.orders.create({
       amount,
       currency,
@@ -67,11 +70,13 @@ export async function createOrderHandler(req, res) {
         userId: userId.toString(),
         email: user.email,
         username: user.username,
-        plan: 'pro'
-      }
+        plan: 'pro',
+      },
     });
 
-    console.log(`[PAYMENT] Order created for user ${user.username}: ${order.id}`);
+    console.log(
+      `[PAYMENT] Order created for user ${user.username}: ${order.id}`
+    );
 
     return res.json({
       success: true,
@@ -81,15 +86,14 @@ export async function createOrderHandler(req, res) {
       keyId: process.env.RAZORPAY_KEY_ID,
       user: {
         name: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
-
   } catch (error) {
     console.error('[PAYMENT] Create order error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to create order',
-      message: error.message
+      message: error.message,
     });
   }
 }

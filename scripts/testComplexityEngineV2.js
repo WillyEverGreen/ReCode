@@ -27,8 +27,12 @@ function twoSum(nums, target) {
 
 const result1 = analyzeComplexityV2(twoSumCode, 'javascript', 'Two Sum');
 console.log('\n✅ Result:');
-console.log(`   Average Case: Time=${result1.averageCase.time}, Space=${result1.averageCase.space}`);
-console.log(`   Worst Case:   Time=${result1.worstCase.time}, Space=${result1.worstCase.space}`);
+console.log(
+  `   Average Case: Time=${result1.averageCase.time}, Space=${result1.averageCase.space}`
+);
+console.log(
+  `   Worst Case:   Time=${result1.worstCase.time}, Space=${result1.worstCase.space}`
+);
 console.log(`   Confidence: ${result1.confidence}%`);
 console.log(`   Source: ${result1.source}`);
 
@@ -64,8 +68,12 @@ function merge(left, right) {
 
 const result2 = analyzeComplexityV2(mergeSortCode, 'javascript');
 console.log('\n✅ Result:');
-console.log(`   Average Case: Time=${result2.averageCase.time}, Space=${result2.averageCase.space}`);
-console.log(`   Worst Case:   Time=${result2.worstCase.time}, Space=${result2.worstCase.space}`);
+console.log(
+  `   Average Case: Time=${result2.averageCase.time}, Space=${result2.averageCase.space}`
+);
+console.log(
+  `   Worst Case:   Time=${result2.worstCase.time}, Space=${result2.worstCase.space}`
+);
 console.log(`   Confidence: ${result2.confidence}%`);
 console.log(`   Patterns: ${result2.patterns.join(', ')}`);
 
@@ -89,10 +97,18 @@ function coinChange(coins, amount) {
 }
 `;
 
-const result3 = analyzeComplexityV2(coinChangeCode, 'javascript', 'Coin Change');
+const result3 = analyzeComplexityV2(
+  coinChangeCode,
+  'javascript',
+  'Coin Change'
+);
 console.log('\n✅ Result:');
-console.log(`   Average Case: Time=${result3.averageCase.time}, Space=${result3.averageCase.space}`);
-console.log(`   Worst Case:   Time=${result3.worstCase.time}, Space=${result3.worstCase.space}`);
+console.log(
+  `   Average Case: Time=${result3.averageCase.time}, Space=${result3.averageCase.space}`
+);
+console.log(
+  `   Worst Case:   Time=${result3.worstCase.time}, Space=${result3.worstCase.space}`
+);
 console.log(`   Confidence: ${result3.confidence}%`);
 console.log(`   Source: ${result3.source}`);
 

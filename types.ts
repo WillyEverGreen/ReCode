@@ -6,7 +6,7 @@ export enum SupportedLanguage {
   CPP = 'C++',
   Go = 'Go',
   Rust = 'Rust',
-  Other = 'Other'
+  Other = 'Other',
 }
 
 export interface SubmissionData {
@@ -32,22 +32,23 @@ export interface AIAnalysisResult {
   timeComplexityReason?: string;
   spaceComplexity: string;
   spaceComplexityReason?: string;
-  
+
   // Granular Content Fields
   problemOverview: string; // Summary ONLY
-  testCases: string | string[];       // Markdown of test cases
-  coreLogic: string | string[] | Record<string, any>;       // Pattern, Trick, Approach, Why it works
-  edgeCases: string | string[];       // Toggleable section
-  syntaxNotes: string | string[];     // Toggleable section
+  testCases: string | string[]; // Markdown of test cases
+  coreLogic: string | string[] | Record<string, any>; // Pattern, Trick, Approach, Why it works
+  edgeCases: string | string[]; // Toggleable section
+  syntaxNotes: string | string[]; // Toggleable section
   improvementMarkdown: string; // Suggestions + Polished Code
-  
+
   revisionNotes: string[]; // Quick revision bullets
-  
+
   // Factual Correctness Guard
   criticalError?: string; // If code is logically incorrect, this field is populated instead of standard analysis
 }
 
-export interface SavedQuestion extends Omit<SubmissionData, 'title' | 'language'>, AIAnalysisResult {
+export interface SavedQuestion
+  extends Omit<SubmissionData, 'title' | 'language'>, AIAnalysisResult {
   id: string;
   timestamp: number;
 }
@@ -77,16 +78,16 @@ export interface SolutionApproach {
   intuition: string;
   steps: string[];
   code: string;
-  
+
   // Legacy single complexity (deprecated but kept for backwards compatibility)
   timeComplexity: string;
   timeComplexityReason?: string;
   spaceComplexity: string;
   spaceComplexityReason?: string;
-  
+
   // NEW: Dual complexity analysis (V2 Engine)
   complexityAnalysis?: DualComplexityAnalysis;
-  
+
   // Mismatch tracking: When engine corrects LLM's TC/SC
   complexityMismatchNote?: string; // LLM's reasoning for why it chose different TC/SC than engine
   llmOriginalTC?: string; // Original TC from LLM before engine correction
@@ -124,12 +125,12 @@ export interface User {
   avatar?: string;
   role: UserRole;
   plan: UserPlan;
-  
+
   // Trial system (7-day trial with daily limits)
   trialStartDate?: Date;
   trialEndDate?: Date;
   trialUsed?: boolean;
-  
+
   // Pro subscription
   planStartDate?: Date;
   planEndDate?: Date;

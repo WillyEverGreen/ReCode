@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Crown, Sparkles, Check, ArrowRight, Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { Crown, Sparkles, Check, ArrowRight, Loader2 } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -16,20 +16,20 @@ const Pricing: React.FC = () => {
 
   const features = {
     free: [
-      "1 Get Solution + 2 Add Solution per day",
-      "7-day free trial",
-      "24-hour solution history",
-      "AI-powered complexity analysis",
-      "Pattern recognition",
-      "No credit card required",
+      '1 Get Solution + 2 Add Solution per day',
+      '7-day free trial',
+      '24-hour solution history',
+      'AI-powered complexity analysis',
+      'Pattern recognition',
+      'No credit card required',
     ],
     pro: [
-      "10 Get Solution requests per day",
-      "10 Add Solution analyses per day",
-      "Lifetime solution history",
-      "Export to PDF, Markdown & Text",
-      "Priority support",
-      "Early access to new features",
+      '10 Get Solution requests per day',
+      '10 Add Solution analyses per day',
+      'Lifetime solution history',
+      'Export to PDF, Markdown & Text',
+      'Priority support',
+      'Early access to new features',
     ],
   };
 
@@ -46,18 +46,23 @@ const Pricing: React.FC = () => {
       }
 
       // Create order
-      const orderResponse = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const orderResponse = await fetch(
+        `${API_BASE_URL}/api/payment/create-order`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
+      );
 
       const orderData = await orderResponse.json();
 
       if (!orderResponse.ok) {
-        throw new Error(orderData.message || orderData.error || 'Failed to create order');
+        throw new Error(
+          orderData.message || orderData.error || 'Failed to create order'
+        );
       }
 
       // Load Razorpay script if not already loaded
@@ -66,7 +71,7 @@ const Pricing: React.FC = () => {
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
-        
+
         await new Promise((resolve) => {
           script.onload = resolve;
         });
@@ -82,57 +87,60 @@ const Pricing: React.FC = () => {
         order_id: orderData.orderId,
         prefill: {
           name: orderData.user.name,
-          email: orderData.user.email
+          email: orderData.user.email,
         },
         theme: {
-          color: '#EAB308'
+          color: '#EAB308',
         },
         handler: async function (response: any) {
           try {
             // Verify payment
-            const verifyResponse = await fetch(`${API_BASE_URL}/api/payment/verify-payment`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
+            const verifyResponse = await fetch(
+              `${API_BASE_URL}/api/payment/verify-payment`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              }
+            );
 
             const verifyData = await verifyResponse.json();
 
             if (!verifyResponse.ok) {
-              throw new Error(verifyData.message || 'Payment verification failed');
+              throw new Error(
+                verifyData.message || 'Payment verification failed'
+              );
             }
 
             // Success!
             setSuccess(true);
             setIsProcessing(false);
-            
+
             // Refresh page after short delay
             setTimeout(() => {
               window.location.reload();
             }, 2000);
-
           } catch (err: any) {
             setError(err.message || 'Payment verification failed');
             setIsProcessing(false);
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setIsProcessing(false);
-          }
-        }
+          },
+        },
       };
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-
     } catch (err: any) {
       setError(err.message || 'Failed to initiate payment');
       setIsProcessing(false);
@@ -150,9 +158,12 @@ const Pricing: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
               Free plan
             </div>
-            <h2 className="text-xl font-semibold text-white mb-1">Stay in control</h2>
+            <h2 className="text-xl font-semibold text-white mb-1">
+              Stay in control
+            </h2>
             <p className="text-xs text-gray-400 mb-4">
-              Ideal while you are exploring the app and building a small personal library.
+              Ideal while you are exploring the app and building a small
+              personal library.
             </p>
             <div className="flex items-baseline gap-1 mb-4">
               <span className="text-3xl font-bold text-white">₹0</span>
@@ -181,9 +192,12 @@ const Pricing: React.FC = () => {
               <Crown className="w-3.5 h-3.5 text-yellow-300" />
               Pro plan
             </div>
-            <h2 className="text-xl font-semibold text-white mb-1">When interviews get serious</h2>
+            <h2 className="text-xl font-semibold text-white mb-1">
+              When interviews get serious
+            </h2>
             <p className="text-xs text-yellow-100/80 mb-4">
-              Designed for intensive prep cycles, with more room for daily problem solving.
+              Designed for intensive prep cycles, with more room for daily
+              problem solving.
             </p>
             <div className="flex items-baseline gap-1 mb-4">
               <span className="text-3xl font-bold text-white">₹249</span>
@@ -223,7 +237,7 @@ const Pricing: React.FC = () => {
               </>
             )}
           </button>
-          
+
           <p className="text-center text-[10px] text-gray-500 mt-2">
             Secure payment powered by Razorpay
           </p>
@@ -239,9 +253,9 @@ const Pricing: React.FC = () => {
 
         {/* Small note */}
         <p className="text-[11px] text-gray-500 leading-relaxed">
-          You can stay on the Free plan as long as you like. When you upgrade to Pro, your
-          existing questions, notes, and progress remain exactly where they are — you just
-          get more room to practice each day.
+          You can stay on the Free plan as long as you like. When you upgrade to
+          Pro, your existing questions, notes, and progress remain exactly where
+          they are — you just get more room to practice each day.
         </p>
       </div>
     </div>
@@ -249,4 +263,3 @@ const Pricing: React.FC = () => {
 };
 
 export default Pricing;
-

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { SolutionResult, SolutionApproach } from "../types";
-import { generateSolution } from "../services/aiService";
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SolutionResult, SolutionApproach } from '../types';
+import { generateSolution } from '../services/aiService';
 
 import {
   Sparkles,
@@ -21,10 +21,10 @@ import {
   History,
   Trash2,
   X,
-} from "lucide-react";
-import ProBadge from "./ProBadge";
+} from 'lucide-react';
+import ProBadge from './ProBadge';
 
-const LANGUAGES = ["Python", "JavaScript", "Java", "C++", "TypeScript", "Go"];
+const LANGUAGES = ['Python', 'JavaScript', 'Java', 'C++', 'TypeScript', 'Go'];
 
 // Solution history types
 interface SolutionHistoryItem {
@@ -35,7 +35,7 @@ interface SolutionHistoryItem {
   timestamp: number;
 }
 
-const HISTORY_STORAGE_KEY_PREFIX = "recode_solution_history_";
+const HISTORY_STORAGE_KEY_PREFIX = 'recode_solution_history_';
 const HISTORY_EXPIRY_FREE = 24 * 60 * 60 * 1000; // 24 hours for free users
 
 // Helper to get user-specific storage key
@@ -43,7 +43,7 @@ const getHistoryStorageKey = (userId: string | null): string => {
   if (!userId) return `${HISTORY_STORAGE_KEY_PREFIX}anonymous`;
   // Use first 8 chars of a simple hash of the token for privacy
   const hash = userId
-    .split("")
+    .split('')
     .reduce((a, b) => {
       a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
@@ -54,15 +54,15 @@ const getHistoryStorageKey = (userId: string | null): string => {
 };
 
 const GetSolution: React.FC = () => {
-  const [questionName, setQuestionName] = useState("");
-  const [problemDescription, setProblemDescription] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("Python");
+  const [questionName, setQuestionName] = useState('');
+  const [problemDescription, setProblemDescription] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('Python');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
   const [activeApproach, setActiveApproach] = useState<
-    "brute" | "better" | "optimal"
-  >("optimal");
+    'brute' | 'better' | 'optimal'
+  >('optimal');
   const [copiedCode, setCopiedCode] = useState(false);
   const [history, setHistory] = useState<SolutionHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -72,23 +72,23 @@ const GetSolution: React.FC = () => {
   // Check user plan and load history on mount
   useEffect(() => {
     // Get user token for user-specific history
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token');
     setUserId(token);
 
     // Check if user is Pro
     const checkPlan = async () => {
       try {
         if (token) {
-          const res = await fetch("/api/usage", {
+          const res = await fetch('/api/usage', {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
             const data = await res.json();
-            setIsPro(data.plan === "pro" || data.role === "admin");
+            setIsPro(data.plan === 'pro' || data.role === 'admin');
           }
         }
       } catch (e) {
-        console.error("Failed to check plan:", e);
+        console.error('Failed to check plan:', e);
       }
     };
     checkPlan();
@@ -119,7 +119,7 @@ const GetSolution: React.FC = () => {
         setHistory([]);
       }
     } catch (e) {
-      console.error("Failed to load history:", e);
+      console.error('Failed to load history:', e);
     }
   };
 
@@ -133,13 +133,13 @@ const GetSolution: React.FC = () => {
     if (stored) {
       const items: SolutionHistoryItem[] = JSON.parse(stored);
       const validItems = items.filter(
-        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE,
+        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE
       );
       if (validItems.length !== items.length) {
         localStorage.setItem(storageKey, JSON.stringify(validItems));
         setHistory(validItems);
         console.log(
-          `[HISTORY] Cleaned up ${items.length - validItems.length} expired items`,
+          `[HISTORY] Cleaned up ${items.length - validItems.length} expired items`
         );
       }
     }
@@ -150,7 +150,7 @@ const GetSolution: React.FC = () => {
     if (!isPro && history.length > 0) {
       const now = Date.now();
       const validItems = history.filter(
-        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE,
+        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE
       );
       if (validItems.length !== history.length) {
         setHistory(validItems);
@@ -166,7 +166,7 @@ const GetSolution: React.FC = () => {
     const now = new Date();
     const diffMs = expiryDate.getTime() - now.getTime();
 
-    if (diffMs <= 0) return "Expired";
+    if (diffMs <= 0) return 'Expired';
 
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -197,7 +197,7 @@ const GetSolution: React.FC = () => {
     setQuestionName(item.questionName);
     setSelectedLanguage(item.language);
     setSolution(item.solution);
-    setActiveApproach("optimal");
+    setActiveApproach('optimal');
     setShowHistory(false);
   };
 
@@ -211,7 +211,7 @@ const GetSolution: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!questionName.trim()) {
-      setError("Please enter a question name");
+      setError('Please enter a question name');
       return;
     }
 
@@ -223,14 +223,14 @@ const GetSolution: React.FC = () => {
       const result = await generateSolution(
         questionName.trim(),
         selectedLanguage,
-        problemDescription.trim() || undefined,
+        problemDescription.trim() || undefined
       );
       setSolution(result);
-      setActiveApproach("optimal");
+      setActiveApproach('optimal');
       // Save to history
       saveToHistory(questionName.trim(), selectedLanguage, result);
     } catch (err: any) {
-      setError(err.message || "Failed to generate solution");
+      setError(err.message || 'Failed to generate solution');
     } finally {
       setIsLoading(false);
     }
@@ -238,8 +238,8 @@ const GetSolution: React.FC = () => {
 
   const getCurrentApproach = (): SolutionApproach | null => {
     if (!solution) return null;
-    if (activeApproach === "brute") return solution.bruteForce;
-    if (activeApproach === "better") return solution.better || null;
+    if (activeApproach === 'brute') return solution.bruteForce;
+    if (activeApproach === 'better') return solution.better || null;
     return solution.optimal;
   };
 
@@ -277,7 +277,7 @@ const GetSolution: React.FC = () => {
           <strong className="font-bold text-white" {...props} />
         ),
         code({ node, className, children, ...props }) {
-          const isInline = !String(children).includes("\n");
+          const isInline = !String(children).includes('\n');
           if (isInline) {
             return (
               <code
@@ -290,15 +290,15 @@ const GetSolution: React.FC = () => {
           }
           return (
             <SyntaxHighlighter
-              children={String(children).replace(/\n$/, "")}
+              children={String(children).replace(/\n$/, '')}
               style={atomDark}
               language="text"
               PreTag="div"
               customStyle={{
                 margin: 0,
-                padding: "1rem",
-                backgroundColor: "#0c0c0c",
-                borderRadius: "8px",
+                padding: '1rem',
+                backgroundColor: '#0c0c0c',
+                borderRadius: '8px',
               }}
               {...props}
             />
@@ -306,7 +306,7 @@ const GetSolution: React.FC = () => {
         },
       }}
     >
-      {content || ""}
+      {content || ''}
     </ReactMarkdown>
   );
 
@@ -331,8 +331,8 @@ const GetSolution: React.FC = () => {
           onClick={() => setShowHistory(!showHistory)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             showHistory
-              ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-              : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
+              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
           }`}
         >
           <History className="w-4 h-4" />
@@ -431,8 +431,8 @@ const GetSolution: React.FC = () => {
                   onClick={() => setSelectedLanguage(lang)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedLanguage === lang
-                      ? "bg-yellow-500 text-black"
-                      : "bg-gray-950 text-gray-400 border border-gray-700 hover:border-yellow-500/50 hover:text-white"
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-gray-950 text-gray-400 border border-gray-700 hover:border-yellow-500/50 hover:text-white'
                   }`}
                 >
                   {lang}
@@ -463,7 +463,7 @@ const GetSolution: React.FC = () => {
           {/* Problem Description */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Problem Description{" "}
+              Problem Description{' '}
               <span className="text-gray-500 font-normal">
                 (optional - for new/obscure problems)
               </span>
@@ -492,8 +492,8 @@ const GetSolution: React.FC = () => {
             disabled={isLoading || !questionName.trim()}
             className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
               isLoading || !questionName.trim()
-                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-                : "bg-yellow-600 hover:bg-yellow-500 text-white shadow-lg shadow-yellow-900/20"
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                : 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-lg shadow-yellow-900/20'
             }`}
           >
             {isLoading ? (
@@ -518,8 +518,8 @@ const GetSolution: React.FC = () => {
           <button
             onClick={() => {
               setSolution(null);
-              setQuestionName("");
-              setProblemDescription("");
+              setQuestionName('');
+              setProblemDescription('');
             }}
             className="text-sm text-gray-400 hover:text-[#e6c888] transition-colors"
           >
@@ -567,11 +567,11 @@ const GetSolution: React.FC = () => {
           {/* Approach Tabs */}
           <div className="flex gap-3">
             <button
-              onClick={() => setActiveApproach("brute")}
+              onClick={() => setActiveApproach('brute')}
               className={`flex items-baseline gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeApproach === "brute"
-                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                  : "bg-[#141414] text-gray-400 border border-gray-800 hover:border-red-500/30 hover:text-red-400"
+                activeApproach === 'brute'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'bg-[#141414] text-gray-400 border border-gray-800 hover:border-red-500/30 hover:text-red-400'
               }`}
             >
               <Zap className="w-4 h-4 self-center" />
@@ -583,11 +583,11 @@ const GetSolution: React.FC = () => {
 
             {solution.better && (
               <button
-                onClick={() => setActiveApproach("better")}
+                onClick={() => setActiveApproach('better')}
                 className={`flex items-baseline gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeApproach === "better"
-                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                    : "bg-[#141414] text-gray-400 border border-gray-800 hover:border-yellow-500/30 hover:text-yellow-400"
+                  activeApproach === 'better'
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-[#141414] text-gray-400 border border-gray-800 hover:border-yellow-500/30 hover:text-yellow-400'
                 }`}
               >
                 <TrendingUp className="w-4 h-4 self-center" />
@@ -599,11 +599,11 @@ const GetSolution: React.FC = () => {
             )}
 
             <button
-              onClick={() => setActiveApproach("optimal")}
+              onClick={() => setActiveApproach('optimal')}
               className={`flex items-baseline gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeApproach === "optimal"
-                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                  : "bg-[#141414] text-gray-400 border border-gray-800 hover:border-green-500/30 hover:text-green-400"
+                activeApproach === 'optimal'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-[#141414] text-gray-400 border border-gray-800 hover:border-green-500/30 hover:text-green-400'
               }`}
             >
               <Crown className="w-4 h-4 self-center" />
@@ -621,13 +621,13 @@ const GetSolution: React.FC = () => {
               <div className="p-6 border-b border-gray-800">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-xl font-bold text-white flex items-center gap-2">
-                    {activeApproach === "brute" && (
+                    {activeApproach === 'brute' && (
                       <Zap className="w-5 h-5 text-red-400" />
                     )}
-                    {activeApproach === "better" && (
+                    {activeApproach === 'better' && (
                       <TrendingUp className="w-5 h-5 text-yellow-400" />
                     )}
-                    {activeApproach === "optimal" && (
+                    {activeApproach === 'optimal' && (
                       <Crown className="w-5 h-5 text-green-400" />
                     )}
                     {currentApproach.name}
@@ -723,20 +723,20 @@ const GetSolution: React.FC = () => {
                     ) : (
                       <Copy className="w-3 h-3" />
                     )}
-                    {copiedCode ? "Copied!" : "Copy Code"}
+                    {copiedCode ? 'Copied!' : 'Copy Code'}
                   </button>
                 </div>
                 <SyntaxHighlighter
                   language={selectedLanguage
                     .toLowerCase()
-                    .replace("c++", "cpp")}
+                    .replace('c++', 'cpp')}
                   style={atomDark}
                   showLineNumbers
                   customStyle={{
                     margin: 0,
-                    padding: "1.5rem",
-                    backgroundColor: "#0c0c0c",
-                    fontSize: "0.9rem",
+                    padding: '1.5rem',
+                    backgroundColor: '#0c0c0c',
+                    fontSize: '0.9rem',
                   }}
                 >
                   {currentApproach.code}

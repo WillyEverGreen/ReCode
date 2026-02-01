@@ -1,0 +1,16 @@
+node_modules
+dist
+.vercel
+build
+coverage
+scripts/**/*
+server/**/*
+api/**/*
+utils/**/*.js
+models/**/*
+LeetCode-Solutions/**/*
+Strivers-A2Z-DSA-Sheet/**/*
+striver_dump/**/*
+data/**/*
+*.config.js
+*.config.ts

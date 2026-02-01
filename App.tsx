@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from "react";
-import InputForm from "./components/InputForm";
-import Dashboard from "./components/Dashboard";
-import QuestionDetail from "./components/QuestionDetail";
-import LandingPage from "./components/LandingPage";
-import Login from "./components/Auth/Login";
-import Signup from "./components/Auth/Signup";
-import ForgotPassword from "./components/Auth/ForgotPassword";
-import GetSolution from "./components/GetSolution";
-import AdminPanel from "./components/AdminPanel";
-import UsageDisplay from "./components/UsageDisplay";
-import Pricing from "./components/Pricing";
-import { PolicyPage } from "./components/Policies";
+import React, { useState, useEffect } from 'react';
+import InputForm from './components/InputForm';
+import Dashboard from './components/Dashboard';
+import QuestionDetail from './components/QuestionDetail';
+import LandingPage from './components/LandingPage';
+import Login from './components/Auth/Login';
+import Signup from './components/Auth/Signup';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import GetSolution from './components/GetSolution';
+import AdminPanel from './components/AdminPanel';
+import UsageDisplay from './components/UsageDisplay';
+import Pricing from './components/Pricing';
+import { PolicyPage } from './components/Policies';
 
-import { API_BASE_URL } from "./config/api";
+import { API_BASE_URL } from './config/api';
 import {
   SubmissionData,
   SavedQuestion,
   ViewState,
   UserSettings,
-} from "./types";
-import { analyzeSubmission } from "./services/aiService";
+} from './types';
+import { analyzeSubmission } from './services/aiService';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -28,18 +28,18 @@ import {
   Sparkles,
   DollarSign,
   ArrowLeft,
-} from "lucide-react";
-import AppLogo from "./components/Logo-With-Name cropped.png";
+} from 'lucide-react';
+import AppLogo from './components/Logo-With-Name cropped.png';
 
 const App: React.FC = () => {
   // --- State ---
   const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
+    localStorage.getItem('token')
   );
   const [user, setUser] = useState<any>(null);
   const [authView, setAuthView] = useState<
-    "login" | "signup" | "forgot-password"
-  >("login");
+    'login' | 'signup' | 'forgot-password'
+  >('login');
 
   const [showLanding, setShowLanding] = useState<boolean>(!token);
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
@@ -58,9 +58,9 @@ const App: React.FC = () => {
       '/shipping': 'shipping',
       '/shipping-policy': 'shipping',
       '/contact': 'contact',
-      '/contact-us': 'contact'
+      '/contact-us': 'contact',
     };
-    
+
     // Check exact match or without trailing slash
     const view = routes[path] || routes[path.replace(/\/$/, '')];
     if (view) {
@@ -72,11 +72,11 @@ const App: React.FC = () => {
   // Check for admin route on mount and hash change
   useEffect(() => {
     const checkAdminRoute = () => {
-      setShowAdmin(window.location.hash === "#admin");
+      setShowAdmin(window.location.hash === '#admin');
     };
     checkAdminRoute();
-    window.addEventListener("hashchange", checkAdminRoute);
-    return () => window.removeEventListener("hashchange", checkAdminRoute);
+    window.addEventListener('hashchange', checkAdminRoute);
+    return () => window.removeEventListener('hashchange', checkAdminRoute);
   }, []);
 
   // Handle OAuth callback (GitHub redirect with token in URL)
@@ -84,7 +84,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlUser = params.get('user');
-    
+
     if (urlToken && urlUser) {
       try {
         const parsedUser = JSON.parse(decodeURIComponent(urlUser));
@@ -93,7 +93,11 @@ const App: React.FC = () => {
         setUser(parsedUser);
         setShowLanding(false);
         // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
       } catch (err) {
         console.error('[OAuth] Failed to parse user data:', err);
       }
@@ -103,7 +107,7 @@ const App: React.FC = () => {
   const [questions, setQuestions] = useState<SavedQuestion[]>([]);
 
   const [userSettings, setUserSettings] = useState<UserSettings>(() => {
-    const saved = localStorage.getItem("leetcode-revision-settings");
+    const saved = localStorage.getItem('leetcode-revision-settings');
     const defaults = {
       showEdgeCases: true,
       showSyntaxNotes: true,
@@ -112,7 +116,7 @@ const App: React.FC = () => {
     return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
   });
 
-  const [view, setView] = useState<ViewState>("dashboard");
+  const [view, setView] = useState<ViewState>('dashboard');
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null
   );
@@ -131,22 +135,23 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem(
-      "leetcode-revision-settings",
+      'leetcode-revision-settings',
       JSON.stringify(userSettings)
     );
   }, [userSettings]);
 
   // Listen for navigation to pricing from UsageDisplay
   useEffect(() => {
-    const handlePricingNav = () => setView("pricing");
-    window.addEventListener("navigate-to-pricing", handlePricingNav);
-    return () => window.removeEventListener("navigate-to-pricing", handlePricingNav);
+    const handlePricingNav = () => setView('pricing');
+    window.addEventListener('navigate-to-pricing', handlePricingNav);
+    return () =>
+      window.removeEventListener('navigate-to-pricing', handlePricingNav);
   }, []);
 
   const fetchQuestions = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/questions`, {
-        headers: { "x-auth-token": token! },
+        headers: { 'x-auth-token': token! },
       });
       const data = await res.json();
       if (res.ok) {
@@ -155,19 +160,19 @@ const App: React.FC = () => {
         setQuestions(mappedQuestions);
       }
     } catch (err) {
-      console.error("Failed to fetch questions", err);
+      console.error('Failed to fetch questions', err);
     }
   };
 
   // --- Handlers ---
   const handleLogin = (newToken: string, newUser: any) => {
-    localStorage.setItem("token", newToken);
+    localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem('token');
     setToken(null);
     setUser(null);
     setQuestions([]);
@@ -183,32 +188,32 @@ const App: React.FC = () => {
       const newQuestionData = {
         ...data,
         ...analysis,
-        title: analysis.title || "Untitled Problem",
-        language: analysis.language || "Unknown Language",
+        title: analysis.title || 'Untitled Problem',
+        language: analysis.language || 'Unknown Language',
       };
 
       // Save to DB
       const res = await fetch(`${API_BASE_URL}/api/questions`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token!,
+          'Content-Type': 'application/json',
+          'x-auth-token': token!,
         },
         body: JSON.stringify(newQuestionData),
       });
 
       const savedQuestion = await res.json();
 
-      if (!res.ok) throw new Error(savedQuestion.message || "Failed to save");
+      if (!res.ok) throw new Error(savedQuestion.message || 'Failed to save');
 
       setQuestions((prev) => [
         { ...savedQuestion, id: savedQuestion._id },
         ...prev,
       ]);
       setSelectedQuestionId(savedQuestion._id);
-      setView("detail");
+      setView('detail');
     } catch (err: any) {
-      setError(err.message || "Failed to analyze submission");
+      setError(err.message || 'Failed to analyze submission');
     } finally {
       setIsAnalyzing(false);
     }
@@ -218,24 +223,24 @@ const App: React.FC = () => {
     setShowLanding(false);
     // If not logged in, show login
     if (!token) {
-      setAuthView("login");
+      setAuthView('login');
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await fetch(`${API_BASE_URL}/api/questions/${id}`, {
-        method: "DELETE",
-        headers: { "x-auth-token": token! },
+        method: 'DELETE',
+        headers: { 'x-auth-token': token! },
       });
 
       setQuestions((prev) => prev.filter((q) => q.id !== id));
       if (selectedQuestionId === id) {
         setSelectedQuestionId(null);
-        setView("dashboard");
+        setView('dashboard');
       }
     } catch (err) {
-      console.error("Failed to delete", err);
+      console.error('Failed to delete', err);
     }
   };
 
@@ -250,7 +255,7 @@ const App: React.FC = () => {
       return (
         <AdminPanel
           onBack={() => {
-            window.location.hash = "";
+            window.location.hash = '';
             setShowAdmin(false);
           }}
         />
@@ -259,12 +264,12 @@ const App: React.FC = () => {
 
     if (policyView) {
       return (
-        <PolicyPage 
-          type={policyView} 
+        <PolicyPage
+          type={policyView}
           onHome={() => {
             setPolicyView(null);
             window.location.href = '/';
-          }} 
+          }}
         />
       );
     }
@@ -274,32 +279,32 @@ const App: React.FC = () => {
     }
 
     if (!token) {
-      if (authView === "login") {
+      if (authView === 'login') {
         return (
           <Login
             onLogin={handleLogin}
-            onSwitchToSignup={() => setAuthView("signup")}
-            onForgotPassword={() => setAuthView("forgot-password")}
+            onSwitchToSignup={() => setAuthView('signup')}
+            onForgotPassword={() => setAuthView('forgot-password')}
           />
         );
-      } else if (authView === "signup") {
+      } else if (authView === 'signup') {
         return (
           <Signup
             onSignup={handleLogin}
-            onSwitchToLogin={() => setAuthView("login")}
+            onSwitchToLogin={() => setAuthView('login')}
           />
         );
-      } else if (authView === "forgot-password") {
+      } else if (authView === 'forgot-password') {
         return (
           <ForgotPassword
-            onBack={() => setAuthView("login")}
-            onLogin={() => setAuthView("login")}
+            onBack={() => setAuthView('login')}
+            onLogin={() => setAuthView('login')}
           />
         );
       }
     }
 
-    if (view === "add") {
+    if (view === 'add') {
       return (
         <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-2">
           <div className="mb-6">
@@ -323,7 +328,7 @@ const App: React.FC = () => {
       );
     }
 
-    if (view === "detail" && selectedQuestionId) {
+    if (view === 'detail' && selectedQuestionId) {
       const question = questions.find((q) => q.id === selectedQuestionId);
       if (!question) return <div>Question not found</div>;
 
@@ -332,34 +337,32 @@ const App: React.FC = () => {
           question={question}
           userSettings={userSettings}
           onUpdateSettings={setUserSettings}
-          onBack={() => setView("dashboard")}
+          onBack={() => setView('dashboard')}
           onDelete={handleDelete}
           onUpdateQuestion={handleUpdateQuestion}
           isPro={user?.plan === 'pro' || user?.role === 'admin'}
-          onUpgrade={() => setView("pricing")}
+          onUpgrade={() => setView('pricing')}
         />
       );
     }
 
-    if (view === "solution") {
+    if (view === 'solution') {
       return <GetSolution />;
     }
 
-    if (view === "pricing") {
+    if (view === 'pricing') {
       return <Pricing />;
     }
-
-
 
     return (
       <Dashboard
         questions={questions}
         onSelectQuestion={(q) => {
           setSelectedQuestionId(q.id);
-          setView("detail");
+          setView('detail');
         }}
-        onAddNew={() => setView("add")}
-          onShowPricing={() => setView("pricing")}
+        onAddNew={() => setView('add')}
+        onShowPricing={() => setView('pricing')}
       />
     );
   };
@@ -370,7 +373,7 @@ const App: React.FC = () => {
         <div className="w-full h-full overflow-y-auto">
           <AdminPanel
             onBack={() => {
-              window.location.hash = "";
+              window.location.hash = '';
               setShowAdmin(false);
             }}
           />
@@ -379,11 +382,11 @@ const App: React.FC = () => {
         <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
       ) : (!token && showLanding) || !token ? (
         <div className="w-full h-full overflow-y-auto">{renderContent()}</div>
-      ) : view === "pricing" ? (
+      ) : view === 'pricing' ? (
         <div className="w-full h-full overflow-y-auto bg-[#0c0c0c]">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
             <button
-              onClick={() => setView("dashboard")}
+              onClick={() => setView('dashboard')}
               aria-label="Back to app"
               className="mb-8 inline-flex items-center text-gray-400 hover:text-yellow-400 transition-colors"
             >
@@ -398,17 +401,21 @@ const App: React.FC = () => {
           <aside className="w-64 bg-[#0e0e0e] border-r border-gray-800 flex flex-col hidden md:flex shrink-0">
             <div className="p-6 border-b border-gray-800 flex items-center gap-3">
               <div className="h-10 rounded-lg overflow-hidden">
-                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
+                <img
+                  src={AppLogo}
+                  alt="ReCode"
+                  className="h-full w-auto object-contain"
+                />
               </div>
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
               <button
-                onClick={() => setView("dashboard")}
+                onClick={() => setView('dashboard')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
-                  view === "dashboard" || view === "detail"
-                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
+                  view === 'dashboard' || view === 'detail'
+                    ? 'bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5'
                 }`}
               >
                 <LayoutDashboard className="w-5 h-5" />
@@ -416,11 +423,11 @@ const App: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setView("add")}
+                onClick={() => setView('add')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
-                  view === "add"
-                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
+                  view === 'add'
+                    ? 'bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5'
                 }`}
               >
                 <PlusCircle className="w-5 h-5" />
@@ -428,17 +435,16 @@ const App: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setView("solution")}
+                onClick={() => setView('solution')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium tracking-wide ${
-                  view === "solution"
-                    ? "bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5"
+                  view === 'solution'
+                    ? 'bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white hover:pl-5'
                 }`}
               >
                 <Sparkles className="w-5 h-5" />
                 Get Solution
               </button>
-
             </nav>
 
             <div className="p-6 border-t border-gray-800 space-y-4">
@@ -469,24 +475,28 @@ const App: React.FC = () => {
             {/* Mobile Header */}
             <div className="md:hidden p-4 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-[#0b0f19]/90 backdrop-blur-md z-20">
               <div className="h-8 rounded-lg overflow-hidden">
-                <img src={AppLogo} alt="ReCode" className="h-full w-auto object-contain" />
+                <img
+                  src={AppLogo}
+                  alt="ReCode"
+                  className="h-full w-auto object-contain"
+                />
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setView("dashboard")}
-                  className={`p-2 rounded-md ${view === "dashboard" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
+                  onClick={() => setView('dashboard')}
+                  className={`p-2 rounded-md ${view === 'dashboard' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-800'}`}
                 >
                   <LayoutDashboard className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setView("add")}
-                  className={`p-2 rounded-md ${view === "add" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
+                  onClick={() => setView('add')}
+                  className={`p-2 rounded-md ${view === 'add' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-800'}`}
                 >
                   <PlusCircle className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setView("solution")}
-                  className={`p-2 rounded-md ${view === "solution" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-800"}`}
+                  onClick={() => setView('solution')}
+                  className={`p-2 rounded-md ${view === 'solution' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-800'}`}
                 >
                   <Sparkles className="w-5 h-5" />
                 </button>

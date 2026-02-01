@@ -24,15 +24,15 @@ function getTomorrowUTC() {
 
 async function demonstrateReset() {
   try {
-    console.log("\n" + "=".repeat(70));
-    console.log("🔄 LIVE USAGE RESET DEMONSTRATION");
-    console.log("=".repeat(70));
+    console.log('\n' + '='.repeat(70));
+    console.log('🔄 LIVE USAGE RESET DEMONSTRATION');
+    console.log('='.repeat(70));
 
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("\n✅ Connected to MongoDB");
+    console.log('\n✅ Connected to MongoDB');
 
-    const testUserId = "demo_user_12345";
+    const testUserId = 'demo_user_12345';
     const today = getTodayUTC();
     const tomorrow = getTomorrowUTC();
 
@@ -40,19 +40,23 @@ async function demonstrateReset() {
     console.log(`📅 Tomorrow (UTC): ${tomorrow}`);
 
     // Step 1: Check current usage for today
-    console.log("\n" + "-".repeat(70));
-    console.log("STEP 1: Check usage for TODAY");
-    console.log("-".repeat(70));
-    
+    console.log('\n' + '-'.repeat(70));
+    console.log('STEP 1: Check usage for TODAY');
+    console.log('-'.repeat(70));
+
     const todayUsage = await UserUsage.getTodayUsage(testUserId);
     console.log(`\n📊 Usage for ${today}:`);
-    console.log(`   Get Solution: ${todayUsage.getSolutionUsed}/${todayUsage.getSolutionLimit} (${todayUsage.getSolutionLeft} left)`);
-    console.log(`   Add Solution: ${todayUsage.addSolutionUsed}/${todayUsage.addSolutionLimit} (${todayUsage.addSolutionLeft} left)`);
+    console.log(
+      `   Get Solution: ${todayUsage.getSolutionUsed}/${todayUsage.getSolutionLimit} (${todayUsage.getSolutionLeft} left)`
+    );
+    console.log(
+      `   Add Solution: ${todayUsage.addSolutionUsed}/${todayUsage.addSolutionLimit} (${todayUsage.addSolutionLeft} left)`
+    );
 
     // Step 2: Simulate using up today's limits
-    console.log("\n" + "-".repeat(70));
+    console.log('\n' + '-'.repeat(70));
     console.log("STEP 2: Simulate using up TODAY's limits");
-    console.log("-".repeat(70));
+    console.log('-'.repeat(70));
 
     // Create/update today's record to show limits reached
     await UserUsage.findOneAndUpdate(
@@ -62,33 +66,43 @@ async function demonstrateReset() {
           getSolutionCount: 2,
           addSolutionCount: 3,
           variantCount: 1,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        $setOnInsert: { createdAt: new Date() }
+        $setOnInsert: { createdAt: new Date() },
       },
       { upsert: true, new: true }
     );
 
     const usedUpUsage = await UserUsage.getTodayUsage(testUserId);
     console.log(`\n📊 After using up limits for ${today}:`);
-    console.log(`   Get Solution: ${usedUpUsage.getSolutionUsed}/${usedUpUsage.getSolutionLimit} (${usedUpUsage.getSolutionLeft} left) ❌`);
-    console.log(`   Add Solution: ${usedUpUsage.addSolutionUsed}/${usedUpUsage.addSolutionLimit} (${usedUpUsage.addSolutionLeft} left) ❌`);
-    console.log(`   Variant: ${usedUpUsage.variantUsed}/${usedUpUsage.variantLimit} (${usedUpUsage.variantLeft} left) ❌`);
-    console.log(`\n   ⚠️  All limits reached! User cannot make more requests today.`);
+    console.log(
+      `   Get Solution: ${usedUpUsage.getSolutionUsed}/${usedUpUsage.getSolutionLimit} (${usedUpUsage.getSolutionLeft} left) ❌`
+    );
+    console.log(
+      `   Add Solution: ${usedUpUsage.addSolutionUsed}/${usedUpUsage.addSolutionLimit} (${usedUpUsage.addSolutionLeft} left) ❌`
+    );
+    console.log(
+      `   Variant: ${usedUpUsage.variantUsed}/${usedUpUsage.variantLimit} (${usedUpUsage.variantLeft} left) ❌`
+    );
+    console.log(
+      `\n   ⚠️  All limits reached! User cannot make more requests today.`
+    );
 
     // Step 3: Simulate checking tomorrow's usage
-    console.log("\n" + "-".repeat(70));
+    console.log('\n' + '-'.repeat(70));
     console.log("STEP 3: Simulate checking TOMORROW's usage (after reset)");
-    console.log("-".repeat(70));
+    console.log('-'.repeat(70));
 
     // Manually query for tomorrow's date to simulate what happens after midnight
-    const tomorrowRecord = await UserUsage.findOne({ 
-      userId: testUserId, 
-      date: tomorrow 
+    const tomorrowRecord = await UserUsage.findOne({
+      userId: testUserId,
+      date: tomorrow,
     });
 
     console.log(`\n🔍 Looking for record with date: ${tomorrow}`);
-    console.log(`   Result: ${tomorrowRecord ? 'Found' : 'Not found (expected)'}`);
+    console.log(
+      `   Result: ${tomorrowRecord ? 'Found' : 'Not found (expected)'}`
+    );
 
     if (!tomorrowRecord) {
       console.log(`\n✅ No record exists for ${tomorrow} yet!`);
@@ -100,14 +114,16 @@ async function demonstrateReset() {
     }
 
     // Step 4: Demonstrate the actual reset behavior
-    console.log("\n" + "-".repeat(70));
-    console.log("STEP 4: Show what getTodayUsage() returns for different dates");
-    console.log("-".repeat(70));
+    console.log('\n' + '-'.repeat(70));
+    console.log(
+      'STEP 4: Show what getTodayUsage() returns for different dates'
+    );
+    console.log('-'.repeat(70));
 
     // Create a mock function that simulates getTodayUsage for any date
     async function getUsageForDate(userId, targetDate) {
       const record = await UserUsage.findOne({ userId, date: targetDate });
-      
+
       if (!record) {
         return {
           date: targetDate,
@@ -120,10 +136,10 @@ async function demonstrateReset() {
           getSolutionLeft: 2,
           addSolutionLeft: 3,
           variantLeft: 1,
-          status: "FRESH_LIMITS"
+          status: 'FRESH_LIMITS',
         };
       }
-      
+
       return {
         date: targetDate,
         getSolutionUsed: record.getSolutionCount || 0,
@@ -135,7 +151,7 @@ async function demonstrateReset() {
         getSolutionLeft: Math.max(0, 2 - (record.getSolutionCount || 0)),
         addSolutionLeft: Math.max(0, 3 - (record.addSolutionCount || 0)),
         variantLeft: Math.max(0, 1 - (record.variantCount || 0)),
-        status: "EXISTING_RECORD"
+        status: 'EXISTING_RECORD',
       };
     }
 
@@ -144,18 +160,26 @@ async function demonstrateReset() {
 
     console.log(`\n📊 For ${today} (TODAY):`);
     console.log(`   Status: ${todayData.status}`);
-    console.log(`   Get Solution: ${todayData.getSolutionUsed}/${todayData.getSolutionLimit} (${todayData.getSolutionLeft} left) ${todayData.getSolutionLeft === 0 ? '❌' : '✅'}`);
-    console.log(`   Add Solution: ${todayData.addSolutionUsed}/${todayData.addSolutionLimit} (${todayData.addSolutionLeft} left) ${todayData.addSolutionLeft === 0 ? '❌' : '✅'}`);
+    console.log(
+      `   Get Solution: ${todayData.getSolutionUsed}/${todayData.getSolutionLimit} (${todayData.getSolutionLeft} left) ${todayData.getSolutionLeft === 0 ? '❌' : '✅'}`
+    );
+    console.log(
+      `   Add Solution: ${todayData.addSolutionUsed}/${todayData.addSolutionLimit} (${todayData.addSolutionLeft} left) ${todayData.addSolutionLeft === 0 ? '❌' : '✅'}`
+    );
 
     console.log(`\n📊 For ${tomorrow} (TOMORROW):`);
     console.log(`   Status: ${tomorrowData.status} ✨`);
-    console.log(`   Get Solution: ${tomorrowData.getSolutionUsed}/${tomorrowData.getSolutionLimit} (${tomorrowData.getSolutionLeft} left) ✅`);
-    console.log(`   Add Solution: ${tomorrowData.addSolutionUsed}/${tomorrowData.addSolutionLimit} (${tomorrowData.addSolutionLeft} left) ✅`);
+    console.log(
+      `   Get Solution: ${tomorrowData.getSolutionUsed}/${tomorrowData.getSolutionLimit} (${tomorrowData.getSolutionLeft} left) ✅`
+    );
+    console.log(
+      `   Add Solution: ${tomorrowData.addSolutionUsed}/${tomorrowData.addSolutionLimit} (${tomorrowData.addSolutionLeft} left) ✅`
+    );
 
     // Final explanation
-    console.log("\n" + "=".repeat(70));
-    console.log("🎯 HOW THE RESET WORKS");
-    console.log("=".repeat(70));
+    console.log('\n' + '='.repeat(70));
+    console.log('🎯 HOW THE RESET WORKS');
+    console.log('='.repeat(70));
     console.log(`
 The reset is AUTOMATIC and DATE-BASED:
 
@@ -182,20 +206,19 @@ The reset is AUTOMATIC and DATE-BASED:
    • Reset happens automatically when date changes
     `);
 
-    console.log("=".repeat(70));
-    console.log("✅ DEMONSTRATION COMPLETE");
-    console.log("=".repeat(70));
+    console.log('='.repeat(70));
+    console.log('✅ DEMONSTRATION COMPLETE');
+    console.log('='.repeat(70));
 
     // Cleanup: Remove demo user's record
     console.log(`\n🧹 Cleaning up demo user's record...`);
     const deleted = await UserUsage.deleteMany({ userId: testUserId });
     console.log(`   Deleted ${deleted.deletedCount} demo record(s)`);
-
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
+    console.error('\n❌ Error:', error.message);
   } finally {
     await mongoose.disconnect();
-    console.log("\n🔌 Disconnected from MongoDB\n");
+    console.log('\n🔌 Disconnected from MongoDB\n');
   }
 }
 

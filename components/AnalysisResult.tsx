@@ -11,7 +11,13 @@ interface AnalysisResultProps {
   onUpgrade: () => void;
 }
 
-const AnalysisResult: React.FC<AnalysisResultProps> = ({ markdown, onReset, questionTitle, isPro, onUpgrade }) => {
+const AnalysisResult: React.FC<AnalysisResultProps> = ({
+  markdown,
+  onReset,
+  questionTitle,
+  isPro,
+  onUpgrade,
+}) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
@@ -39,7 +45,7 @@ ${markdown}
 ---
 *Exported from ReCode - https://recode.app*
 `;
-    
+
     // Create blob and download
     const blob = new Blob([formattedContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -55,32 +61,43 @@ ${markdown}
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
-        
         {/* Header - Golden accent */}
         <div className="p-4 border-b border-gray-800 bg-gray-850 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2 text-white font-semibold">
             <BookOpen className="text-yellow-500" />
             <span>AI Revision Notes</span>
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={handleExport}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                isPro 
-                  ? 'text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700' 
+                isPro
+                  ? 'text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700'
                   : 'text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20'
               }`}
-              title={isPro ? "Download notes as Markdown file" : "Upgrade to export notes"}
+              title={
+                isPro
+                  ? 'Download notes as Markdown file'
+                  : 'Upgrade to export notes'
+              }
             >
-              {isPro ? <Download className="w-4 h-4" /> : <ProBadge size={14} className="!ml-0" />}
+              {isPro ? (
+                <Download className="w-4 h-4" />
+              ) : (
+                <ProBadge size={14} className="!ml-0" />
+              )}
               Export
             </button>
             <button
               onClick={handleCopy}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
             >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
               {copied ? 'Copied' : 'Copy MD'}
             </button>
             <button
@@ -95,35 +112,75 @@ ${markdown}
 
         {/* Markdown Content - Dim reading area */}
         <div className="flex-1 overflow-y-auto p-8 custom-markdown bg-[#0a0d12]">
-           <ReactMarkdown
+          <ReactMarkdown
             components={{
-              h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-[#c4a66a] mt-8 mb-4 border-b border-gray-800/50 pb-2" {...props} />,
-              h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-[#c4a66a] mt-6 mb-3" {...props} />,
-              h3: ({node, ...props}) => <h3 className="text-lg font-medium text-gray-200 mt-4 mb-2" {...props} />,
-              p: ({node, ...props}) => <p className="text-gray-400 mb-4 leading-relaxed" {...props} />,
-              ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 mb-4 text-gray-400 space-y-1" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 mb-4 text-gray-400 space-y-1" {...props} />,
-              li: ({node, ...props}) => <li className="pl-1" {...props} />,
-              strong: ({node, ...props}) => <strong className="font-bold text-gray-200" {...props} />,
-              code: ({node, className, children, ...props}) => {
-                const match = /language-(\w+)/.exec(className || '')
+              h1: ({ node, ...props }) => (
+                <h1
+                  className="text-2xl font-bold text-[#c4a66a] mt-8 mb-4 border-b border-gray-800/50 pb-2"
+                  {...props}
+                />
+              ),
+              h2: ({ node, ...props }) => (
+                <h2
+                  className="text-xl font-semibold text-[#c4a66a] mt-6 mb-3"
+                  {...props}
+                />
+              ),
+              h3: ({ node, ...props }) => (
+                <h3
+                  className="text-lg font-medium text-gray-200 mt-4 mb-2"
+                  {...props}
+                />
+              ),
+              p: ({ node, ...props }) => (
+                <p className="text-gray-400 mb-4 leading-relaxed" {...props} />
+              ),
+              ul: ({ node, ...props }) => (
+                <ul
+                  className="list-disc list-outside ml-6 mb-4 text-gray-400 space-y-1"
+                  {...props}
+                />
+              ),
+              ol: ({ node, ...props }) => (
+                <ol
+                  className="list-decimal list-outside ml-6 mb-4 text-gray-400 space-y-1"
+                  {...props}
+                />
+              ),
+              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+              strong: ({ node, ...props }) => (
+                <strong className="font-bold text-gray-200" {...props} />
+              ),
+              code: ({ node, className, children, ...props }) => {
+                const match = /language-(\w+)/.exec(className || '');
                 const isInline = !match && !String(children).includes('\n');
                 return isInline ? (
-                  <code className="bg-gray-800/60 text-[#c4a66a] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                  <code
+                    className="bg-gray-800/60 text-[#c4a66a] px-1.5 py-0.5 rounded text-sm font-mono"
+                    {...props}
+                  >
                     {children}
                   </code>
                 ) : (
                   <div className="relative my-4 rounded-lg overflow-hidden bg-[#080a0e] border border-gray-800/50">
-                     <div className="absolute top-2 right-2 text-xs text-gray-600 uppercase">
-                        {match ? match[1] : 'code'}
-                     </div>
-                    <code className="block p-4 overflow-x-auto font-mono text-sm text-gray-300" {...props}>
+                    <div className="absolute top-2 right-2 text-xs text-gray-600 uppercase">
+                      {match ? match[1] : 'code'}
+                    </div>
+                    <code
+                      className="block p-4 overflow-x-auto font-mono text-sm text-gray-300"
+                      {...props}
+                    >
                       {children}
                     </code>
                   </div>
-                )
+                );
               },
-              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#c4a66a]/50 pl-4 italic text-gray-500 my-4" {...props} />
+              blockquote: ({ node, ...props }) => (
+                <blockquote
+                  className="border-l-4 border-[#c4a66a]/50 pl-4 italic text-gray-500 my-4"
+                  {...props}
+                />
+              ),
             }}
           >
             {markdown}

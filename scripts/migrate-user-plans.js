@@ -1,10 +1,10 @@
 /**
  * Migration Script: Add Role and Plan Fields to Existing Users
- * 
+ *
  * This script updates all existing users in the database to have:
  * - role: 'user' (default)
  * - plan: 'free' (default)
- * 
+ *
  * Run this once after deploying the updated User model.
  */
 
@@ -42,8 +42,12 @@ async function migrateUserPlans() {
     }
 
     // Count users that need migration
-    const usersNeedingMigration = allUsers.filter(user => !user.role || !user.plan);
-    console.log(`🔄 Users needing migration: ${usersNeedingMigration.length}\n`);
+    const usersNeedingMigration = allUsers.filter(
+      (user) => !user.role || !user.plan
+    );
+    console.log(
+      `🔄 Users needing migration: ${usersNeedingMigration.length}\n`
+    );
 
     if (usersNeedingMigration.length === 0) {
       console.log('✅ All users already have role and plan fields!');
@@ -53,19 +57,16 @@ async function migrateUserPlans() {
 
     // Update all users without role/plan
     console.log('📝 Updating users...\n');
-    
+
     const result = await User.updateMany(
-      { 
-        $or: [
-          { role: { $exists: false } },
-          { plan: { $exists: false } }
-        ]
+      {
+        $or: [{ role: { $exists: false } }, { plan: { $exists: false } }],
       },
-      { 
-        $set: { 
+      {
+        $set: {
           role: 'user',
-          plan: 'free'
-        }
+          plan: 'free',
+        },
       }
     );
 
@@ -76,13 +77,13 @@ async function migrateUserPlans() {
     // Verify the migration
     console.log('🔍 Verifying migration...\n');
     const verifyUsers = await User.find({});
-    
+
     const stats = {
       total: verifyUsers.length,
-      admins: verifyUsers.filter(u => u.role === 'admin').length,
-      users: verifyUsers.filter(u => u.role === 'user').length,
-      pro: verifyUsers.filter(u => u.plan === 'pro').length,
-      free: verifyUsers.filter(u => u.plan === 'free').length,
+      admins: verifyUsers.filter((u) => u.role === 'admin').length,
+      users: verifyUsers.filter((u) => u.role === 'user').length,
+      pro: verifyUsers.filter((u) => u.plan === 'pro').length,
+      free: verifyUsers.filter((u) => u.plan === 'free').length,
     };
 
     console.log('📊 User Statistics:');
@@ -106,7 +107,6 @@ async function migrateUserPlans() {
     console.log('\n' + '='.repeat(60));
     console.log('✅ MIGRATION SUCCESSFUL');
     console.log('='.repeat(60));
-
   } catch (error) {
     console.error('\n❌ Migration Error:', error.message);
     console.error(error);

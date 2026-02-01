@@ -58,14 +58,17 @@ export const exportAsMarkdown = (data: ExportData): void => {
   // Complexity - use engine if reasons not provided
   if (data.timeComplexity || data.spaceComplexity) {
     markdown += `## Complexity Analysis\n\n`;
-    
+
     // Try to get explanations from engine if code is available and reasons are missing
     let tcReason = data.timeComplexityReason;
     let scReason = data.spaceComplexityReason;
-    
+
     if (data.code && (!tcReason || !scReason)) {
       try {
-        const analysis = complexityEngine.analyze(data.code, data.language?.toLowerCase() || 'java');
+        const analysis = complexityEngine.analyze(
+          data.code,
+          data.language?.toLowerCase() || 'java'
+        );
         if (!tcReason && analysis?.timeComplexityReason) {
           tcReason = analysis.timeComplexityReason;
         }
@@ -76,7 +79,7 @@ export const exportAsMarkdown = (data: ExportData): void => {
         console.log('[EXPORT] Could not analyze complexity:', e);
       }
     }
-    
+
     if (data.timeComplexity) {
       markdown += `**Time Complexity:** ${data.timeComplexity}\n`;
       if (tcReason) markdown += `> ${tcReason}\n\n`;
@@ -90,13 +93,15 @@ export const exportAsMarkdown = (data: ExportData): void => {
   }
 
   // Core Logic & Approach
-  const coreData = data.coreLogic || (typeof data.approach === 'object' ? data.approach : null);
+  const coreData =
+    data.coreLogic ||
+    (typeof data.approach === 'object' ? data.approach : null);
   if (coreData && typeof coreData === 'object') {
     markdown += `## Core Logic & Approach\n\n`;
     Object.entries(coreData).forEach(([key, val]) => {
       markdown += `### ${key.charAt(0).toUpperCase() + key.slice(1)}\n`;
       if (Array.isArray(val)) {
-        val.forEach((item: any) => markdown += `- ${item}\n`);
+        val.forEach((item: any) => (markdown += `- ${item}\n`));
       } else {
         markdown += `${val}\n`;
       }
@@ -107,7 +112,11 @@ export const exportAsMarkdown = (data: ExportData): void => {
   }
 
   // Simple approach string
-  if (data.approach && typeof data.approach === 'string' && data.approach.trim()) {
+  if (
+    data.approach &&
+    typeof data.approach === 'string' &&
+    data.approach.trim()
+  ) {
     markdown += `## Approach\n${data.approach}\n\n`;
   }
 
@@ -181,7 +190,7 @@ export const exportAsPDF = (data: ExportData): void => {
     const pageHeight = pdf.internal.pageSize.height;
     const pageWidth = pdf.internal.pageSize.width;
     const margin = 15;
-    const contentWidth = pageWidth - (margin * 2);
+    const contentWidth = pageWidth - margin * 2;
 
     // Color Palette
     const colors = {
@@ -216,8 +225,8 @@ export const exportAsPDF = (data: ExportData): void => {
 
     const addSectionHeader = (text: string) => {
       // Add extra top margin if not at start of page
-      if (yPos > 30) yPos += 12; 
-      
+      if (yPos > 30) yPos += 12;
+
       checkPageBreak(25);
       yPos += 8;
       setFillColor(colors.gold);
@@ -309,7 +318,7 @@ export const exportAsPDF = (data: ExportData): void => {
     pdf.setFont('helvetica', 'bold');
     const titleLines = pdf.splitTextToSize(data.title, contentWidth - 10);
     titleLines.forEach((line: string, idx: number) => {
-      pdf.text(line, margin + 5, 22 + (idx * 7));
+      pdf.text(line, margin + 5, 22 + idx * 7);
     });
     yPos = 48;
 
@@ -332,24 +341,36 @@ export const exportAsPDF = (data: ExportData): void => {
       let scReason = data.spaceComplexityReason;
       if (data.code && (!tcReason || !scReason)) {
         try {
-          const analysis = complexityEngine.analyze(data.code, data.language?.toLowerCase() || 'java');
-          if (!tcReason && analysis?.timeComplexityReason) tcReason = analysis.timeComplexityReason;
-          if (!scReason && analysis?.spaceComplexityReason) scReason = analysis.spaceComplexityReason;
+          const analysis = complexityEngine.analyze(
+            data.code,
+            data.language?.toLowerCase() || 'java'
+          );
+          if (!tcReason && analysis?.timeComplexityReason)
+            tcReason = analysis.timeComplexityReason;
+          if (!scReason && analysis?.spaceComplexityReason)
+            scReason = analysis.spaceComplexityReason;
         } catch (e) {}
       }
       if (data.timeComplexity) {
         addComplexityLine('Time Complexity', data.timeComplexity);
-        if (tcReason) { addMutedText(tcReason, 5); yPos += 4; }
+        if (tcReason) {
+          addMutedText(tcReason, 5);
+          yPos += 4;
+        }
       }
       if (data.spaceComplexity) {
         addComplexityLine('Space Complexity', data.spaceComplexity);
-        if (scReason) { addMutedText(scReason, 5); }
+        if (scReason) {
+          addMutedText(scReason, 5);
+        }
       }
       yPos += 5;
     }
 
     // Core Logic
-    const coreData = data.coreLogic || (typeof data.approach === 'object' ? data.approach : null);
+    const coreData =
+      data.coreLogic ||
+      (typeof data.approach === 'object' ? data.approach : null);
     if (coreData && typeof coreData === 'object') {
       addSectionHeader('Core Logic & Approach');
       Object.entries(coreData).forEach(([key, val]) => {
@@ -368,28 +389,46 @@ export const exportAsPDF = (data: ExportData): void => {
       addSectionHeader(`Code (${data.language || 'Code'})`);
       const codeLines = data.code.split('\n');
       // Increased code spacing
-      const codeLineHeight = 4.8; 
-      const codeBlockHeight = Math.min(codeLines.length * codeLineHeight + 10, pageHeight - yPos - 30);
-      
+      const codeLineHeight = 4.8;
+      const codeBlockHeight = Math.min(
+        codeLines.length * codeLineHeight + 10,
+        pageHeight - yPos - 30
+      );
+
       setFillColor(colors.bgCode);
       pdf.rect(margin + 2, yPos - 2, contentWidth - 4, codeBlockHeight, 'F');
       setDrawColor(colors.borderDefault);
       pdf.rect(margin + 2, yPos - 2, contentWidth - 4, codeBlockHeight, 'S');
-      
+
       pdf.setFont('courier', 'normal');
       pdf.setFontSize(8);
       setTextColor(colors.textPrimary);
-      
+
       yPos += 4; // Padding inside code block
       codeLines.forEach((line, idx) => {
         if (yPos > pageHeight - 35) {
           addPageWithBackground();
           setFillColor(colors.bgCode);
           const remainingLines = codeLines.length - idx;
-          const remainingHeight = Math.min(remainingLines * codeLineHeight + 10, pageHeight - 50);
-          pdf.rect(margin + 2, yPos - 2, contentWidth - 4, remainingHeight, 'F');
+          const remainingHeight = Math.min(
+            remainingLines * codeLineHeight + 10,
+            pageHeight - 50
+          );
+          pdf.rect(
+            margin + 2,
+            yPos - 2,
+            contentWidth - 4,
+            remainingHeight,
+            'F'
+          );
           setDrawColor(colors.borderDefault);
-          pdf.rect(margin + 2, yPos - 2, contentWidth - 4, remainingHeight, 'S');
+          pdf.rect(
+            margin + 2,
+            yPos - 2,
+            contentWidth - 4,
+            remainingHeight,
+            'S'
+          );
           yPos += 4;
         }
         pdf.text(line.substring(0, 95), margin + 6, yPos);
@@ -405,7 +444,7 @@ export const exportAsPDF = (data: ExportData): void => {
       if (yPos > pageHeight * 0.6) {
         addPageWithBackground();
       }
-      
+
       addSectionHeader('Fast Recall Checklist');
       data.revisionNotes.forEach((note, idx) => {
         addBullet(String(note), idx + 1);
@@ -430,7 +469,11 @@ export const exportAsPDF = (data: ExportData): void => {
       setTextColor(colors.textMuted);
       pdf.text('Generated by ReCode', margin, pageHeight - 8);
       const pageText = `Page ${i} of ${totalPages}`;
-      pdf.text(pageText, pageWidth - margin - pdf.getTextWidth(pageText), pageHeight - 8);
+      pdf.text(
+        pageText,
+        pageWidth - margin - pdf.getTextWidth(pageText),
+        pageHeight - 8
+      );
     }
 
     const filename = `${data.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
@@ -477,9 +520,14 @@ export const exportAsText = (data: ExportData): void => {
     let scReason = data.spaceComplexityReason;
     if (data.code && (!tcReason || !scReason)) {
       try {
-        const analysis = complexityEngine.analyze(data.code, data.language?.toLowerCase() || 'java');
-        if (!tcReason && analysis?.timeComplexityReason) tcReason = analysis.timeComplexityReason;
-        if (!scReason && analysis?.spaceComplexityReason) scReason = analysis.spaceComplexityReason;
+        const analysis = complexityEngine.analyze(
+          data.code,
+          data.language?.toLowerCase() || 'java'
+        );
+        if (!tcReason && analysis?.timeComplexityReason)
+          tcReason = analysis.timeComplexityReason;
+        if (!scReason && analysis?.spaceComplexityReason)
+          scReason = analysis.spaceComplexityReason;
       } catch (e) {}
     }
     if (data.timeComplexity) {
@@ -493,13 +541,15 @@ export const exportAsText = (data: ExportData): void => {
   }
 
   // Core Logic & Approach
-  const coreData = data.coreLogic || (typeof data.approach === 'object' ? data.approach : null);
+  const coreData =
+    data.coreLogic ||
+    (typeof data.approach === 'object' ? data.approach : null);
   if (coreData && typeof coreData === 'object') {
     text += `CORE LOGIC & APPROACH:\n\n`;
     Object.entries(coreData).forEach(([key, val]) => {
       text += `${key.toUpperCase()}:\n`;
       if (Array.isArray(val)) {
-        val.forEach((item: any) => text += `- ${item}\n`);
+        val.forEach((item: any) => (text += `- ${item}\n`));
       } else {
         text += `${val}\n`;
       }
@@ -509,7 +559,11 @@ export const exportAsText = (data: ExportData): void => {
     text += `CORE LOGIC:\n${data.coreLogic}\n\n`;
   }
 
-  if (data.approach && typeof data.approach === 'string' && data.approach.trim()) {
+  if (
+    data.approach &&
+    typeof data.approach === 'string' &&
+    data.approach.trim()
+  ) {
     text += `APPROACH:\n${data.approach}\n\n`;
   }
 

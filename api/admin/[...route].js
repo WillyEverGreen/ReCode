@@ -1,9 +1,9 @@
-import { connectDB } from "../_lib/mongodb.js";
-import { handleCors, verifyAdmin, generateAdminToken } from "../_lib/auth.js";
-import SolutionCache from "../../models/SolutionCache.js";
-import User from "../../models/User.js";
-import Question from "../../models/Question.js";
-import { Redis } from "@upstash/redis";
+import { connectDB } from '../_lib/mongodb.js';
+import { handleCors, verifyAdmin, generateAdminToken } from '../_lib/auth.js';
+import SolutionCache from '../../models/SolutionCache.js';
+import User from '../../models/User.js';
+import Question from '../../models/Question.js';
+import { Redis } from '@upstash/redis';
 
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
@@ -13,10 +13,10 @@ export default async function handler(req, res) {
 
   // Fallback: parse from URL path if route is not set
   if (!route || (Array.isArray(route) && route.length === 0)) {
-    const urlPath = req.url.split("?")[0]; // Remove query string
-    const pathParts = urlPath.split("/").filter(Boolean);
+    const urlPath = req.url.split('?')[0]; // Remove query string
+    const pathParts = urlPath.split('/').filter(Boolean);
     // URL is like /api/admin/login, so we need the part after "admin"
-    const adminIndex = pathParts.indexOf("admin");
+    const adminIndex = pathParts.indexOf('admin');
     if (adminIndex !== -1 && adminIndex < pathParts.length - 1) {
       route = pathParts.slice(adminIndex + 1);
     } else {
@@ -27,37 +27,37 @@ export default async function handler(req, res) {
   const action = Array.isArray(route) ? route[0] : route;
   const subId = Array.isArray(route) ? route[1] : undefined;
   console.log(
-    "[ADMIN DEBUG] URL:",
+    '[ADMIN DEBUG] URL:',
     req.url,
-    "| Route:",
+    '| Route:',
     JSON.stringify(route),
-    "| Action:",
-    action,
+    '| Action:',
+    action
   );
 
   try {
     // ==================== LOGIN ====================
-    if (action === "login") {
-      if (req.method !== "POST")
-        return res.status(405).json({ error: "Method not allowed" });
+    if (action === 'login') {
+      if (req.method !== 'POST')
+        return res.status(405).json({ error: 'Method not allowed' });
 
       const { password } = req.body;
-      console.log("[ADMIN LOGIN] Password received:", password ? "YES" : "NO");
+      console.log('[ADMIN LOGIN] Password received:', password ? 'YES' : 'NO');
 
       if (!password) {
-        return res.status(400).json({ error: "Password required" });
+        return res.status(400).json({ error: 'Password required' });
       }
 
-      const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-      console.log("[ADMIN LOGIN] Comparing with env password:", ADMIN_PASSWORD);
+      const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+      console.log('[ADMIN LOGIN] Comparing with env password:', ADMIN_PASSWORD);
 
       if (password === ADMIN_PASSWORD) {
         const token = generateAdminToken();
-        console.log("[ADMIN LOGIN] ✓ Access granted");
+        console.log('[ADMIN LOGIN] ✓ Access granted');
         return res.json({ success: true, token });
       } else {
-        console.log("[ADMIN LOGIN] ✗ Password mismatch");
-        return res.status(401).json({ error: "Invalid password" });
+        console.log('[ADMIN LOGIN] ✗ Password mismatch');
+        return res.status(401).json({ error: 'Invalid password' });
       }
     }
 
@@ -70,9 +70,9 @@ export default async function handler(req, res) {
     await connectDB();
 
     // ==================== STATS ====================
-    if (action === "stats") {
-      if (req.method !== "GET")
-        return res.status(405).json({ error: "Method not allowed" });
+    if (action === 'stats') {
+      if (req.method !== 'GET')
+        return res.status(405).json({ error: 'Method not allowed' });
 
       const totalUsers = await User.countDocuments();
       const totalQuestions = await Question.countDocuments();
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           const redis = new Redis({ url: redisUrl, token: redisToken });
 
           // Get breakdown of key types
-          const allKeys = await redis.keys("*");
+          const allKeys = await redis.keys('*');
           const breakdown = {
             baseSolutions: 0, // problem:xxx:lang
             variants: 0, // variant:xxx:lang:hash
@@ -95,11 +95,11 @@ export default async function handler(req, res) {
           };
 
           for (const key of allKeys) {
-            if (key.startsWith("problem:") && !key.includes("canonical")) {
+            if (key.startsWith('problem:') && !key.includes('canonical')) {
               breakdown.baseSolutions++;
-            } else if (key.startsWith("variant:")) {
+            } else if (key.startsWith('variant:')) {
               breakdown.variants++;
-            } else if (key.startsWith("solution:")) {
+            } else if (key.startsWith('solution:')) {
               breakdown.legacy++;
             }
             // Ignore "other" keys like problem:canonical-ids (internal use)
@@ -128,9 +128,9 @@ export default async function handler(req, res) {
     }
 
     // ==================== USERS ====================
-    if (action === "users") {
-      if (req.method !== "GET")
-        return res.status(405).json({ error: "Method not allowed" });
+    if (action === 'users') {
+      if (req.method !== 'GET')
+        return res.status(405).json({ error: 'Method not allowed' });
 
       // Only show verified users
       const users = await User.find({ isVerified: true }, { password: 0 })
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
             userId: user._id,
           });
           return { ...user.toObject(), questionCount };
-        }),
+        })
       );
 
       return res.json({ success: true, users: usersWithCounts });
@@ -150,10 +150,10 @@ export default async function handler(req, res) {
 
     // ==================== CACHED-SOLUTIONS/[ID] (Delete specific) ====================
     // This must come BEFORE the GET route to avoid 405 error
-    if (action === "cached-solutions" && subId && req.method === "DELETE") {
+    if (action === 'cached-solutions' && subId && req.method === 'DELETE') {
       const result = await SolutionCache.findByIdAndDelete(subId);
       if (!result) {
-        return res.status(404).json({ error: "Cached solution not found" });
+        return res.status(404).json({ error: 'Cached solution not found' });
       }
 
       // Also delete from Redis
@@ -164,17 +164,17 @@ export default async function handler(req, res) {
           const redis = new Redis({ url: redisUrl, token: redisToken });
           const redisKey = `problem:${result.questionName}:${result.language}`;
           await redis.del(redisKey);
-          console.log("[DELETE] Also deleted from Redis:", redisKey);
+          console.log('[DELETE] Also deleted from Redis:', redisKey);
         } catch (e) {
-          console.error("[DELETE] Redis delete error:", e.message);
+          console.error('[DELETE] Redis delete error:', e.message);
         }
       }
 
-      return res.json({ success: true, message: "Cached solution deleted" });
+      return res.json({ success: true, message: 'Cached solution deleted' });
     }
 
     // ==================== CACHED-SOLUTIONS (GET list) ====================
-    if (action === "cached-solutions" && req.method === "GET") {
+    if (action === 'cached-solutions' && req.method === 'GET') {
       const solutions = await SolutionCache.find(
         {},
         {
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
           language: 1,
           hitCount: 1,
           createdAt: 1,
-        },
+        }
       )
         .sort({ hitCount: -1 })
         .limit(100);
@@ -192,9 +192,9 @@ export default async function handler(req, res) {
     }
 
     // ==================== CACHE (Clear all) ====================
-    if (action === "cache") {
-      if (req.method !== "DELETE")
-        return res.status(405).json({ error: "Method not allowed" });
+    if (action === 'cache') {
+      if (req.method !== 'DELETE')
+        return res.status(405).json({ error: 'Method not allowed' });
 
       const mongoResult = await SolutionCache.deleteMany({});
 
@@ -207,39 +207,39 @@ export default async function handler(req, res) {
           await redis.flushdb();
           redisCleared = true;
         } catch (e) {
-          console.error("Redis clear error:", e);
+          console.error('Redis clear error:', e);
         }
       }
 
       return res.json({
         success: true,
-        message: "All caches cleared",
+        message: 'All caches cleared',
         details: {
           mongodb: mongoResult.deletedCount,
-          redis: redisCleared ? "cleared" : "not configured",
+          redis: redisCleared ? 'cleared' : 'not configured',
         },
       });
     }
 
     // ==================== SYNC-CACHE (Migrate MongoDB → Redis) ====================
-    if (action === "sync-cache") {
-      if (req.method !== "POST")
-        return res.status(405).json({ error: "Method not allowed" });
+    if (action === 'sync-cache') {
+      if (req.method !== 'POST')
+        return res.status(405).json({ error: 'Method not allowed' });
 
       const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
       const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
       if (!redisUrl || !redisToken) {
-        return res.status(500).json({ error: "Redis not configured" });
+        return res.status(500).json({ error: 'Redis not configured' });
       }
 
       const redis = new Redis({ url: redisUrl, token: redisToken });
       const results = { deleted: 0, synced: 0 };
 
       // Step 1: Delete all legacy keys (solution:xxx format)
-      const allKeys = await redis.keys("*");
+      const allKeys = await redis.keys('*');
       for (const key of allKeys) {
-        if (key.startsWith("solution:")) {
+        if (key.startsWith('solution:')) {
           await redis.del(key);
           results.deleted++;
         }
@@ -264,8 +264,8 @@ export default async function handler(req, res) {
 
       // Step 3: Update canonical IDs
       if (canonicalIds.size > 0) {
-        await redis.del("problem:canonical-ids");
-        await redis.sadd("problem:canonical-ids", ...canonicalIds);
+        await redis.del('problem:canonical-ids');
+        await redis.sadd('problem:canonical-ids', ...canonicalIds);
       }
 
       return res.json({
@@ -276,9 +276,9 @@ export default async function handler(req, res) {
     }
 
     // Unknown route
-    return res.status(404).json({ error: "Admin route not found" });
+    return res.status(404).json({ error: 'Admin route not found' });
   } catch (error) {
-    console.error("Admin error:", error);
+    console.error('Admin error:', error);
     return res.status(500).json({ error: error.message });
   }
 }

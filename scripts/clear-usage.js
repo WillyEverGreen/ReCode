@@ -31,13 +31,15 @@ async function clearUsage() {
     const examples = await UserUsage.find({}).limit(5).toArray();
     console.log('📋 Sample usage records:');
     examples.forEach((record, i) => {
-      console.log(`   ${i + 1}. User: ${record.userId}, Date: ${record.date}, GetSolution: ${record.getSolutionCount}`);
+      console.log(
+        `   ${i + 1}. User: ${record.userId}, Date: ${record.date}, GetSolution: ${record.getSolutionCount}`
+      );
     });
 
     console.log('\n❓ What would you like to do?');
     console.log('   1. Delete ALL usage records (complete reset)');
-    console.log('   2. Delete only today\'s usage (keep history)');
-    console.log('   3. Delete specific user\'s usage');
+    console.log("   2. Delete only today's usage (keep history)");
+    console.log("   3. Delete specific user's usage");
     console.log('   4. Exit without changes\n');
 
     // For now, let's provide the option to clear all
@@ -54,7 +56,7 @@ async function clearUsage() {
       console.log(`🗑️  Deleting today's usage (${today})...`);
       const result = await UserUsage.deleteMany({ date: today });
       console.log(`✅ Deleted ${result.deletedCount} records`);
-      console.log('✨ Today\'s usage cleared!\n');
+      console.log("✨ Today's usage cleared!\n");
     } else if (process.argv.includes('--user')) {
       const userId = process.argv[process.argv.indexOf('--user') + 1];
       if (!userId) {
@@ -69,7 +71,6 @@ async function clearUsage() {
       console.log('ℹ️  Running in dry-run mode (no changes made)');
       console.log('   Add --confirm to actually delete records\n');
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);
