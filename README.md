@@ -98,6 +98,28 @@ A modern web application that helps developers master Data Structures and Algori
 
 5. **Open http://localhost:3000**
 
+## Local LLM (Optional)
+
+If you want to run local LLMs (Ollama) for offline AI generation during development, follow these steps:
+
+- Install and run Ollama separately and ensure models are available (e.g. `qwen2.5-coder:7b`, `qwen2.5:7b`, `deepseek-r1:7b`).
+- In your local `.env` set:
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_MODEL_CODING=qwen2.5-coder:7b
+OLLAMA_MODEL_EXPLANATION=qwen2.5:7b
+OLLAMA_MODEL_REASONING=deepseek-r1:7b
+VITE_API_URL=http://localhost:5000
+```
+- Start the backend and frontend in separate terminals:
+```bash
+npm run server   # starts Express API on port 5000
+npm run dev      # starts Vite frontend on port 3000
+```
+
+The local Ollama integration is opt-in — by default the app uses the existing remote AI provider (Qubrid). This ensures your production deployment on Vercel is unaffected.
+
 ## Deployment
 
 ### Vercel (Recommended)
@@ -106,6 +128,8 @@ A modern web application that helps developers master Data Structures and Algori
 2. Import project in [Vercel](https://vercel.com)
 3. Add environment variables in Vercel dashboard
 4. Deploy!
+
+Note: The repository changes are backward compatible — if `AI_PROVIDER` is not set to `ollama` the deployed app will continue to use the existing remote AI provider. Do not commit your `.env` file; keep secrets in Vercel's dashboard.
 
 ### Environment Variables for Production
 
