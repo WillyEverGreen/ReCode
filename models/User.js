@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['trial', 'pro'],
+    enum: ['free', 'trial', 'pro'], // 'free' kept for backward compatibility with older accounts
     default: 'trial', // New users start with 7-day trial
   },
 
