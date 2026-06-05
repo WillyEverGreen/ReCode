@@ -14,6 +14,48 @@ const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NVIDIA_MODEL =
   import.meta.env.VITE_NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct';
 
+// Helper function to escape raw control characters (like newlines) inside double-quoted JSON string values
+function cleanJsonString(str: string): string {
+  let inString = false;
+  let escaped = false;
+  let out = '';
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (inString) {
+      if (escaped) {
+        out += char;
+        escaped = false;
+      } else if (char === '\\') {
+        out += char;
+        escaped = true;
+      } else if (char === '"') {
+        out += char;
+        inString = false;
+      } else if (char === '\n') {
+        out += '\\n';
+      } else if (char === '\r') {
+        out += '\\r';
+      } else if (char === '\t') {
+        out += '\\t';
+      } else {
+        const code = char.charCodeAt(0);
+        if (code < 32) {
+          out += '\\u' + code.toString(16).padStart(4, '0');
+        } else {
+          out += char;
+        }
+      }
+    } else {
+      if (char === '"') {
+        inString = true;
+      }
+      out += char;
+    }
+  }
+  return out;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // FINAL GUARANTEE STACK - 7 LAYERS OF CORRECTNESS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -415,7 +457,7 @@ Return ONLY valid JSON, no markdown fences.`;
     if (text.startsWith('```json')) text = text.slice(7);
     if (text.startsWith('```')) text = text.slice(3);
     if (text.endsWith('```')) text = text.slice(0, -3);
-    text = text.trim();
+    text = cleanJsonString(text.trim());
 
     const parsed = JSON.parse(text);
 
@@ -612,7 +654,7 @@ Return ONLY valid JSON, no markdown fences.`;
         if (text.startsWith('```json')) text = text.slice(7);
         if (text.startsWith('```')) text = text.slice(3);
         if (text.endsWith('```')) text = text.slice(0, -3);
-        text = text.trim();
+        text = cleanJsonString(text.trim());
 
         if (!text || text.length < 50) {
           console.warn(

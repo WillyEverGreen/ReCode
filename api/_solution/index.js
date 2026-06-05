@@ -471,6 +471,48 @@ async function saveCanonicalId(canonicalId, redis) {
   }
 }
 
+// Helper function to escape raw control characters (like newlines) inside double-quoted JSON string values
+function cleanJsonString(str) {
+  let inString = false;
+  let escaped = false;
+  let out = '';
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (inString) {
+      if (escaped) {
+        out += char;
+        escaped = false;
+      } else if (char === '\\') {
+        out += char;
+        escaped = true;
+      } else if (char === '"') {
+        out += char;
+        inString = false;
+      } else if (char === '\n') {
+        out += '\\n';
+      } else if (char === '\r') {
+        out += '\\r';
+      } else if (char === '\t') {
+        out += '\\t';
+      } else {
+        const code = char.charCodeAt(0);
+        if (code < 32) {
+          out += '\\u' + code.toString(16).padStart(4, '0');
+        } else {
+          out += char;
+        }
+      }
+    } else {
+      if (char === '"') {
+        inString = true;
+      }
+      out += char;
+    }
+  }
+  return out;
+}
+
 // Generate solution using AI (NVIDIA NIM)
 async function generateFromNVIDIA(
   questionName,
@@ -770,7 +812,8 @@ Your prompt must handle these scenarios:
 
   // Timeout for DeepSeek R1 70B (larger model needs more time)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000);
+  const apiTimeout = parseInt(process.env.NVIDIA_TIMEOUT_MS) || 180000;
+  const timeout = setTimeout(() => controller.abort(), apiTimeout);
 
   const response = await fetch(AI_API_URL, {
     method: 'POST',
@@ -832,7 +875,7 @@ Your prompt must handle these scenarios:
   if (text.startsWith('```json')) text = text.slice(7);
   if (text.startsWith('```')) text = text.slice(3);
   if (text.endsWith('```')) text = text.slice(0, -3);
-  text = text.trim();
+  text = cleanJsonString(text.trim());
 
   // Try to parse JSON with error handling
   let parsed;

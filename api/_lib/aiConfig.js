@@ -12,7 +12,7 @@ dotenv.config();
 // Primary model for all tasks
 const NVIDIA_MODEL = 'meta/llama-3.3-70b-instruct';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
-const NVIDIA_TIMEOUT_MS = 90000; // 90 seconds
+const NVIDIA_TIMEOUT_MS = 180000; // 180 seconds
 
 /**
  * Returns the NVIDIA NIM configuration for any task.
