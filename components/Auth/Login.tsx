@@ -83,7 +83,9 @@ const Login: React.FC<LoginProps> = ({
 
   const handleGoogleLogin = async () => {
     if (!GOOGLE_CLIENT_ID) {
-      setError('Google login not configured');
+      setError(
+        'Google login is not configured on this deployment. VITE_GOOGLE_CLIENT_ID environment variable is missing.'
+      );
       return;
     }
     setOauthLoading('google');
@@ -94,7 +96,12 @@ const Login: React.FC<LoginProps> = ({
           const script = document.createElement('script');
           script.src = 'https://accounts.google.com/gsi/client';
           script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load Google'));
+          script.onerror = () =>
+            reject(
+              new Error(
+                'Failed to load Google Sign-In script. Check your internet connection.'
+              )
+            );
           document.head.appendChild(script);
         });
       }
@@ -105,7 +112,12 @@ const Login: React.FC<LoginProps> = ({
           scope: 'email profile',
           callback: async (response: any) => {
             if (response.error) {
-              setError(response.error);
+              // User cancelled = access_denied, don't show error
+              if (response.error !== 'access_denied') {
+                setError(
+                  `Google error: ${response.error_description || response.error}`
+                );
+              }
               setOauthLoading(null);
               return;
             }
@@ -119,8 +131,13 @@ const Login: React.FC<LoginProps> = ({
                 }
               );
               const data = await res.json();
-              if (!res.ok)
-                throw new Error(data.message || 'Google login failed');
+              if (!res.ok) {
+                // Show the server's detailed message including step info
+                const detail = data.step ? ` [step: ${data.step}]` : '';
+                throw new Error(
+                  (data.message || 'Google login failed') + detail
+                );
+              }
               onLogin(data.token, data.user);
             } catch (err: any) {
               setError(err.message);
@@ -129,8 +146,17 @@ const Login: React.FC<LoginProps> = ({
             }
           },
           error_callback: (error: any) => {
-            // User cancelled or other error occurred
-            console.log('[GOOGLE AUTH] User cancelled or error:', error);
+            console.log(
+              '[GOOGLE AUTH] User cancelled or popup blocked:',
+              error
+            );
+            if (error?.type === 'popup_closed') {
+              // User closed popup - silent, not an error
+            } else {
+              setError(
+                `Google sign-in error: ${error?.type || 'unknown'}. Try allowing popups for this site.`
+              );
+            }
             setOauthLoading(null);
           },
         })
@@ -143,12 +169,17 @@ const Login: React.FC<LoginProps> = ({
 
   const handleGitHubLogin = () => {
     if (!GITHUB_CLIENT_ID) {
-      setError('GitHub login not configured');
+      setError(
+        'GitHub login is not configured on this deployment. VITE_GITHUB_CLIENT_ID environment variable is missing.'
+      );
       return;
     }
     setOauthLoading('github');
+    setError('');
+    // GitHub redirects back to /api/auth/github/callback which Vercel routes to our handler
     const redirectUri = `${window.location.origin}/api/auth/github/callback`;
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user user:email')}&state=github_oauth`;
+    const state = 'github_oauth_' + Math.random().toString(36).substring(2, 10); // random state for CSRF
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user user:email')}&state=${state}`;
   };
 
   return (

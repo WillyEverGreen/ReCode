@@ -1,7 +1,7 @@
 // Unified API Router - Consolidates all routes into one serverless function
 // This solves Vercel Hobby plan's 12 function limit
 
-import healthHandler from './_health.js';
+import healthHandler from './_health.js'; // file is _health.js NOT health.js
 import analyzeHandler from './_ai/analyze.js';
 import questionsHandler from './_questions/index.js';
 import questionByIdHandler from './_questions/[id].js';
@@ -13,6 +13,7 @@ import paymentHandler from './_payment/[...route].js';
 import paymentWebhookHandler from './_payment/webhook.js';
 import githubCallbackHandler from './_auth/github/callback.js';
 import googleCallbackHandler from './_auth/google/callback.js';
+import { connectDB } from './_lib/mongodb.js';
 
 export default async function handler(req, res) {
   // Parse the route from the request URL
@@ -27,6 +28,41 @@ export default async function handler(req, res) {
     // Health check
     if (segments.length === 0 || segments[0] === 'health') {
       return await healthHandler(req, res);
+    }
+
+    // Debug endpoint - shows env var status and DB connectivity (no secrets exposed)
+    if (segments[0] === 'debug') {
+      const envStatus = {
+        MONGO_URI: process.env.MONGO_URI
+          ? `set (starts with: ${process.env.MONGO_URI.substring(0, 20)}...)`
+          : 'MISSING ❌',
+        JWT_SECRET: process.env.JWT_SECRET ? 'set ✅' : 'MISSING ❌',
+        VITE_GITHUB_CLIENT_ID:
+          process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID
+            ? 'set ✅'
+            : 'MISSING ❌',
+        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET
+          ? 'set ✅'
+          : 'MISSING ❌',
+        VITE_GOOGLE_CLIENT_ID: process.env.VITE_GOOGLE_CLIENT_ID
+          ? 'set ✅'
+          : 'MISSING ❌',
+        NODE_ENV: process.env.NODE_ENV || 'not set',
+      };
+      let dbStatus = 'not tested';
+      let dbError = null;
+      try {
+        await connectDB();
+        dbStatus = 'connected ✅';
+      } catch (e) {
+        dbStatus = 'FAILED ❌';
+        dbError = e.message;
+      }
+      return res.json({
+        timestamp: new Date().toISOString(),
+        env: envStatus,
+        database: { status: dbStatus, error: dbError },
+      });
     }
 
     // AI routes

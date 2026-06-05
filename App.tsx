@@ -84,7 +84,9 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlUser = params.get('user');
-    const urlError = params.get('error');
+    // Support both `auth_error` (new) and `error` (legacy) params from callbacks
+    const urlError = params.get('auth_error') || params.get('error');
+    const urlProvider = params.get('provider'); // 'github' or 'google'
 
     if (urlToken && urlUser) {
       try {
@@ -101,9 +103,22 @@ const App: React.FC = () => {
         );
       } catch (err) {
         console.error('[OAuth] Failed to parse user data:', err);
+        setAuthError(
+          'Login succeeded but user data was malformed. Please try again.'
+        );
+        setAuthView('login');
+        setShowLanding(false);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
       }
     } else if (urlError) {
-      setAuthError(decodeURIComponent(urlError));
+      const providerLabel = urlProvider
+        ? `${urlProvider.charAt(0).toUpperCase() + urlProvider.slice(1)} login failed: `
+        : '';
+      setAuthError(providerLabel + decodeURIComponent(urlError));
       setAuthView('login');
       setShowLanding(false);
       // Clean up URL

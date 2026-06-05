@@ -6,54 +6,100 @@ import User from '../../../models/User.js';
 /**
  * GitHub OAuth Callback Handler
  * Handles the code exchange and user creation/login
+ * Called as GET (GitHub redirect) or POST (frontend calling directly)
  */
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  // GitHub redirects with GET, but we also support POST for flexibility
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const isGet = req.method === 'GET';
+
+  // Helper: redirect with error on GET, return JSON error on POST
+  const sendError = (statusCode, message, step) => {
+    console.error(`[GITHUB AUTH ERROR] Step: ${step} | ${message}`);
+    if (isGet) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host =
+        req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      // Use auth_error param so App.tsx can handle it distinctly
+      const errorUrl = `${baseUrl}/?auth_error=${encodeURIComponent(message)}&provider=github`;
+      res.writeHead(302, { Location: errorUrl });
+      res.end();
+    } else {
+      res.status(statusCode).json({ message, step, provider: 'github' });
+    }
+  };
+
   try {
-    // Check environment variables early to provide a clear error message
+    // ── Step 1: Check required env vars ──────────────────────────────────────
+    console.log('[GITHUB AUTH] Step 1: Checking environment variables...');
+
     if (!process.env.MONGO_URI) {
-      throw new Error('MONGO_URI is not configured in environment variables.');
+      return sendError(
+        500,
+        'Server misconfiguration: MONGO_URI is not set. Please configure it in Vercel Project Settings → Environment Variables.',
+        'env-check'
+      );
     }
     if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured in environment variables.');
+      return sendError(
+        500,
+        'Server misconfiguration: JWT_SECRET is not set in environment variables.',
+        'env-check'
+      );
     }
 
-    await connectDB();
+    const client_id =
+      process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID;
+    const client_secret = process.env.GITHUB_CLIENT_SECRET;
 
-    // GET: code from query params (GitHub redirect)
-    // POST: code from body (front-end calling directly)
-    const code = req.method === 'GET' ? req.query.code : req.body?.code;
+    if (!client_id) {
+      return sendError(
+        500,
+        'Server misconfiguration: GitHub Client ID (VITE_GITHUB_CLIENT_ID) is not set in Vercel environment variables.',
+        'env-check'
+      );
+    }
+    if (!client_secret) {
+      return sendError(
+        500,
+        'Server misconfiguration: GITHUB_CLIENT_SECRET is not set in Vercel environment variables.',
+        'env-check'
+      );
+    }
+
+    console.log('[GITHUB AUTH] Step 1: ENV vars OK');
+
+    // ── Step 2: Connect to MongoDB ────────────────────────────────────────────
+    console.log('[GITHUB AUTH] Step 2: Connecting to MongoDB...');
+    await connectDB();
+    console.log('[GITHUB AUTH] Step 2: MongoDB connected');
+
+    // ── Step 3: Get code or token ─────────────────────────────────────────────
+    const code = isGet ? req.query.code : req.body?.code;
     const providedToken = req.body?.access_token;
 
+    console.log(
+      `[GITHUB AUTH] Step 3: code=${code ? 'present' : 'MISSING'}, providedToken=${providedToken ? 'present' : 'none'}`
+    );
+
     if (!code && !providedToken) {
-      return res
-        .status(400)
-        .json({ message: 'Authorization code or access token is required' });
+      return sendError(
+        400,
+        'GitHub authorization code is missing. This happens if the OAuth callback URL in your GitHub App settings does not match, or you navigated here directly.',
+        'code-check'
+      );
     }
 
+    // ── Step 4: Exchange code for access token ────────────────────────────────
     let access_token = providedToken;
 
-    // If code provided, exchange for access token
     if (code && !access_token) {
-      const client_id =
-        process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID;
-      const client_secret = process.env.GITHUB_CLIENT_SECRET;
-
-      if (!client_id) {
-        throw new Error('GitHub Client ID is not configured on the server.');
-      }
-      if (!client_secret) {
-        throw new Error(
-          'GitHub Client Secret is not configured on the server.'
-        );
-      }
-
+      console.log('[GITHUB AUTH] Step 4: Exchanging code for access token...');
       const tokenResponse = await fetch(
         'https://github.com/login/oauth/access_token',
         {
@@ -62,90 +108,126 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
-          body: JSON.stringify({
-            client_id,
-            client_secret,
-            code,
-          }),
+          body: JSON.stringify({ client_id, client_secret, code }),
         }
       );
 
-      const tokenData = await tokenResponse.json();
-
-      if (tokenData.error) {
-        console.error('[GITHUB AUTH] Token exchange failed:', tokenData);
-        throw new Error(
-          tokenData.error_description ||
-            `Failed to exchange code: ${tokenData.error}`
+      if (!tokenResponse.ok) {
+        return sendError(
+          502,
+          `GitHub token exchange failed with HTTP ${tokenResponse.status} ${tokenResponse.statusText}`,
+          'token-exchange'
         );
       }
 
+      const tokenData = await tokenResponse.json();
+      console.log(
+        '[GITHUB AUTH] Step 4: GitHub response:',
+        JSON.stringify({
+          error: tokenData.error,
+          error_description: tokenData.error_description,
+          has_token: !!tokenData.access_token,
+        })
+      );
+
+      if (tokenData.error) {
+        const msg =
+          tokenData.error === 'bad_verification_code'
+            ? 'GitHub authorization code has expired or was already used. Please click "Sign in with GitHub" again to get a fresh code.'
+            : tokenData.error_description ||
+              `GitHub OAuth error: ${tokenData.error}`;
+        return sendError(400, msg, 'token-exchange');
+      }
+
       access_token = tokenData.access_token;
+      console.log('[GITHUB AUTH] Step 4: Got access token');
     }
 
     if (!access_token) {
-      throw new Error('Failed to obtain access token from GitHub.');
+      return sendError(
+        500,
+        'No access token received from GitHub (token field was empty).',
+        'token-check'
+      );
     }
 
-    // Get GitHub user info
+    // ── Step 5: Fetch GitHub user profile ─────────────────────────────────────
+    console.log('[GITHUB AUTH] Step 5: Fetching GitHub user...');
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${access_token}`,
         Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'ReCode-App',
       },
     });
 
     if (!userResponse.ok) {
-      console.error('[GITHUB AUTH] Failed to fetch user info');
-      throw new Error('Failed to fetch user profile information from GitHub.');
+      return sendError(
+        502,
+        `Failed to fetch GitHub user profile (HTTP ${userResponse.status}). The access token may be invalid.`,
+        'fetch-user'
+      );
     }
 
     const githubUser = await userResponse.json();
+    console.log(`[GITHUB AUTH] Step 5: Got GitHub user: ${githubUser.login}`);
 
-    // Get user's primary email if not public
+    // ── Step 6: Fetch email if not public ─────────────────────────────────────
     let email = githubUser.email;
     if (!email) {
+      console.log(
+        '[GITHUB AUTH] Step 6: Email not public, fetching from /user/emails...'
+      );
       const emailResponse = await fetch('https://api.github.com/user/emails', {
         headers: {
           Authorization: `Bearer ${access_token}`,
           Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'ReCode-App',
         },
       });
 
       if (emailResponse.ok) {
         const emails = await emailResponse.json();
         if (Array.isArray(emails)) {
-          const primaryEmail = emails.find((e) => e.primary) || emails[0];
+          // Prefer primary verified, then primary, then first
+          const primaryEmail =
+            emails.find((e) => e.primary && e.verified) ||
+            emails.find((e) => e.primary) ||
+            emails[0];
           email = primaryEmail?.email;
         }
       }
     }
 
     if (!email) {
-      throw new Error(
-        'Could not retrieve email from GitHub. Please make your email public in GitHub settings.'
+      return sendError(
+        400,
+        'Could not retrieve your email from GitHub. Please go to GitHub Settings → Emails and make your primary email public, or add a verified email.',
+        'email-check'
       );
     }
 
-    const { id: githubId, login: githubUsername, avatar_url } = githubUser;
+    console.log(`[GITHUB AUTH] Step 6: Email: ${email}`);
 
-    // Check if user exists
+    // ── Step 7: Upsert user in database ───────────────────────────────────────
+    const { id: githubId, login: githubUsername, avatar_url } = githubUser;
+    console.log('[GITHUB AUTH] Step 7: Upserting user...');
+
     let user = await User.findOne({ email });
 
     if (user) {
-      // User exists - update provider info if needed
-      if (user.provider === 'email' && !user.providerId) {
+      // Link GitHub to existing account if needed
+      if (!user.providerId || user.provider !== 'github') {
         user.provider = 'github';
         user.providerId = String(githubId);
         user.avatar = avatar_url;
         user.isVerified = true;
         await user.save();
       }
+      console.log('[GITHUB AUTH] Step 7: Existing user found');
     } else {
-      // Create new user
       const username =
         githubUsername + '_' + Math.random().toString(36).substring(2, 4);
-
       user = new User({
         username,
         email,
@@ -155,63 +237,50 @@ export default async function handler(req, res) {
         isVerified: true,
       });
       await user.save();
+      console.log(`[GITHUB AUTH] Step 7: New user created: ${username}`);
     }
 
-    // Generate JWT token
+    // ── Step 8: Issue JWT ──────────────────────────────────────────────────────
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: '30d',
     });
 
-    // If GET request (GitHub redirect), redirect back to the app with token
-    if (req.method === 'GET') {
-      // Build the correct redirect URL based on the request
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const userPayload = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      provider: user.provider,
+    };
+
+    console.log('[GITHUB AUTH] Step 8: JWT issued, success!');
+
+    // ── Step 9: Respond ────────────────────────────────────────────────────────
+    if (isGet) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
       const baseUrl = `${protocol}://${host}`;
-
-      const redirectUrl = `${baseUrl}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(
-        JSON.stringify({
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          avatar: user.avatar,
-          provider: user.provider,
-        })
-      )}`;
+      const redirectUrl = `${baseUrl}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userPayload))}`;
       res.writeHead(302, { Location: redirectUrl });
       res.end();
       return;
     }
 
-    // If POST request (front-end calling directly), return JSON
-    return res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-        provider: user.provider,
-      },
-    });
+    return res.json({ token, user: userPayload });
   } catch (error) {
-    console.error('[GITHUB AUTH ERROR]', error);
-
-    // If GET request (GitHub redirect), redirect back to the app with the error message
-    if (req.method === 'GET') {
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
+    console.error('[GITHUB AUTH] Unhandled exception:', error.message);
+    console.error(error.stack);
+    const msg = `GitHub authentication failed: ${error.message}`;
+    if (isGet) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
-      const baseUrl = `${protocol}://${host}`;
-      const errorUrl = `${baseUrl}/?error=${encodeURIComponent(error.message)}`;
+      const errorUrl = `${protocol}://${host}/?auth_error=${encodeURIComponent(msg)}&provider=github`;
       res.writeHead(302, { Location: errorUrl });
       res.end();
-      return;
+    } else {
+      res.status(500).json({ message: msg, provider: 'github' });
     }
-
-    return res
-      .status(500)
-      .json({ message: 'Server error', error: error.message });
   }
 }
