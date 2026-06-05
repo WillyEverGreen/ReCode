@@ -179,7 +179,9 @@ export default async function handler(req, res) {
           provider: user.provider,
         })
       )}`;
-      return res.redirect(302, redirectUrl);
+      res.writeHead(302, { Location: redirectUrl });
+      res.end();
+      return;
     }
 
     // If POST request (front-end calling directly), return JSON
@@ -202,10 +204,10 @@ export default async function handler(req, res) {
       const host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
       const baseUrl = `${protocol}://${host}`;
-      return res.redirect(
-        302,
-        `${baseUrl}/?error=${encodeURIComponent(error.message)}`
-      );
+      const errorUrl = `${baseUrl}/?error=${encodeURIComponent(error.message)}`;
+      res.writeHead(302, { Location: errorUrl });
+      res.end();
+      return;
     }
 
     return res
