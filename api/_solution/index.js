@@ -23,11 +23,10 @@ import {
   findGroundTruth,
 } from '../../utils/problemGroundTruth.js';
 
-// Qubrid AI Configuration (Qwen3-Coder-30B - fast, reliable)
-const AI_API_URL =
-  'https://platform.qubrid.com/api/v1/qubridai/chat/completions';
-const AI_MODEL = 'Qwen/Qwen3-Coder-30B-A3B-Instruct';
-const AI_API_KEY = process.env.QUBRID_API_KEY;
+// NVIDIA NIM Configuration (OpenAI-compatible API)
+const AI_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const AI_MODEL = process.env.NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct';
+const AI_API_KEY = process.env.NVIDIA_API_KEY;
 
 // Lazy-load Redis (for serverless - env vars may not be available at module load)
 let redis = null;
@@ -472,8 +471,8 @@ async function saveCanonicalId(canonicalId, redis) {
   }
 }
 
-// Generate solution using AI
-async function generateFromQubrid(
+// Generate solution using AI (NVIDIA NIM)
+async function generateFromNVIDIA(
   questionName,
   language,
   problemDescription,
@@ -805,25 +804,17 @@ Your prompt must handle these scenarios:
 
   const data = await response.json();
 
-  // Handle BOTH response formats:
-  // 1. Qubrid format: { content: "...", metrics: {...}, model: "..." }
-  // 2. OpenAI format: { choices: [{ message: { content: "..." } }] }
+  // Standard OpenAI-compatible format (NVIDIA NIM)
   let text = '';
 
-  if (data.content && typeof data.content === 'string') {
-    // Qubrid's direct format
-    console.log('[AI] Using Qubrid direct format (content at root)');
-    text = data.content;
-  } else if (data.choices?.[0]?.message?.content) {
-    // OpenAI-compatible format
-    console.log('[AI] Using OpenAI-compatible format (choices array)');
+  if (data.choices?.[0]?.message?.content) {
     text = data.choices[0].message.content;
   } else {
     console.error(
-      '[AI] Unknown response structure:',
+      '[NVIDIA] Unexpected response structure:',
       JSON.stringify(data).slice(0, 500)
     );
-    throw new Error('Unknown API response format');
+    throw new Error('Unexpected AI response format from NVIDIA');
   }
 
   // Log raw response for debugging
@@ -1525,12 +1516,10 @@ Return ONLY valid JSON, no markdown fences.`;
     const data = await response.json();
     let text = '';
 
-    if (data.content && typeof data.content === 'string') {
-      text = data.content;
-    } else if (data.choices?.[0]?.message?.content) {
+    if (data.choices?.[0]?.message?.content) {
       text = data.choices[0].message.content;
     } else {
-      console.error('[LLM RECONSIDER] Unknown response format');
+      console.error('[NVIDIA RECONSIDER] Unexpected response format');
       return null;
     }
 
@@ -2181,7 +2170,7 @@ export default async function handler(req, res) {
     let solution;
     try {
       // First attempt with creative temperature (0.8)
-      solution = await generateFromQubrid(
+      solution = await generateFromNVIDIA(
         questionName,
         language,
         problemDescription,
@@ -2190,22 +2179,22 @@ export default async function handler(req, res) {
     } catch (firstError) {
       // Validation failed - retry once with conservative temperature (0.3)
       console.warn(
-        '[AI] ⚠️  First attempt failed, retrying with temperature=0.3...'
+        '[NVIDIA] ⚠️  First attempt failed, retrying with temperature=0.3...'
       );
-      console.warn('[AI] Error:', firstError.message);
+      console.warn('[NVIDIA] Error:', firstError.message);
 
       try {
         // Second attempt with deterministic temperature (0.3)
-        solution = await generateFromQubrid(
+        solution = await generateFromNVIDIA(
           questionName,
           language,
           problemDescription,
           0.3
         );
-        console.log('[AI] ✅ Retry successful!');
+        console.log('[NVIDIA] ✅ Retry successful!');
       } catch (secondError) {
         // Both attempts failed - show error to user
-        console.error('[AI] ❌ Both attempts failed');
+        console.error('[NVIDIA] ❌ Both attempts failed');
         throw new Error(
           `Failed to generate valid solution after 2 attempts. ` +
             `Please try again or rephrase your question. Error: ${secondError.message}`

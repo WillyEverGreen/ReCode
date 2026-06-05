@@ -9,10 +9,10 @@ let analyzeInFlight = false;
 // API base URL - empty in production for Vercel serverless (relative /api routes)
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-// Qubrid AI API Configuration (Qwen3-Coder-30B - fast, reliable)
-const QUBRID_API_URL =
-  'https://platform.qubrid.com/api/v1/qubridai/chat/completions';
-const QUBRID_MODEL = 'Qwen/Qwen3-Coder-30B-A3B-Instruct';
+// NVIDIA NIM API Configuration (OpenAI-compatible)
+const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const NVIDIA_MODEL =
+  import.meta.env.VITE_NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FINAL GUARANTEE STACK - 7 LAYERS OF CORRECTNESS
@@ -199,7 +199,7 @@ const createCacheKey = (input: string): string => {
 };
 
 // Intelligent error mapper for user-friendly messages
-const mapQubridError = (error: any): Error => {
+const mapAIError = (error: any): Error => {
   const message = error?.message || '';
 
   // Friendly daily-limit messaging that nudges upgrade
@@ -372,14 +372,14 @@ Return ONLY valid JSON, no markdown fences.`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
-    const response = await fetch(QUBRID_API_URL, {
+    const response = await fetch(NVIDIA_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_QUBRID_API_KEY}`,
+        Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
       },
       body: JSON.stringify({
-        model: QUBRID_MODEL,
+        model: NVIDIA_MODEL,
         messages: [
           {
             role: 'system',
@@ -403,12 +403,11 @@ Return ONLY valid JSON, no markdown fences.`;
     const data = await response.json();
     let text = '';
 
-    if (data.content && typeof data.content === 'string') {
-      text = data.content;
-    } else if (data.choices?.[0]?.message?.content) {
+    // Standard OpenAI-compatible format (NVIDIA NIM)
+    if (data.choices?.[0]?.message?.content) {
       text = data.choices[0].message.content;
     } else {
-      console.error('[LLM RECONSIDER] Unknown response format');
+      console.error('[NVIDIA RECONSIDER] Unexpected response format');
       return null;
     }
 
@@ -508,9 +507,9 @@ export const analyzeSubmission = async (
     throw new Error('Analysis already in progress. Please wait.');
   }
 
-  if (!import.meta.env.VITE_QUBRID_API_KEY) {
+  if (!import.meta.env.VITE_NVIDIA_API_KEY) {
     throw new Error(
-      'API Key is missing. Set VITE_QUBRID_API_KEY in your environment.'
+      'API Key is missing. Set VITE_NVIDIA_API_KEY in your environment.'
     );
   }
 
@@ -548,22 +547,22 @@ Return ONLY valid JSON, no markdown fences.`;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      console.log(`[QUBRID] Attempt ${attempt}/${MAX_RETRIES}...`);
+      console.log(`[NVIDIA] Attempt ${attempt}/${MAX_RETRIES}...`);
 
       // Add 30s timeout to prevent hung requests
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);
 
       try {
-        // Call Qubrid API (OpenAI-compatible format)
-        const response = await fetch(QUBRID_API_URL, {
+        // Call NVIDIA NIM API (OpenAI-compatible format)
+        const response = await fetch(NVIDIA_API_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_QUBRID_API_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
           },
           body: JSON.stringify({
-            model: QUBRID_MODEL,
+            model: NVIDIA_MODEL,
             messages: [
               {
                 role: 'system',
@@ -585,35 +584,28 @@ Return ONLY valid JSON, no markdown fences.`;
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error(
-            '[QUBRID] API error response:',
+            `[NVIDIA] API error response:`,
             response.status,
             errorData
           );
           throw new Error(
-            errorData.error?.message || `Qubrid API error: ${response.status}`
+            errorData.error?.message || `NVIDIA API error: ${response.status}`
           );
         }
 
         const responseJson = await response.json();
 
-        // Handle BOTH response formats:
-        // 1. Qubrid format: { content: "...", metrics: {...}, model: "..." }
-        // 2. OpenAI format: { choices: [{ message: { content: "..." } }] }
+        // Standard OpenAI-compatible format (NVIDIA NIM)
         let text = '';
 
-        if (responseJson.content && typeof responseJson.content === 'string') {
-          // Qubrid's direct format
-          console.log('[QUBRID] Using Qubrid direct format (content at root)');
-          text = responseJson.content;
-        } else if (responseJson.choices?.[0]?.message?.content) {
-          // OpenAI-compatible format
-          console.log(
-            '[QUBRID] Using OpenAI-compatible format (choices array)'
-          );
+        if (responseJson.choices?.[0]?.message?.content) {
           text = responseJson.choices[0].message.content;
         } else {
-          console.error('[QUBRID] Unknown response structure:', responseJson);
-          throw new Error('Unknown API response format');
+          console.error(
+            '[NVIDIA] Unexpected response structure:',
+            responseJson
+          );
+          throw new Error('Unexpected API response format from NVIDIA');
         }
 
         // Clean up markdown code fences from JSON response
@@ -624,7 +616,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
         if (!text || text.length < 50) {
           console.warn(
-            `[QUBRID] Attempt ${attempt}: Empty or too short response, retrying...`
+            `[NVIDIA] Attempt ${attempt}: Empty or too short response, retrying...`
           );
           lastError = new Error('Empty response');
           continue; // Retry
@@ -636,7 +628,7 @@ Return ONLY valid JSON, no markdown fences.`;
           result = JSON.parse(text) as AIAnalysisResult;
         } catch {
           console.error(
-            '[QUBRID] JSON parse error, trying recovery:',
+            '[NVIDIA] JSON parse error, trying recovery:',
             text.slice(0, 200)
           );
           const lastBrace = text.lastIndexOf('}');
@@ -645,7 +637,7 @@ Return ONLY valid JSON, no markdown fences.`;
               result = JSON.parse(
                 text.slice(0, lastBrace + 1)
               ) as AIAnalysisResult;
-              console.log('[QUBRID] Recovered from truncated JSON');
+              console.log('[NVIDIA] Recovered from truncated JSON');
             } catch {
               lastError = new Error('Failed to parse response');
               continue; // Retry
@@ -827,7 +819,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
         return result;
       } catch (attemptError) {
-        console.error(`[QUBRID] Attempt ${attempt} failed:`, attemptError);
+        console.error(`[NVIDIA] Attempt ${attempt} failed:`, attemptError);
         lastError =
           attemptError instanceof Error
             ? attemptError
@@ -843,8 +835,8 @@ Return ONLY valid JSON, no markdown fences.`;
     // All retries exhausted
     throw lastError || new Error('All retries failed. Please try again later.');
   } catch (error) {
-    console.error('Qubrid API Error:', error);
-    throw mapQubridError(error);
+    console.error('NVIDIA API Error:', error);
+    throw mapAIError(error);
   } finally {
     analyzeInFlight = false;
   }
@@ -902,6 +894,6 @@ export const generateSolution = async (
     } as SolutionResult;
   } catch (error) {
     console.error('Solution API Error:', error);
-    throw mapQubridError(error);
+    throw mapAIError(error);
   }
 };

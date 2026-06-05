@@ -13,15 +13,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Get Configuration (Task: 'coding'/'analysis')
-    const task = type === 'reconsideration' ? 'reasoning' : 'analysis';
+    // 1. Get Configuration (task: 'reasoning' for reconsideration, 'coding' for analysis)
+    const task = type === 'reconsideration' ? 'reasoning' : 'coding';
     const config = await getAIConfig(task);
 
-    // 2. Prepare Messages based on request type
+    // 2. Prepare Messages
     let messages = [];
     if (type === 'reconsideration') {
-      // Logic for reconsideration (complexity analysis)
-      // This matches the prompt logic formerly in frontend
       messages = [
         {
           role: 'system',
@@ -29,16 +27,15 @@ export default async function handler(req, res) {
         },
         {
           role: 'user',
-          content: `Reconsider the complexity of this ${language} code:\n\n${code}\n\nTask: Return strict JSON { "finalTimeComplexity": "...", "finalSpaceComplexity": "...", "reasoning": "..." }.`,
+          content: `Reconsider the complexity of this ${language} code:\n\n${code}\n\nReturn strict JSON { "finalTimeComplexity": "...", "finalSpaceComplexity": "...", "reasoning": "..." }.`,
         },
       ];
     } else {
-      // Standard Code Analysis
       messages = [
         {
           role: 'system',
           content:
-            'You are a structued code analysis engine. Return ONLY valid JSON.',
+            'You are a structured code analysis engine. Return ONLY valid JSON.',
         },
         {
           role: 'user',
@@ -47,12 +44,12 @@ export default async function handler(req, res) {
       ];
     }
 
-    // 3. Call LLM Provider (Use fetch with timeout)
+    // 3. Call AI Provider with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeout);
 
     console.log(
-      `[API] Sending request to ${config.provider} (${config.model})...`
+      `[NVIDIA] Sending request: task=${task}, model=${config.model}`
     );
 
     const response = await fetch(`${config.baseURL}/chat/completions`, {
@@ -63,8 +60,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: config.model,
-        messages: messages,
-        temperature: 0.2, // Lower temp for analysis
+        messages,
+        temperature: 0.2,
         max_tokens: 4000,
         stream: false,
       }),
@@ -75,34 +72,30 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`[API] LLM Error: ${response.status} ${errText}`);
+      console.error(`[NVIDIA] Error: ${response.status} ${errText}`);
       throw new Error(`AI Provider Error: ${response.status}`);
     }
 
     const data = await response.json();
 
-    // 4. Return Data (Standardize OpenAI format)
-    if (data.choices && data.choices[0]?.message?.content) {
-      return res.status(200).json(data); // Pass through OpenAI format
-    } else if (data.content) {
-      // Handle direct content response if any
-      return res.status(200).json({
-        choices: [{ message: { content: data.content } }],
-      });
+    // 4. Extract content (standard OpenAI format)
+    if (data.choices?.[0]?.message?.content) {
+      return res.status(200).json(data);
     } else {
+      console.error(
+        '[NVIDIA] Unexpected response structure:',
+        JSON.stringify(data).slice(0, 300)
+      );
       throw new Error('Invalid response format from AI provider');
     }
   } catch (error) {
-    console.error('[API] AI Analyze Error:', error);
+    console.error('[NVIDIA] AI Analyze Error:', error);
 
-    // Handle Timeouts specifically
     if (error.name === 'AbortError') {
       return res
         .status(504)
         .json({ error: 'AI service timed out. Please try again.' });
     }
-
-    // Fallback? (Could try qwen2.5 base here if implemented)
 
     return res
       .status(500)
