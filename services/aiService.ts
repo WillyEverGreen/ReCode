@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 // NVIDIA NIM API Configuration (OpenAI-compatible)
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NVIDIA_MODEL =
-  import.meta.env.VITE_NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct';
+  import.meta.env.VITE_NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FINAL GUARANTEE STACK - 7 LAYERS OF CORRECTNESS
@@ -574,7 +574,7 @@ Return ONLY valid JSON, no markdown fences.`;
                 content: prompt,
               },
             ],
-            max_tokens: 6000,
+            max_tokens: 8192,
             temperature: 0.5 + attempt * 0.1, // Slightly vary temperature on retries
             stream: false,
           }),

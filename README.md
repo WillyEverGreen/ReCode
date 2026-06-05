@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./components/Logo-With-Name cropped.png" alt="ReCode Logo" width="340"/>
+  <img src="./components/Logo-With-Name%20cropped.png" alt="ReCode Logo" width="340"/>
   <br/><br/>
   <p><strong>AI-powered DSA Solution Generator & Revision Tracker</strong></p>
   <p>
@@ -19,7 +19,7 @@
 🚀 **AI-Powered Solution Generation**
 
 - Get brute force, better, and optimal solutions for any DSA problem
-- Powered by **NVIDIA NIM** (`qwen/qwen2.5-coder-32b-instruct`) with multi-tier caching (Redis → MongoDB)
+- Powered by **NVIDIA NIM** (`meta/llama-3.3-70b-instruct`) with multi-tier caching (Redis → MongoDB)
 - Supports multiple programming languages (Python, Java, C++, JavaScript and more)
 
 📚 **Smart Revision Tracking**
@@ -79,7 +79,7 @@ graph TB
     end
 
     subgraph AI["🤖 NVIDIA NIM API"]
-        NIM["qwen/qwen2.5-coder-32b-instruct\nhttps://integrate.api.nvidia.com/v1"]
+        NIM["meta/llama-3.3-70b-instruct\nhttps://integrate.api.nvidia.com/v1"]
     end
 
     subgraph Data["🗄️ Data Layer"]
@@ -177,7 +177,7 @@ Save to Redis + MongoDB caches
 | ------------ | ----------------------------------------------- |
 | **Frontend** | React 19, TypeScript, Vite, TailwindCSS         |
 | **Backend**  | Vercel Serverless Functions (Node.js)           |
-| **AI**       | NVIDIA NIM — `qwen/qwen2.5-coder-32b-instruct`  |
+| **AI**       | NVIDIA NIM — `meta/llama-3.3-70b-instruct`      |
 | **Database** | MongoDB + Mongoose                              |
 | **Cache**    | Upstash Redis                                   |
 | **Auth**     | JWT, Google OAuth, GitHub OAuth, Nodemailer OTP |

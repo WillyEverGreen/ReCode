@@ -4,8 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const NVIDIA_MODEL =
-  process.env.NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct';
+const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct';
 const API_KEY = process.env.NVIDIA_API_KEY;
 
 async function testNvidiaApi() {

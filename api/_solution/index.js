@@ -25,7 +25,7 @@ import {
 
 // NVIDIA NIM Configuration (OpenAI-compatible API)
 const AI_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const AI_MODEL = process.env.NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct';
+const AI_MODEL = process.env.NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct';
 const AI_API_KEY = process.env.NVIDIA_API_KEY;
 
 // Lazy-load Redis (for serverless - env vars may not be available at module load)
@@ -784,11 +784,11 @@ Your prompt must handle these scenarios:
         {
           role: 'system',
           content:
-            "You are an expert DSA tutor. Your goal is to teach students by showing them MULTIPLE solution approaches whenever possible. Always aim to provide THREE solutions (Brute Force, Better, Optimal) to help students understand the progression of optimizations. Be educational, comprehensive, and logically consistent. Always output valid JSON only. If brute force and optimal have different complexities, they are NOT the same - show the intermediate 'better' approach if one exists.",
+            "You are an expert DSA tutor and senior software engineer. Your goal is to teach students by showing MULTIPLE solution approaches for every problem. Always aim to provide THREE solutions (Brute Force, Better, Optimal) to help students understand the full optimization progression.\n\nCRITICAL CODE RULES:\n1. Every code block MUST be 100% complete and compilable — never truncate, never use '...' or '// rest of code'\n2. Add concise inline comments on non-obvious lines to aid understanding\n3. Each approach MUST use a fundamentally different algorithm or data structure\n4. Always output valid JSON only — no markdown outside the JSON structure",
         },
         { role: 'user', content: prompt },
       ],
-      max_tokens: 6000,
+      max_tokens: 8192,
       temperature: temperature, // Use parameter (default 0.8, retry with 0.3)
       stream: false,
     }),

@@ -1,7 +1,6 @@
 import { getAIConfig } from '../_lib/aiConfig.js';
 
 export default async function handler(req, res) {
-  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -13,43 +12,111 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Get Configuration (task: 'reasoning' for reconsideration, 'coding' for analysis)
     const task = type === 'reconsideration' ? 'reasoning' : 'coding';
     const config = await getAIConfig(task);
 
-    // 2. Prepare Messages
     let messages = [];
+
     if (type === 'reconsideration') {
-      messages = [
-        {
-          role: 'system',
-          content: 'You are a complexity analysis expert. Prioritize accuracy.',
-        },
-        {
-          role: 'user',
-          content: `Reconsider the complexity of this ${language} code:\n\n${code}\n\nReturn strict JSON { "finalTimeComplexity": "...", "finalSpaceComplexity": "...", "reasoning": "..." }.`,
-        },
-      ];
-    } else {
+      // Reconsideration: a second-pass complexity analysis when engine disagrees
       messages = [
         {
           role: 'system',
           content:
-            'You are a structured code analysis engine. Return ONLY valid JSON.',
+            'You are a world-class algorithm complexity expert. Analyze code rigorously and return ONLY valid JSON.',
         },
         {
           role: 'user',
-          content: `Analyze this ${language} code:\n\n${code}\n\nReturn JSON with: title, language, dsaCategory, timeComplexity, spaceComplexity, revisionNotes, problemOverview, testCases.`,
+          content: `Reconsider the time and space complexity of this ${language} code.
+
+CODE:
+\`\`\`${language.toLowerCase()}
+${code}
+\`\`\`
+
+Return ONLY this JSON (no markdown fences):
+{
+  "finalTimeComplexity": "O(...)",
+  "finalSpaceComplexity": "O(...)",
+  "reasoning": "2-3 sentence rigorous explanation citing specific code constructs"
+}`,
+        },
+      ];
+    } else {
+      // Main code analysis — produces all fields the frontend displays
+      messages = [
+        {
+          role: 'system',
+          content: `You are an expert DSA code reviewer and educator. Analyze submitted code deeply and return structured JSON that covers:
+- What the code does and what problem it solves
+- Exact complexity analysis with clear reasoning
+- Key DSA patterns used
+- Practical revision notes for future recall
+- Verified test cases with correct expected outputs
+- Inline logic walkthrough for the trickiest part
+
+Always return ONLY valid JSON. Never truncate. Never use placeholder text like "...".`,
+        },
+        {
+          role: 'user',
+          content: `Analyze this ${language} code submission:
+
+\`\`\`${language.toLowerCase()}
+${code}
+\`\`\`
+
+${problemUrl ? `Problem URL: ${problemUrl}` : ''}
+
+Return ONLY this JSON (no markdown fences, no extra text):
+{
+  "title": "Exact problem name (e.g., Two Sum, LRU Cache, Merge K Sorted Lists)",
+  "language": "${language}",
+  "dsaCategory": "Primary category: Arrays & Hashing | Two Pointers | Sliding Window | Stack | Binary Search | Linked List | Trees | Tries | Heap | Graphs | DP | Greedy | Backtracking | Bit Manipulation",
+  "pattern": "Primary pattern: Two Pointers | Sliding Window | BFS/DFS | Monotonic Stack | Hash Map | Binary Search | Recursion | Memoization | etc.",
+  "timeComplexity": "O(...) — best fit for the submitted code",
+  "timeComplexityReason": "2-3 sentences citing specific loops, recursion depth, or data structure operations",
+  "spaceComplexity": "O(...)",
+  "spaceComplexityReason": "2-3 sentences explaining auxiliary space used",
+  "problemOverview": "3-4 sentences: what problem this solves, key constraints, and what the code returns",
+  "coreLogic": {
+    "pattern": "Name of the core algorithmic pattern applied",
+    "trick": "The single key insight or non-obvious trick that makes this solution work",
+    "approach": "2-3 sentences explaining HOW the algorithm works step by step",
+    "whyItWorks": "2-3 sentences explaining WHY this approach is correct (invariant, mathematical basis, etc.)"
+  },
+  "testCases": [
+    "Input: [2,7,11,15], target=9 → Output: [0,1] (explanation: nums[0]+nums[1]=9)",
+    "Input: [3,2,4], target=6 → Output: [1,2]",
+    "Include 3-4 verified test cases. Trace the output through the ACTUAL code logic."
+  ],
+  "edgeCases": [
+    "Empty input: [] → Output: [] (why: early return guard)",
+    "Single element: [5] → Output: -1 (why: no pair possible)",
+    "Include 3-4 edge cases with specific inputs/outputs based on real problem constraints"
+  ],
+  "syntaxNotes": [
+    "Language-specific note 1 (e.g., 'dict.get(key, default) avoids KeyError in Python')",
+    "Language-specific note 2",
+    "Include 2-3 notes about ${language}-specific syntax or idioms used in this code"
+  ],
+  "revisionNotes": [
+    "Concise bullet: what pattern to recognize next time",
+    "Key invariant or property exploited",
+    "Common mistake to avoid",
+    "Include 4-5 short revision bullets optimized for spaced repetition"
+  ],
+  "improvementMarkdown": "## Suggestions\\n\\n1. **Improvement 1**: [description]\\n2. **Improvement 2**: [description]\\n\\n## Already Well Done\\n- [What the submitted code already does correctly]"
+}`,
         },
       ];
     }
 
-    // 3. Call AI Provider with timeout
+    // Call NVIDIA NIM
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeout);
 
     console.log(
-      `[NVIDIA] Sending request: task=${task}, model=${config.model}`
+      `[NVIDIA] Sending analyze request: task=${task}, model=${config.model}`
     );
 
     const response = await fetch(`${config.baseURL}/chat/completions`, {
@@ -62,7 +129,7 @@ export default async function handler(req, res) {
         model: config.model,
         messages,
         temperature: 0.2,
-        max_tokens: 4000,
+        max_tokens: 4096,
         stream: false,
       }),
       signal: controller.signal,
@@ -78,7 +145,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 4. Extract content (standard OpenAI format)
     if (data.choices?.[0]?.message?.content) {
       return res.status(200).json(data);
     } else {

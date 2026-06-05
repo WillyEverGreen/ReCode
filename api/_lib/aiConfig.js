@@ -3,14 +3,14 @@ dotenv.config();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AI PROVIDER CONFIGURATION — NVIDIA NIM (OpenAI-compatible API)
-// Model: qwen/qwen2.5-coder-32b-instruct
-//   • Specialised for code generation, analysis, and structured JSON output
-//   • Ideal for DSA solution generation and complexity analysis
-//   • Fast, reliable, and cost-effective at 32B scale
+// Model: meta/llama-3.3-70b-instruct
+//   • Powerful general-purpose instruction model by Meta
+//   • High-quality reasoning, code generation, and structured output
+//   • Fast, reliable, and active model
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Primary model for all tasks
-const NVIDIA_MODEL = 'qwen/qwen2.5-coder-32b-instruct';
+const NVIDIA_MODEL = 'meta/llama-3.3-70b-instruct';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 const NVIDIA_TIMEOUT_MS = 90000; // 90 seconds
 
