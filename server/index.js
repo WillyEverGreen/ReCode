@@ -55,7 +55,7 @@ app.use('/api/auth', async (req, res) => {
   const pathParts = req.path.split('/').filter(Boolean);
   req.query.route = pathParts;
   console.log('[SERVER] Auth route:', req.path, '-> Parsed:', pathParts);
-  await handle('api/auth/[...route].js')(req, res);
+  await handle('api/_auth/[...route].js')(req, res);
 });
 
 // Admin
@@ -63,19 +63,19 @@ app.use('/api/admin', async (req, res) => {
   const pathParts = req.path.split('/').filter(Boolean);
   req.query.route = pathParts;
   console.log('[SERVER] Admin route:', req.path, '-> Parsed:', pathParts);
-  await handle('api/admin/[...route].js')(req, res);
+  await handle('api/_admin/[...route].js')(req, res);
 });
 
 // AI & Solutions (The focus of current task)
-app.post('/api/solution', handle('api/solution/index.js'));
-app.post('/api/ai/analyze', handle('api/ai/analyze.js'));
+app.post('/api/solution', handle('api/_solution/index.js'));
+app.post('/api/ai/analyze', handle('api/_ai/analyze.js'));
 
 // Questions
-app.get('/api/questions', handle('api/questions/index.js'));
-app.post('/api/questions', handle('api/questions/index.js'));
+app.get('/api/questions', handle('api/_questions/index.js'));
+app.post('/api/questions', handle('api/_questions/index.js'));
 app.get('/api/questions/:id', async (req, res) => {
   req.query.id = req.params.id;
-  await handle('api/questions/[id].js')(req, res);
+  await handle('api/_questions/[id].js')(req, res);
 });
 
 // Usage
@@ -86,22 +86,22 @@ app.use('/api/usage', async (req, res) => {
   // e.g. /increment -> [...route].js with route=['increment']
 
   if (req.path === '/' || req.path === '') {
-    await handle('api/usage/index.js')(req, res);
+    await handle('api/_usage/index.js')(req, res);
   } else {
     // Remove leading slash
     const pathStr = req.path.startsWith('/') ? req.path.slice(1) : req.path;
     req.query.route = pathStr.split('/').filter(Boolean);
-    await handle('api/usage/[...route].js')(req, res);
+    await handle('api/_usage/[...route].js')(req, res);
   }
 });
 
 // Health
-app.get('/api/health', handle('api/health.js'));
+app.get('/api/health', handle('api/_health.js'));
 
 // Payment (Razorpay)
-app.post('/api/payment/create-order', handle('api/payment/create-order.js'));
-app.post('/api/payment/verify', handle('api/payment/verify.js'));
-app.post('/api/payment/webhook', handle('api/payment/webhook.js'));
+app.post('/api/payment/create-order', handle('api/_payment/create-order.js'));
+app.post('/api/payment/verify', handle('api/_payment/verify.js'));
+app.post('/api/payment/webhook', handle('api/_payment/webhook.js'));
 
 // Start Server
 app.listen(PORT, () => {

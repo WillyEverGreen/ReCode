@@ -1,18 +1,18 @@
 // Unified API Router - Consolidates all routes into one serverless function
 // This solves Vercel Hobby plan's 12 function limit
 
-import healthHandler from './health.js';
-import analyzeHandler from './ai/analyze.js';
-import questionsHandler from './questions/index.js';
-import questionByIdHandler from './questions/[id].js';
-import solutionHandler from './solution/index.js';
-import usageHandler from './usage/index.js';
-import adminHandler from './admin/[...route].js';
-import authHandler from './auth/[...route].js';
-import paymentHandler from './payment/[...route].js';
-import paymentWebhookHandler from './payment/webhook.js';
-import githubCallbackHandler from './auth/github/callback.js';
-import googleCallbackHandler from './auth/google/callback.js';
+import healthHandler from './_health.js';
+import analyzeHandler from './_ai/analyze.js';
+import questionsHandler from './_questions/index.js';
+import questionByIdHandler from './_questions/[id].js';
+import solutionHandler from './_solution/index.js';
+import usageHandler from './_usage/index.js';
+import adminHandler from './_admin/[...route].js';
+import authHandler from './_auth/[...route].js';
+import paymentHandler from './_payment/[...route].js';
+import paymentWebhookHandler from './_payment/webhook.js';
+import githubCallbackHandler from './_auth/github/callback.js';
+import googleCallbackHandler from './_auth/google/callback.js';
 
 export default async function handler(req, res) {
   // Parse the route from the request URL
