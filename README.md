@@ -63,118 +63,38 @@ _Practice, review, and track your revision on the go with a fully responsive lay
 <br/>
 
 ```mermaid
-graph TB
-    subgraph Client["🌐 Client (Browser)"]
-      UI["React 19 + TypeScript\n(Vite SPA)"]
-      AS["aiService.ts\n(Analyze feature)"]
-      UI --> AS
-    end
+graph TD
+    Client["🌐 React 19 Client (Vite)"]
+    Backend["☁️ Serverless API (Node.js / Vercel)"]
+    DB[("🗄️ MongoDB (Mongoose)")]
+    Cache[("⚡ Upstash Redis")]
+    AI["🤖 NVIDIA NIM API (Llama 3.3 70B)"]
+    Razorpay["💳 Razorpay Gateway"]
+    SMTP["📧 Nodemailer (SMTP)"]
 
-    subgraph Vercel["☁️ Vercel Serverless Functions (api/)"]
-        ROUTER["[...route].js\n(Catch-all Router)"]
-        AUTH["_auth/\nJWT · Google OAuth · GitHub OAuth · OTP"]
-        SOLUTION["_solution/index.js\nDSA Solution Generator"]
-        AI_EP["_ai/analyze.js\nCode Analyzer"]
-        QUESTIONS["_questions/\nCRUD – Saved Problems"]
-        USAGE["_usage/\nDaily Rate Limiting"]
-        ADMIN["_admin/\nStats & Cache Control"]
-        PAYMENT["_payment/\nRazorpay Webhooks"]
-        ROUTER --> AUTH
-        ROUTER --> SOLUTION
-        ROUTER --> AI_EP
-        ROUTER --> QUESTIONS
-        ROUTER --> USAGE
-        ROUTER --> ADMIN
-        ROUTER --> PAYMENT
-    end
+    Client -->|API Requests| Backend
+    Backend -->|Data Persistence| DB
+    Backend -->|Caching & Rate Locks| Cache
+    Backend -->|AI Reasoning & Solutions| AI
+    Backend -->|Subscription Billing| Razorpay
+    Backend -->|Email OTP & Reset| SMTP
 
-    subgraph AI["🤖 NVIDIA NIM API"]
-        NIM["meta/llama-3.3-70b-instruct\nhttps://integrate.api.nvidia.com/v1"]
-    end
-
-    subgraph Data["🗄️ Data Layer"]
-        MONGO[("MongoDB\n(Mongoose)\nUsers · Questions\nSolutionCache · Usage")]
-        REDIS[("Upstash Redis\n7-day solution cache\nRate-limit locks")]
-    end
-
-    subgraph Email["📧 Email"]
-        SMTP["Nodemailer\nOTP · Password Reset"]
-    end
-
-    subgraph Complexity["🧮 Complexity Engines (utils/)"]
-        CE["complexityEngine.js\nStatic code analysis"]
-        CEV2["complexityEngineV2.js\n3,680+ problem DB"]
-        GT["problemGroundTruth.js\nVerified ground truth"]
-        UV["ultimateValidator.js\nFinal validation layer"]
-        CE --> UV
-        CEV2 --> UV
-        GT --> UV
-    end
-
-    %% Client → Vercel
-    AS -->|"POST /api/ai/analyze\n(VITE_NVIDIA_API_KEY)"| AI
-    UI -->|"REST API calls"| ROUTER
-
-    %% Vercel → AI
-    SOLUTION -->|"NVIDIA_API_KEY"| NIM
-    AI_EP -->|"via aiConfig.js"| NIM
-
-    %% Vercel → Data
-    SOLUTION --> REDIS
-    SOLUTION --> MONGO
-    AUTH --> MONGO
-    QUESTIONS --> MONGO
-    USAGE --> MONGO
-
-    %% Vercel → Complexity
-    SOLUTION --> UV
-
-    %% Vercel → Email
-    AUTH --> SMTP
-
-    style Client fill:#1a1a2e,color:#fff,stroke:#4361ee
-    style Vercel fill:#0f0f1a,color:#fff,stroke:#7209b7
-    style AI fill:#1a2e1a,color:#fff,stroke:#76b900
-    style Data fill:#2e1a1a,color:#fff,stroke:#e63946
-    style Complexity fill:#1a2a2e,color:#fff,stroke:#4cc9f0
-    style Email fill:#2e2a1a,color:#fff,stroke:#f4a261
+    style Client fill:#1e1b4b,stroke:#4338ca,color:#fff
+    style Backend fill:#0f172a,stroke:#334155,color:#fff
+    style DB fill:#064e3b,stroke:#059669,color:#fff
+    style Cache fill:#701a75,stroke:#c084fc,color:#fff
+    style AI fill:#14532d,stroke:#22c55e,color:#fff
+    style Razorpay fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style SMTP fill:#7c2d12,stroke:#ea580c,color:#fff
 ```
 
 ### Data Flow: Get Solution
 
 ```
-User Request
-     │
-     ▼
-Variant Cache? ──(Redis HIT)──────────────────────────────► Return cached
-     │ MISS
-     ▼
-Base Cache? ────(Redis HIT)──────────────────────────────► Return cached
-     │ MISS
-     ▼
-MongoDB Cache? ─(Mongo HIT)──────────────────────────────► Return cached
-     │ MISS
-     ▼
-Fuzzy Name Match? ─(Match + cache found)─────────────────► Return cached
-     │ No match / dev mode
-     ▼
-Daily Limit Check? ─(Limit exceeded)─────────────────────► 429 Error
-     │ OK
-     ▼
-NVIDIA NIM API ─────────────────────────────────────────► JSON Solution
-     │
-     ▼
-Complexity Validation Stack
-  ├─ Ground Truth DB (problemGroundTruth.js)
-  ├─ V2 Engine (complexityEngineV2.js)
-  ├─ Static Analyzer (complexityEngine.js)
-  └─ Ultimate Validator (ultimateValidator.js)
-     │
-     ▼
-Safe-to-Show Gate ─────────────────────────────────────► Final Response
-     │
-     ▼
-Save to Redis + MongoDB caches
+[Client Request] ──► [Check Redis / MongoDB Cache] ──► [Cache Hit: Return Solution]
+                               │ Cache Miss
+                               ▼
+                        [NVIDIA NIM API] ──► [Save to Cache & Return]
 ```
 
 </details>
