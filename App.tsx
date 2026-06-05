@@ -26,7 +26,6 @@ import {
   AlertCircle,
   LogOut,
   Sparkles,
-  DollarSign,
   ArrowLeft,
 } from 'lucide-react';
 import AppLogo from './components/Logo-With-Name cropped.png';
@@ -40,6 +39,7 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<
     'login' | 'signup' | 'forgot-password'
   >('login');
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [showLanding, setShowLanding] = useState<boolean>(!token);
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
@@ -84,6 +84,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlUser = params.get('user');
+    const urlError = params.get('error');
 
     if (urlToken && urlUser) {
       try {
@@ -101,6 +102,12 @@ const App: React.FC = () => {
       } catch (err) {
         console.error('[OAuth] Failed to parse user data:', err);
       }
+    } else if (urlError) {
+      setAuthError(decodeURIComponent(urlError));
+      setAuthView('login');
+      setShowLanding(false);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -283,15 +290,26 @@ const App: React.FC = () => {
         return (
           <Login
             onLogin={handleLogin}
-            onSwitchToSignup={() => setAuthView('signup')}
-            onForgotPassword={() => setAuthView('forgot-password')}
+            onSwitchToSignup={() => {
+              setAuthError(null);
+              setAuthView('signup');
+            }}
+            onForgotPassword={() => {
+              setAuthError(null);
+              setAuthView('forgot-password');
+            }}
+            initialError={authError || undefined}
           />
         );
       } else if (authView === 'signup') {
         return (
           <Signup
             onSignup={handleLogin}
-            onSwitchToLogin={() => setAuthView('login')}
+            onSwitchToLogin={() => {
+              setAuthError(null);
+              setAuthView('login');
+            }}
+            initialError={authError || undefined}
           />
         );
       } else if (authView === 'forgot-password') {

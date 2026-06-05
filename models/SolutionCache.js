@@ -49,4 +49,5 @@ SolutionCacheSchema.index(
   { unique: true }
 );
 
-export default mongoose.model('SolutionCache', SolutionCacheSchema);
+export default mongoose.models.SolutionCache ||
+  mongoose.model('SolutionCache', SolutionCacheSchema);

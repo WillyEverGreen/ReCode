@@ -35,10 +35,21 @@ const GitHubIcon = () => (
 interface SignupProps {
   onSignup: (token: string, user: any) => void;
   onSwitchToLogin: () => void;
+  initialError?: string;
 }
 
-const Signup: React.FC<SignupProps> = ({ onSignup, onSwitchToLogin }) => {
+const Signup: React.FC<SignupProps> = ({
+  onSignup,
+  onSwitchToLogin,
+  initialError,
+}) => {
   const [step, setStep] = useState<'details' | 'otp'>('details');
+
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

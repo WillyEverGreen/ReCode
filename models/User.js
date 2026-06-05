@@ -43,4 +43,4 @@ const userSchema = new mongoose.Schema({
   planEndDate: { type: Date }, // When pro plan expires (for subscriptions)
 });
 
-export default mongoose.model('User', userSchema);
+export default mongoose.models.User || mongoose.model('User', userSchema);

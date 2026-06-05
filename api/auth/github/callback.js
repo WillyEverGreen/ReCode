@@ -16,6 +16,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check environment variables early to provide a clear error message
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI is not configured in environment variables.');
+    }
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured in environment variables.');
+    }
+
     await connectDB();
 
     // GET: code from query params (GitHub redirect)
@@ -33,6 +41,19 @@ export default async function handler(req, res) {
 
     // If code provided, exchange for access token
     if (code && !access_token) {
+      const client_id =
+        process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID;
+      const client_secret = process.env.GITHUB_CLIENT_SECRET;
+
+      if (!client_id) {
+        throw new Error('GitHub Client ID is not configured on the server.');
+      }
+      if (!client_secret) {
+        throw new Error(
+          'GitHub Client Secret is not configured on the server.'
+        );
+      }
+
       const tokenResponse = await fetch(
         'https://github.com/login/oauth/access_token',
         {
@@ -42,9 +63,8 @@ export default async function handler(req, res) {
             Accept: 'application/json',
           },
           body: JSON.stringify({
-            client_id:
-              process.env.VITE_GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID,
-            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            client_id,
+            client_secret,
             code,
           }),
         }
@@ -54,16 +74,17 @@ export default async function handler(req, res) {
 
       if (tokenData.error) {
         console.error('[GITHUB AUTH] Token exchange failed:', tokenData);
-        return res.status(401).json({
-          message: tokenData.error_description || 'Failed to exchange code',
-        });
+        throw new Error(
+          tokenData.error_description ||
+            `Failed to exchange code: ${tokenData.error}`
+        );
       }
 
       access_token = tokenData.access_token;
     }
 
     if (!access_token) {
-      return res.status(401).json({ message: 'Failed to obtain access token' });
+      throw new Error('Failed to obtain access token from GitHub.');
     }
 
     // Get GitHub user info
@@ -76,9 +97,7 @@ export default async function handler(req, res) {
 
     if (!userResponse.ok) {
       console.error('[GITHUB AUTH] Failed to fetch user info');
-      return res
-        .status(401)
-        .json({ message: 'Failed to fetch GitHub user info' });
+      throw new Error('Failed to fetch user profile information from GitHub.');
     }
 
     const githubUser = await userResponse.json();
@@ -95,16 +114,17 @@ export default async function handler(req, res) {
 
       if (emailResponse.ok) {
         const emails = await emailResponse.json();
-        const primaryEmail = emails.find((e) => e.primary) || emails[0];
-        email = primaryEmail?.email;
+        if (Array.isArray(emails)) {
+          const primaryEmail = emails.find((e) => e.primary) || emails[0];
+          email = primaryEmail?.email;
+        }
       }
     }
 
     if (!email) {
-      return res.status(400).json({
-        message:
-          'Could not get email from GitHub. Please make your email public or use another login method.',
-      });
+      throw new Error(
+        'Could not retrieve email from GitHub. Please make your email public in GitHub settings.'
+      );
     }
 
     const { id: githubId, login: githubUsername, avatar_url } = githubUser;
@@ -175,6 +195,19 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[GITHUB AUTH ERROR]', error);
+
+    // If GET request (GitHub redirect), redirect back to the app with the error message
+    if (req.method === 'GET') {
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host =
+        req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      return res.redirect(
+        302,
+        `${baseUrl}/?error=${encodeURIComponent(error.message)}`
+      );
+    }
+
     return res
       .status(500)
       .json({ message: 'Server error', error: error.message });

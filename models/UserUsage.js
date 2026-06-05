@@ -265,4 +265,5 @@ function getNextMidnightUTC() {
   return tomorrow.toISOString();
 }
 
-export default mongoose.model('UserUsage', UserUsageSchema);
+export default mongoose.models.UserUsage ||
+  mongoose.model('UserUsage', UserUsageSchema);

@@ -36,12 +36,14 @@ interface LoginProps {
   onLogin: (token: string, user: any) => void;
   onSwitchToSignup: () => void;
   onForgotPassword: () => void;
+  initialError?: string;
 }
 
 const Login: React.FC<LoginProps> = ({
   onLogin,
   onSwitchToSignup,
   onForgotPassword,
+  initialError,
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,6 +51,12 @@ const Login: React.FC<LoginProps> = ({
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
 
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -275,7 +283,7 @@ const Login: React.FC<LoginProps> = ({
 
         {/* Footer */}
         <p className="mt-5 text-center text-xs text-[#4b5563]">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <button
             onClick={onSwitchToSignup}
             className="text-[#e6c888] hover:text-[#EAB308] font-medium"

@@ -15,6 +15,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check environment variables early to provide a clear error message
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI is not configured in environment variables.');
+    }
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured in environment variables.');
+    }
+
     await connectDB();
 
     const { access_token, id_token } = req.body;

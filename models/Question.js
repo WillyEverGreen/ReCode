@@ -27,4 +27,5 @@ const questionSchema = new mongoose.Schema({
   timestamp: { type: Number, default: Date.now },
 });
 
-export default mongoose.model('Question', questionSchema);
+export default mongoose.models.Question ||
+  mongoose.model('Question', questionSchema);
