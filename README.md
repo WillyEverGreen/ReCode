@@ -1,63 +1,73 @@
 <div align="center">
-  <img src="./components/Logo-With-Name%20cropped.png" alt="ReCode Logo" width="340"/>
+  <img src="./components/Logo-With-Name%20cropped.png" alt="ReCode Logo" width="400"/>
   <br/><br/>
-  <p><strong>AI-powered DSA Solution Generator & Revision Tracker</strong></p>
+  <p><strong>Transform your raw DSA submissions into beautifully structured, exam-ready revision cards and code portfolios.</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/NVIDIA_NIM-Powered-76b900?style=flat-square&logo=nvidia&logoColor=white"/>
-    <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white"/>
-    <img src="https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square&logo=typescript&logoColor=white"/>
-    <img src="https://img.shields.io/badge/MongoDB-Mongoose-47a248?style=flat-square&logo=mongodb&logoColor=white"/>
-    <img src="https://img.shields.io/badge/Vercel-Serverless-000000?style=flat-square&logo=vercel&logoColor=white"/>
-    <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"/>
+    <img src="https://img.shields.io/badge/NVIDIA_NIM-Powered-76b900?style=for-the-badge&logo=nvidia&logoColor=white"/>
+    <img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=white"/>
+    <img src="https://img.shields.io/badge/TypeScript-5.8-3178c6?style=for-the-badge&logo=typescript&logoColor=white"/>
+    <img src="https://img.shields.io/badge/MongoDB-Mongoose-47a248?style=for-the-badge&logo=mongodb&logoColor=white"/>
+    <img src="https://img.shields.io/badge/Vercel-Serverless-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
   </p>
 </div>
 
 ---
 
-## Features
+## ✨ Screenshots & UI Preview
 
-🚀 **AI-Powered Solution Generation**
+<details>
+<summary><strong>📸 Desktop & Mobile App Previews</strong> — click to expand</summary>
 
-- Get brute force, better, and optimal solutions for any DSA problem
-- Powered by **NVIDIA NIM** (`meta/llama-3.3-70b-instruct`) with multi-tier caching (Redis → MongoDB)
-- Supports multiple programming languages (Python, Java, C++, JavaScript and more)
+<br/>
 
-📚 **Smart Revision Tracking**
+### 🖥️ Desktop Dashboard & Revision Hub
 
-- Save and organise your solved problems
-- Track patterns, categories, and complexity
-- Auto-generated revision notes from your own code
+_View and search your solved problems, track progression tiers, and access AI-generated solutions._
+<img src="./components/dashboard-preview.png" alt="ReCode Desktop Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;"/>
 
-🔐 **Secure Authentication**
+### 📊 Deep Analysis Panel
 
-- Email verification with OTP
-- Google & GitHub OAuth
-- JWT-based session management with password reset
+_Visualize space/time complexity metrics, step-by-step logic breakdown, edge cases, and code improvement suggestions._
+<img src="./components/dashboard-preview-2.png" alt="ReCode Analytics & Cache Panel" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;"/>
 
-💳 **Freemium Subscription**
+### 📱 Premium Mobile Experience
 
-- Free tier with daily usage limits
-- Pro plan with expanded limits via Razorpay
+_Practice, review, and track your revision on the go with a fully responsive layout._
 
-📊 **Admin Dashboard**
+<p align="center">
+  <img src="./components/mobile-preview-1.png" alt="ReCode Mobile Code Entry" width="48%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-right: 2%;"/>
+  <img src="./components/mobile-preview-2.png" alt="ReCode Mobile Solution Detail" width="48%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"/>
+</p>
 
-- User analytics and cache statistics
-- Manual cache invalidation
-- Usage monitoring per user
+</details>
 
 ---
 
+## 🚀 Key Features
+
+- **AI-Powered Solution Generator**: Instantly generates **Brute Force**, **Better**, and **Optimal** solutions with clean, compilable, and inline-commented code. Powered by **NVIDIA NIM** (`meta/llama-3.3-70b-instruct`).
+- **Smart Revision Tracking**: Save your solved problems, categorize them by primary DSA patterns, and generate spaced-repetition revision notes automatically.
+- **Dual Caching System**: Integrates **Upstash Redis** (for lightning-fast variant and base caching) and **MongoDB** (for persistent storage and recovery), minimizing API costs.
+- **Complexity Validation Stack**: Features an advanced validation pipeline that checks AI time/space complexities against a database of **3,680+ verified LeetCode problems** to guarantee accuracy.
+- **Secure Authentication**: Includes Email OTP verification, Google OAuth, GitHub OAuth, and session management using JWT.
+- **Freemium & Payment Integration**: Daily usage rate limits for free tier, upgradeable to Pro using **Razorpay** payments.
+- **Admin Control Center**: Built-in panel for cache invalidation, user usage analytics, and MongoDB status tracking.
+
+---
+
+## 🗺️ Architecture & Data Flow
+
 <details>
-<summary><strong>🗺️ Architecture Diagram</strong> — click to expand</summary>
+<summary><strong>⚙️ System Architecture</strong> — click to expand</summary>
 
 <br/>
 
 ```mermaid
 graph TB
     subgraph Client["🌐 Client (Browser)"]
-        UI["React 19 + TypeScript\n(Vite SPA)"]
-        AS["aiService.ts\n(Analyze feature)"]
-        UI --> AS
+      UI["React 19 + TypeScript\n(Vite SPA)"]
+      AS["aiService.ts\n(Analyze feature)"]
+      UI --> AS
     end
 
     subgraph Vercel["☁️ Vercel Serverless Functions (api/)"]
@@ -171,175 +181,104 @@ Save to Redis + MongoDB caches
 
 ---
 
-## Tech Stack
+## 🛠️ Technology Stack
 
-| Layer        | Technology                                      |
-| ------------ | ----------------------------------------------- |
-| **Frontend** | React 19, TypeScript, Vite, TailwindCSS         |
-| **Backend**  | Vercel Serverless Functions (Node.js)           |
-| **AI**       | NVIDIA NIM — `meta/llama-3.3-70b-instruct`      |
-| **Database** | MongoDB + Mongoose                              |
-| **Cache**    | Upstash Redis                                   |
-| **Auth**     | JWT, Google OAuth, GitHub OAuth, Nodemailer OTP |
-| **Payments** | Razorpay                                        |
+| Layer           | Technology                                 | Description                                    |
+| --------------- | ------------------------------------------ | ---------------------------------------------- |
+| **Frontend**    | React 19, TypeScript, Vite, TailwindCSS    | High-performance user interface                |
+| **Backend**     | Vercel Serverless Functions (Node.js)      | Serverless API routes                          |
+| **AI Engine**   | NVIDIA NIM (`meta/llama-3.3-70b-instruct`) | Context-aware code generation & logic analysis |
+| **Database**    | MongoDB + Mongoose                         | Persistent revision storage & base caching     |
+| **Cache Layer** | Upstash Redis                              | Fast, distributed, low-latency temporary cache |
+| **Email**       | Nodemailer                                 | Password resets & OTP codes                    |
+| **Payments**    | Razorpay                                   | Subscription order creation and webhooks       |
 
 ---
 
-## Getting Started
+## 📦 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- MongoDB database
-- NVIDIA NIM API key — [Get one free at build.nvidia.com](https://build.nvidia.com)
-- Upstash Redis (optional, for faster caching)
+- Node.js (v18+)
+- MongoDB Instance (Atlas or Local)
+- NVIDIA NIM API Key (Sign up at [build.nvidia.com](https://build.nvidia.com))
+- Upstash Redis (Optional)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repo:**
 
    ```bash
    git clone https://github.com/WillyEverGreen/ReCode.git
    cd ReCode
    ```
 
-2. **Install dependencies**
+2. **Install dependencies:**
 
    ```bash
    npm install
    ```
 
-3. **Configure environment variables**
+3. **Configure the environment:**
+   Create a `.env` file in the root based on `.env.example`:
 
    ```bash
    cp .env.example .env
    ```
 
-   Fill in your `.env`:
+   Add your keys:
 
    ```env
-   MONGO_URI=mongodb+srv://...
-   JWT_SECRET=your-secret-key-min-32-chars
-
-   # NVIDIA NIM (required)
-   NVIDIA_API_KEY=nvapi-xxxxxxxxxxxx
-   VITE_NVIDIA_API_KEY=nvapi-xxxxxxxxxxxx
-
-   ADMIN_PASSWORD=your-admin-password
+   MONGO_URI=mongodb://127.0.0.1:27017/recode
+   JWT_SECRET=your_jwt_secret_at_least_32_characters
+   NVIDIA_API_KEY=nvapi-xxxxxx
+   VITE_NVIDIA_API_KEY=nvapi-xxxxxx
    ```
 
-4. **Run development server**
+4. **Launch the development environments:**
+   - **Recommended (tests serverless API + client simultaneously):**
+     ```bash
+     npm install -g vercel
+     vercel dev
+     ```
+   - **Alternative (launches server and client independently):**
+     ```bash
+     npm run server   # Node Express server on port 5000
+     npm run dev      # Vite Dev server on port 3000
+     ```
 
-   ```bash
-   # Recommended — tests serverless functions locally
-   vercel dev
-
-   # Or Vite + Express separately
-   npm run server   # Express API on port 5000
-   npm run dev      # Vite frontend on port 3000
-   ```
-
-5. **Open http://localhost:3000**
-
----
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Push code to GitHub
-2. Import project at [vercel.com](https://vercel.com)
-3. Add environment variables in the Vercel dashboard
-4. Deploy
-
-### Required Environment Variables
-
-| Variable                   | Required | Description                           |
-| -------------------------- | -------- | ------------------------------------- |
-| `MONGO_URI`                | ✓        | MongoDB connection string             |
-| `JWT_SECRET`               | ✓        | Secret for JWT tokens (min 32 chars)  |
-| `NVIDIA_API_KEY`           | ✓        | NVIDIA NIM API key (backend)          |
-| `VITE_NVIDIA_API_KEY`      | ✓        | NVIDIA NIM API key (frontend analyze) |
-| `ADMIN_PASSWORD`           | ✓        | Admin panel password                  |
-| `UPSTASH_REDIS_REST_URL`   |          | Upstash Redis URL                     |
-| `UPSTASH_REDIS_REST_TOKEN` |          | Upstash Redis token                   |
-| `NVIDIA_MODEL`             |          | Override default AI model             |
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## API Endpoints
+## ⚙️ Environment Configuration
 
-| Endpoint                    | Method   | Description            |
-| --------------------------- | -------- | ---------------------- |
-| `/api/health`               | GET      | Health check           |
-| `/api/auth/signup`          | POST     | User registration      |
-| `/api/auth/login`           | POST     | User login             |
-| `/api/auth/verify-email`    | POST     | Verify email OTP       |
-| `/api/auth/forgot-password` | POST     | Request password reset |
-| `/api/auth/reset-password`  | POST     | Reset password         |
-| `/api/solution`             | POST     | Generate DSA solution  |
-| `/api/ai/analyze`           | POST     | Analyze user code      |
-| `/api/questions`            | GET/POST | User's saved questions |
-| `/api/usage`                | GET      | Check daily usage      |
-| `/api/admin/stats`          | GET      | Admin statistics       |
+| Variable                   | Type     | Description                                                    |
+| -------------------------- | -------- | -------------------------------------------------------------- |
+| `MONGO_URI`                | Required | Connection string for MongoDB                                  |
+| `JWT_SECRET`               | Required | Used for token encryption (min 32 chars)                       |
+| `NVIDIA_API_KEY`           | Required | Backend API key for NIM completion                             |
+| `VITE_NVIDIA_API_KEY`      | Required | Frontend API key for browser-based code analysis               |
+| `ADMIN_PASSWORD`           | Required | Admin dashboard credentials                                    |
+| `UPSTASH_REDIS_REST_URL`   | Optional | Upstash Redis connection endpoint                              |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional | Upstash Redis connection token                                 |
+| `NVIDIA_MODEL`             | Optional | Override NIM model (defaults to `meta/llama-3.3-70b-instruct`) |
 
 ---
 
-## Project Structure
+## 📝 API Endpoints
 
-```
-ReCode/
-├── api/                        # Vercel Serverless Functions
-│   ├── _lib/                   # Shared utilities
-│   │   ├── aiConfig.js         # NVIDIA NIM configuration
-│   │   ├── auth.js             # JWT helpers + CORS
-│   │   ├── mongodb.js          # DB connection
-│   │   ├── email.js            # Nodemailer setup
-│   │   └── userId.js           # User ID resolution
-│   ├── _ai/analyze.js          # Code analysis endpoint
-│   ├── _auth/                  # Auth routes (JWT, Google, GitHub, OTP)
-│   ├── _admin/                 # Admin endpoints
-│   ├── _payment/               # Razorpay webhooks
-│   ├── _questions/             # Questions CRUD
-│   ├── _solution/index.js      # DSA solution generator (NVIDIA NIM)
-│   ├── _usage/                 # Usage tracking & rate limiting
-│   └── [...route].js           # Catch-all router
-├── components/                 # React components
-│   └── Auth/                   # Authentication UI
-├── models/                     # MongoDB models
-│   ├── User.js
-│   ├── Question.js
-│   ├── SolutionCache.js
-│   ├── UserUsage.js
-│   └── Otp.js
-├── services/
-│   └── aiService.ts            # Frontend AI service (NVIDIA NIM)
-├── utils/                      # Complexity validation engines
-│   ├── complexityEngine.js
-│   ├── complexityEngineV2.js
-│   ├── problemGroundTruth.js
-│   ├── ultimateValidator.js
-│   └── ...
-├── scripts/                    # Dev/admin utility scripts
-│   ├── test-nvidia.js          # Test NVIDIA API connectivity
-│   └── ...
-├── types.ts                    # TypeScript type definitions
-└── vercel.json                 # Vercel routing config
-```
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
+| Endpoint                 | Method       | Authentication | Description                               |
+| ------------------------ | ------------ | -------------- | ----------------------------------------- |
+| `/api/health`            | `GET`        | Public         | System status check                       |
+| `/api/auth/signup`       | `POST`       | Public         | Registers a new account                   |
+| `/api/auth/login`        | `POST`       | Public         | Authenticates and returns JWT             |
+| `/api/auth/verify-email` | `POST`       | Public         | Verifies account via Nodemailer OTP       |
+| `/api/solution`          | `POST`       | User JWT       | Generates the 3-approach code solution    |
+| `/api/ai/analyze`        | `POST`       | User JWT       | Analyzes code complexity and structure    |
+| `/api/questions`         | `GET`/`POST` | User JWT       | Reads/writes saved user questions         |
+| `/api/usage`             | `GET`        | User JWT       | Returns remaining daily rate limits       |
+| `/api/admin/stats`       | `GET`        | Admin Pass     | Displays global analytics and cache rates |
 
 ---
 
