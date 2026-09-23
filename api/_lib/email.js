@@ -13,6 +13,25 @@ function getTransporter() {
   const resendApiKey = process.env.RESEND_API_KEY; // Auto-detect Resend
   console.log('[EMAIL CONFIG] FROM:', process.env.EMAIL_FROM); // DEBUG: Verify env var
 
+  // Detect placeholder/dummy credentials — skip real SMTP to avoid auth errors
+  const placeholders = [
+    'your-email@gmail.com',
+    'your-app-password',
+    'your-email',
+    'your-password',
+    'placeholder',
+  ];
+  if (
+    !resendApiKey &&
+    emailUser &&
+    placeholders.some((p) => emailUser.toLowerCase().includes(p))
+  ) {
+    console.log(
+      '[EMAIL] ⚠️  Placeholder SMTP credentials detected — skipping real SMTP. OTP will be logged to console.'
+    );
+    return null;
+  }
+
   // 1. Resend (Highest Priority)
   if (resendApiKey) {
     console.log('[EMAIL] Initializing Resend SMTP...');
@@ -69,47 +88,91 @@ function getTransporter() {
   return null;
 }
 
-// Branded email template
-function getEmailTemplate(content, title = 'ReCode') {
+// Helper to format OTP into individual sleek digit cells
+function getDigitCells(otp) {
+  const digits = String(otp).trim().split('');
+  const cells = digits
+    .map(
+      (d) => `
+    <td style="padding: 0 4px;" align="center">
+      <div style="background-color: #0d1527; border: 1.5px solid #ca8a04; border-radius: 10px; width: 44px; height: 52px; line-height: 52px; text-align: center; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, Monaco, monospace; font-size: 26px; font-weight: 700; color: #facc15; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+        ${d}
+      </div>
+    </td>
+  `
+    )
+    .join('');
+
   return `
-<!DOCTYPE html>
-<html>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 24px auto;">
+      <tr>
+        ${cells}
+      </tr>
+    </table>
+  `;
+}
+
+// Branded email template with official logo
+function getEmailTemplate(content, title = 'ReCode') {
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 30px;">
-      <div style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); display: inline-block; padding: 12px 24px; border-radius: 12px;">
-        <h1 style="margin: 0; color: #0b0f19; font-size: 24px; font-weight: bold; letter-spacing: -0.5px;">
-          ⚡ ReCode
-        </h1>
-      </div>
-      <p style="color: #6b7280; font-size: 14px; margin-top: 10px;">
-        Master DSA, One Problem at a Time
-      </p>
-    </div>
-    
-    <!-- Content Card -->
-    <div style="background-color: #111827; border: 1px solid #374151; border-radius: 16px; padding: 32px; margin-bottom: 24px;">
-      ${content}
-    </div>
-    
-    <!-- Footer -->
-    <div style="text-align: center; color: #6b7280; font-size: 12px;">
-      <p style="margin: 0;">
-        © ${new Date().getFullYear()} ReCode. All rights reserved.
-      </p>
-      <p style="margin: 8px 0 0 0;">
-        You received this email because you signed up for ReCode.
-      </p>
-    </div>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #080c14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #080c14; min-height: 100vh; padding: 36px 12px;">
+    <tr>
+      <td align="center" valign="top">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 520px; margin: 0 auto;">
+          
+          <!-- Header with Official Logo -->
+          <tr>
+            <td align="center" style="padding-bottom: 28px;">
+              <a href="https://recode.sbs" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="https://raw.githubusercontent.com/WillyEverGreen/ReCode/main/components/Logo-With-Name%20cropped.png" 
+                     alt="ReCode" 
+                     width="175" 
+                     style="display: block; width: 175px; max-width: 100%; height: auto; border: 0; outline: none; margin: 0 auto;" />
+              </a>
+              <p style="margin: 10px 0 0 0; color: #64748b; font-size: 13px; font-weight: 500; letter-spacing: 0.4px;">
+                Master DSA, One Problem at a Time
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Card -->
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0d1322; border: 1px solid #1e293b; border-radius: 16px; padding: 36px 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <tr>
+                  <td>
+                    ${content}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top: 28px; color: #475569; font-size: 12px; line-height: 1.6;">
+              <p style="margin: 0;">
+                © ${new Date().getFullYear()} ReCode Platform · <a href="https://recode.sbs" style="color: #eab308; text-decoration: none; font-weight: 500;">recode.sbs</a>
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 11px; color: #334155;">
+                Automated security transmission. Please do not reply directly to this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
-</html>
-`;
+</html>`;
 }
 
 // Send verification OTP email
@@ -121,22 +184,23 @@ export async function sendVerificationEmail(to, otp) {
   }
 
   const content = `
-    <h2 style="color: #ffffff; font-size: 22px; margin: 0 0 16px 0; text-align: center;">
+    <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 12px 0; text-align: center; letter-spacing: -0.3px;">
       Verify Your Email
     </h2>
-    <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
-      Welcome to ReCode! Use the code below to verify your email address.
+    <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; text-align: center;">
+      Welcome to ReCode! Enter the one-time verification code below to activate your account.
     </p>
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); padding: 16px 32px; border-radius: 12px;">
-        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0b0f19;">
-          ${otp}
-        </span>
-      </div>
+
+    ${getDigitCells(otp)}
+
+    <div style="margin: 28px 0 0 0; padding: 12px 16px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
+      <span style="color: #94a3b8; font-size: 13px;">
+        ⏱️ This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
+      </span>
     </div>
-    <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 24px 0 0 0;">
-      This code expires in <strong style="color: #eab308;">2 minutes</strong>.<br>
-      If you didn't request this, please ignore this email.
+
+    <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 20px 0 0 0;">
+      If you didn't create an account with ReCode, you can safely ignore this email.
     </p>
   `;
 
@@ -167,22 +231,23 @@ export async function sendPasswordResetEmail(to, otp) {
   }
 
   const content = `
-    <h2 style="color: #ffffff; font-size: 22px; margin: 0 0 16px 0; text-align: center;">
+    <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 12px 0; text-align: center; letter-spacing: -0.3px;">
       Reset Your Password
     </h2>
-    <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
-      You requested a password reset. Use the code below to reset your password.
+    <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; text-align: center;">
+      We received a request to reset your ReCode password. Use the security code below to proceed.
     </p>
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); padding: 16px 32px; border-radius: 12px;">
-        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0b0f19;">
-          ${otp}
-        </span>
-      </div>
+
+    ${getDigitCells(otp)}
+
+    <div style="margin: 28px 0 0 0; padding: 12px 16px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
+      <span style="color: #94a3b8; font-size: 13px;">
+        ⏱️ This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
+      </span>
     </div>
-    <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 24px 0 0 0;">
-      This code expires in <strong style="color: #eab308;">2 minutes</strong>.<br>
-      If you didn't request this, your account is safe - just ignore this email.
+
+    <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 20px 0 0 0;">
+      If you didn't request a password reset, your account is secure and you can safely ignore this message.
     </p>
   `;
 

@@ -8,6 +8,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
 import Otp from '../../models/Otp.js';
+import githubCallback from './github/callback.js';
+import googleCallback from './google/callback.js';
 
 // Generate 6-digit OTP
 const generateOTP = () =>
@@ -45,6 +47,22 @@ export default async function handler(req, res) {
 
   try {
     await connectDB();
+
+    // ==================== OAUTH CALLBACKS ====================
+    if (
+      action === 'github' &&
+      Array.isArray(route) &&
+      route.includes('callback')
+    ) {
+      return await githubCallback(req, res);
+    }
+    if (
+      action === 'google' &&
+      Array.isArray(route) &&
+      route.includes('callback')
+    ) {
+      return await googleCallback(req, res);
+    }
 
     // ==================== SIGNUP ====================
     if (action === 'signup') {
@@ -90,9 +108,16 @@ export default async function handler(req, res) {
         console.error('[EMAIL ERROR]', emailErr);
       }
 
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('========================================');
+        console.log(`[DEV OTP] Verification code for ${email} is: ${otp}`);
+        console.log('========================================');
+      }
+
       return res.status(201).json({
         message: 'Signup successful. Please verify your email.',
         email: user.email,
+        ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
       });
     }
 
@@ -189,7 +214,16 @@ export default async function handler(req, res) {
         console.error('[EMAIL ERROR]', emailErr);
       }
 
-      return res.json({ message: 'OTP sent to your email' });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('========================================');
+        console.log(`[DEV OTP] Password reset code for ${email} is: ${otp}`);
+        console.log('========================================');
+      }
+
+      return res.json({
+        message: 'OTP sent to your email',
+        ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
+      });
     }
 
     // ==================== VERIFY-OTP ====================
@@ -269,7 +303,16 @@ export default async function handler(req, res) {
         console.error('[EMAIL ERROR]', emailErr);
       }
 
-      return res.json({ message: 'OTP resent successfully' });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('========================================');
+        console.log(`[DEV OTP] Resent code for ${email} is: ${otp}`);
+        console.log('========================================');
+      }
+
+      return res.json({
+        message: 'OTP resent successfully',
+        ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
+      });
     }
 
     // Unknown route

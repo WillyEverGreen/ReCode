@@ -50,7 +50,14 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
         throw new Error(data.message || 'Failed to send reset OTP');
       }
 
-      setSuccessMessage('OTP sent to your email. Please check your inbox.');
+      if (data.devOtp) {
+        setOtp(data.devOtp);
+      }
+      setSuccessMessage(
+        data.devOtp
+          ? `OTP sent! (Dev OTP: ${data.devOtp})`
+          : 'OTP sent to your email. Please check your inbox.'
+      );
       setTimeout(() => {
         setSuccessMessage(null);
         setStep('otp');

@@ -25,7 +25,8 @@ import {
 
 // NVIDIA NIM Configuration (OpenAI-compatible API)
 const AI_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const AI_MODEL = process.env.NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct';
+const AI_MODEL =
+  process.env.NVIDIA_MODEL || 'meta/llama-3.2-11b-vision-instruct';
 const AI_API_KEY = process.env.NVIDIA_API_KEY;
 
 // Lazy-load Redis (for serverless - env vars may not be available at module load)
@@ -473,6 +474,11 @@ async function saveCanonicalId(canonicalId, redis) {
 
 // Helper function to escape raw control characters (like newlines) inside double-quoted JSON string values
 function cleanJsonString(str) {
+  // Normalize backtick template literals into JSON strings
+  str = str.replace(
+    /:\s*`([\s\S]*?)`/g,
+    (_, code) => ': ' + JSON.stringify(code)
+  );
   let inString = false;
   let escaped = false;
   let out = '';
@@ -875,6 +881,11 @@ Your prompt must handle these scenarios:
   if (text.startsWith('```json')) text = text.slice(7);
   if (text.startsWith('```')) text = text.slice(3);
   if (text.endsWith('```')) text = text.slice(0, -3);
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    text = text.slice(firstBrace, lastBrace + 1);
+  }
   text = cleanJsonString(text.trim());
 
   // Try to parse JSON with error handling

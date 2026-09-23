@@ -76,7 +76,14 @@ const Signup: React.FC<SignupProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Signup failed');
       setStep('otp');
-      setMessage(data.message || 'OTP sent to your email');
+      if (data.devOtp) {
+        setOtp(data.devOtp);
+      }
+      setMessage(
+        data.devOtp
+          ? `${data.message} (Dev OTP: ${data.devOtp})`
+          : data.message || 'OTP sent to your email'
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {

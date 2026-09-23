@@ -48,6 +48,10 @@ const handle = (filePath) => async (req, res) => {
 
 // --- API ROUTES MAPPING ---
 
+// Auth - OAuth callbacks (must be before catch-all)
+app.all('/api/auth/github/callback', handle('api/_auth/github/callback.js'));
+app.all('/api/auth/google/callback', handle('api/_auth/google/callback.js'));
+
 // Auth
 app.use('/api/auth', async (req, res) => {
   // Use req.path instead of regex capturing group

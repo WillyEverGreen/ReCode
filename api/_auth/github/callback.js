@@ -21,10 +21,14 @@ export default async function handler(req, res) {
   const sendError = (statusCode, message, step) => {
     console.error(`[GITHUB AUTH ERROR] Step: ${step} | ${message}`);
     if (isGet) {
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host =
+      const isLocal =
+        req.headers.host && req.headers.host.includes('localhost');
+      const protocol =
+        req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
+      let host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
-      const baseUrl = `${protocol}://${host}`;
+      if (host.includes('localhost:5000')) host = 'localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
       // Use auth_error param so App.tsx can handle it distinctly
       const errorUrl = `${baseUrl}/?auth_error=${encodeURIComponent(message)}&provider=github`;
       res.writeHead(302, { Location: errorUrl });
@@ -257,10 +261,14 @@ export default async function handler(req, res) {
 
     // ── Step 9: Respond ────────────────────────────────────────────────────────
     if (isGet) {
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host =
+      const isLocal =
+        req.headers.host && req.headers.host.includes('localhost');
+      const protocol =
+        req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
+      let host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
-      const baseUrl = `${protocol}://${host}`;
+      if (host.includes('localhost:5000')) host = 'localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
       const redirectUrl = `${baseUrl}/?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(userPayload))}`;
       res.writeHead(302, { Location: redirectUrl });
       res.end();
@@ -273,10 +281,15 @@ export default async function handler(req, res) {
     console.error(error.stack);
     const msg = `GitHub authentication failed: ${error.message}`;
     if (isGet) {
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host =
+      const isLocal =
+        req.headers.host && req.headers.host.includes('localhost');
+      const protocol =
+        req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
+      let host =
         req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
-      const errorUrl = `${protocol}://${host}/?auth_error=${encodeURIComponent(msg)}&provider=github`;
+      if (host.includes('localhost:5000')) host = 'localhost:3000';
+      const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
+      const errorUrl = `${baseUrl}/?auth_error=${encodeURIComponent(msg)}&provider=github`;
       res.writeHead(302, { Location: errorUrl });
       res.end();
     } else {

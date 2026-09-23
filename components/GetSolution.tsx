@@ -20,9 +20,7 @@ import {
   Check,
   History,
   Trash2,
-  X,
 } from 'lucide-react';
-import ProBadge from './ProBadge';
 
 const LANGUAGES = ['Python', 'JavaScript', 'Java', 'C++', 'TypeScript', 'Go'];
 
@@ -36,21 +34,26 @@ interface SolutionHistoryItem {
 }
 
 const HISTORY_STORAGE_KEY_PREFIX = 'recode_solution_history_';
-const HISTORY_EXPIRY_FREE = 24 * 60 * 60 * 1000; // 24 hours for free users
+
+// Helper to get stable user identifier
+const getStableUserId = (): string => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      if (u.id) return String(u.id);
+      if (u.email) return String(u.email);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 'default';
+};
 
 // Helper to get user-specific storage key
 const getHistoryStorageKey = (userId: string | null): string => {
-  if (!userId) return `${HISTORY_STORAGE_KEY_PREFIX}anonymous`;
-  // Use first 8 chars of a simple hash of the token for privacy
-  const hash = userId
-    .split('')
-    .reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
-    }, 0)
-    .toString(16)
-    .slice(0, 8);
-  return `${HISTORY_STORAGE_KEY_PREFIX}${hash}`;
+  const stableId = userId || getStableUserId();
+  return `${HISTORY_STORAGE_KEY_PREFIX}${stableId}`;
 };
 
 const GetSolution: React.FC = () => {
@@ -66,118 +69,82 @@ const GetSolution: React.FC = () => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [history, setHistory] = useState<SolutionHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [isPro, setIsPro] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Check user plan and load history on mount
-  useEffect(() => {
-    // Get user token for user-specific history
-    const token = localStorage.getItem('token');
-    setUserId(token);
+  // Load history from localStorage (scans legacy and user-specific keys to recover any history)
+  const loadHistory = useCallback(() => {
+    try {
+      const allItems: SolutionHistoryItem[] = [];
+      const seenSignatures = new Set<string>();
 
-    // Check if user is Pro
-    const checkPlan = async () => {
-      try {
-        if (token) {
-          const res = await fetch('/api/usage', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setIsPro(data.plan === 'pro' || data.role === 'admin');
+      // Scan all history keys in localStorage to recover anonymous, legacy hash, and user-specific history
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (
+          key &&
+          (key.startsWith(HISTORY_STORAGE_KEY_PREFIX) ||
+            key === 'solution_history')
+        ) {
+          try {
+            const stored = localStorage.getItem(key);
+            if (stored) {
+              const items = JSON.parse(stored);
+              if (Array.isArray(items)) {
+                items.forEach((item: SolutionHistoryItem) => {
+                  if (!item || !item.questionName) return;
+                  const sig = `${(item.questionName || '').toLowerCase().trim()}_${(item.language || '').toLowerCase().trim()}`;
+                  if (!seenSignatures.has(sig)) {
+                    seenSignatures.add(sig);
+                    allItems.push(item);
+                  }
+                });
+              }
+            }
+          } catch {
+            // Ignore parse errors on legacy keys
           }
         }
-      } catch (e) {
-        console.error('Failed to check plan:', e);
       }
-    };
-    checkPlan();
 
-    // Set up periodic cleanup for free users (every minute)
-    const cleanupInterval = setInterval(() => {
-      cleanupExpiredHistory();
-    }, 60000);
+      // Sort newest first
+      allItems.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      const consolidated = allItems.slice(0, 100);
 
-    return () => clearInterval(cleanupInterval);
-  }, []);
+      setHistory(consolidated);
 
-  // Load history when userId changes
-  useEffect(() => {
-    loadHistory();
-  }, [userId]);
-
-  // Load history from localStorage (user-specific)
-  const loadHistory = () => {
-    try {
+      // Save to primary storage key so it is permanently synchronized
       const storageKey = getHistoryStorageKey(userId);
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const items: SolutionHistoryItem[] = JSON.parse(stored);
-        // Initial load - we'll filter expired items after plan check
-        setHistory(items);
-      } else {
-        setHistory([]);
-      }
+      localStorage.setItem(storageKey, JSON.stringify(consolidated));
+      localStorage.setItem(
+        `${HISTORY_STORAGE_KEY_PREFIX}consolidated`,
+        JSON.stringify(consolidated)
+      );
     } catch (e) {
       console.error('Failed to load history:', e);
     }
-  };
+  }, [userId]);
 
-  // Cleanup expired history items (for free users)
-  const cleanupExpiredHistory = () => {
-    if (isPro) return; // Pro users keep all history
-
-    const now = Date.now();
-    const storageKey = getHistoryStorageKey(userId);
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      const items: SolutionHistoryItem[] = JSON.parse(stored);
-      const validItems = items.filter(
-        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE
-      );
-      if (validItems.length !== items.length) {
-        localStorage.setItem(storageKey, JSON.stringify(validItems));
-        setHistory(validItems);
-        console.log(
-          `[HISTORY] Cleaned up ${items.length - validItems.length} expired items`
-        );
-      }
-    }
-  };
-
-  // Filter history based on plan (called after plan is known)
+  // Set user ID on mount
   useEffect(() => {
-    if (!isPro && history.length > 0) {
-      const now = Date.now();
-      const validItems = history.filter(
-        (item) => now - item.timestamp < HISTORY_EXPIRY_FREE
-      );
-      if (validItems.length !== history.length) {
-        setHistory(validItems);
-        const storageKey = getHistoryStorageKey(userId);
-        localStorage.setItem(storageKey, JSON.stringify(validItems));
-      }
-    }
-  }, [isPro]);
+    const stableId = getStableUserId();
+    setUserId(stableId);
+  }, []);
 
-  // Helper function to format expiry time nicely
-  const formatExpiryTime = (timestamp: number): string => {
-    const expiryDate = new Date(timestamp + HISTORY_EXPIRY_FREE);
-    const now = new Date();
-    const diffMs = expiryDate.getTime() - now.getTime();
+  // Load history when userId or loadHistory changes
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
-    if (diffMs <= 0) return 'Expired';
-
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (diffHours > 0) {
-      return `Expires in ${diffHours}h ${diffMins}m`;
-    }
-    return `Expires in ${diffMins}m`;
+  // Helper function to format timestamp nicely
+  const formatSavedTime = (timestamp: number): string => {
+    if (!timestamp) return 'Recently';
+    return new Date(timestamp).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
-  // Save solution to history (user-specific)
+  // Save solution to history
   const saveToHistory = (name: string, lang: string, sol: SolutionResult) => {
     const newItem: SolutionHistoryItem = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -186,10 +153,19 @@ const GetSolution: React.FC = () => {
       solution: sol,
       timestamp: Date.now(),
     };
-    const updatedHistory = [newItem, ...history].slice(0, 50); // Keep max 50 items
+    const filtered = history.filter(
+      (h) =>
+        h.questionName.toLowerCase().trim() !== name.toLowerCase().trim() ||
+        h.language.toLowerCase().trim() !== lang.toLowerCase().trim()
+    );
+    const updatedHistory = [newItem, ...filtered].slice(0, 100);
     setHistory(updatedHistory);
     const storageKey = getHistoryStorageKey(userId);
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+    localStorage.setItem(
+      `${HISTORY_STORAGE_KEY_PREFIX}consolidated`,
+      JSON.stringify(updatedHistory)
+    );
   };
 
   // Load solution from history
@@ -201,12 +177,16 @@ const GetSolution: React.FC = () => {
     setShowHistory(false);
   };
 
-  // Delete from history (user-specific)
+  // Delete from history
   const deleteFromHistory = (id: string) => {
     const updatedHistory = history.filter((item) => item.id !== id);
     setHistory(updatedHistory);
     const storageKey = getHistoryStorageKey(userId);
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+    localStorage.setItem(
+      `${HISTORY_STORAGE_KEY_PREFIX}consolidated`,
+      JSON.stringify(updatedHistory)
+    );
   };
 
   const handleGenerate = async () => {
@@ -252,31 +232,31 @@ const GetSolution: React.FC = () => {
   const MarkdownRenderer = ({ content }: { content: string }) => (
     <ReactMarkdown
       components={{
-        h2: ({ node, ...props }) => (
+        h2: ({ node: _node, ...props }) => (
           <h2
             className="text-lg font-semibold text-[#e6c888] mt-6 mb-3"
             {...props}
           />
         ),
-        p: ({ node, ...props }) => (
+        p: ({ node: _node, ...props }) => (
           <p className="text-[#cccccc] mb-3 leading-relaxed" {...props} />
         ),
-        ul: ({ node, ...props }) => (
+        ul: ({ node: _node, ...props }) => (
           <ul
             className="list-disc ml-5 mb-3 text-[#cccccc] space-y-1"
             {...props}
           />
         ),
-        ol: ({ node, ...props }) => (
+        ol: ({ node: _node, ...props }) => (
           <ol
             className="list-decimal ml-5 mb-3 text-[#cccccc] space-y-1"
             {...props}
           />
         ),
-        strong: ({ node, ...props }) => (
+        strong: ({ node: _node, ...props }) => (
           <strong className="font-bold text-white" {...props} />
         ),
-        code({ node, className, children, ...props }) {
+        code({ node: _node, className: _className, children, ...props }: any) {
           const isInline = !String(children).includes('\n');
           if (isInline) {
             return (
@@ -290,7 +270,6 @@ const GetSolution: React.FC = () => {
           }
           return (
             <SyntaxHighlighter
-              children={String(children).replace(/\n$/, '')}
               style={atomDark}
               language="text"
               PreTag="div"
@@ -301,7 +280,9 @@ const GetSolution: React.FC = () => {
                 borderRadius: '8px',
               }}
               {...props}
-            />
+            >
+              {String(children).replace(/\n$/, '')}
+            </SyntaxHighlighter>
           );
         },
       }}
@@ -354,13 +335,9 @@ const GetSolution: React.FC = () => {
               Recent Solutions
             </h3>
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              {isPro ? (
-                <span className="flex items-center gap-1 text-yellow-400">
-                  <Crown className="w-3 h-3" /> Lifetime history
-                </span>
-              ) : (
-                <span>Expires in 24 hours</span>
-              )}
+              <span className="flex items-center gap-1 text-yellow-400">
+                <Crown className="w-3 h-3" /> Lifetime history
+              </span>
             </div>
           </div>
 
@@ -386,12 +363,10 @@ const GetSolution: React.FC = () => {
                       <span className="px-2 py-0.5 bg-gray-700 rounded">
                         {item.language}
                       </span>
-                      {!isPro && (
-                        <span className="text-yellow-500/70 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatExpiryTime(item.timestamp)}
-                        </span>
-                      )}
+                      <span className="text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-yellow-500/70" />
+                        {formatSavedTime(item.timestamp)}
+                      </span>
                     </div>
                   </button>
                   <button
@@ -402,15 +377,6 @@ const GetSolution: React.FC = () => {
                   </button>
                 </div>
               ))}
-            </div>
-          )}
-
-          {!isPro && history.length > 0 && (
-            <div className="mt-4 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
-              <p className="text-xs text-yellow-200/80 flex items-center gap-2">
-                <Crown className="w-4 h-4 text-yellow-400" />
-                <span>Upgrade to Pro for lifetime solution history</span>
-              </p>
             </div>
           )}
         </div>

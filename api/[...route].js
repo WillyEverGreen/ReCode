@@ -47,6 +47,10 @@ export default async function handler(req, res) {
         VITE_GOOGLE_CLIENT_ID: process.env.VITE_GOOGLE_CLIENT_ID
           ? 'set ✅'
           : 'MISSING ❌',
+        UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL
+          ? 'set ✅'
+          : 'MISSING ❌',
+        RESEND_API_KEY: process.env.RESEND_API_KEY ? 'set ✅' : 'MISSING ❌',
         NODE_ENV: process.env.NODE_ENV || 'not set',
       };
       let dbStatus = 'not tested';
@@ -58,10 +62,28 @@ export default async function handler(req, res) {
         dbStatus = 'FAILED ❌';
         dbError = e.message;
       }
+      let redisStatus = 'not configured';
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
+        try {
+          const { Redis } = await import('@upstash/redis');
+          const redis = new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
+          });
+          const pong = await redis.ping();
+          redisStatus = pong === 'PONG' ? 'connected ✅' : `responded: ${pong}`;
+        } catch (re) {
+          redisStatus = `FAILED ❌: ${re.message}`;
+        }
+      }
       return res.json({
         timestamp: new Date().toISOString(),
         env: envStatus,
         database: { status: dbStatus, error: dbError },
+        redis: { status: redisStatus },
       });
     }
 
