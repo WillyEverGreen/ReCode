@@ -131,7 +131,7 @@ function getEmailTemplate(content, title = 'ReCode') {
           <tr>
             <td align="center" style="padding-bottom: 28px;">
               <a href="https://recode.sbs" target="_blank" style="text-decoration: none; display: inline-block;">
-                <img src="https://raw.githubusercontent.com/WillyEverGreen/ReCode/main/components/Logo-With-Name%20cropped.png" 
+                <img src="https://cdn.jsdelivr.net/gh/WillyEverGreen/ReCode@main/public/logo.png" 
                      alt="ReCode" 
                      width="175" 
                      style="display: block; width: 175px; max-width: 100%; height: auto; border: 0; outline: none; margin: 0 auto;" />
@@ -193,10 +193,21 @@ export async function sendVerificationEmail(to, otp) {
 
     ${getDigitCells(otp)}
 
-    <div style="margin: 28px 0 0 0; padding: 12px 16px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
-      <span style="color: #94a3b8; font-size: 13px;">
-        ⏱️ This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
-      </span>
+    <div style="margin: 28px 0 0 0; padding: 12px 18px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; display: inline-table; vertical-align: middle;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 8px;">
+            <img src="https://img.icons8.com/material-rounded/48/facc15/clock.png" 
+                 alt="Clock" 
+                 width="16" 
+                 height="16" 
+                 style="display: block; width: 16px; height: 16px; border: 0;" />
+          </td>
+          <td style="vertical-align: middle; color: #94a3b8; font-size: 13px; font-weight: 500;">
+            This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
+          </td>
+        </tr>
+      </table>
     </div>
 
     <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 20px 0 0 0;">
@@ -240,10 +251,21 @@ export async function sendPasswordResetEmail(to, otp) {
 
     ${getDigitCells(otp)}
 
-    <div style="margin: 28px 0 0 0; padding: 12px 16px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
-      <span style="color: #94a3b8; font-size: 13px;">
-        ⏱️ This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
-      </span>
+    <div style="margin: 28px 0 0 0; padding: 12px 18px; background-color: #090e1a; border: 1px solid #1e293b; border-radius: 10px; text-align: center;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; display: inline-table; vertical-align: middle;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 8px;">
+            <img src="https://img.icons8.com/material-rounded/48/facc15/clock.png" 
+                 alt="Clock" 
+                 width="16" 
+                 height="16" 
+                 style="display: block; width: 16px; height: 16px; border: 0;" />
+          </td>
+          <td style="vertical-align: middle; color: #94a3b8; font-size: 13px; font-weight: 500;">
+            This code expires in <strong style="color: #fbbf24;">2 minutes</strong>.
+          </td>
+        </tr>
+      </table>
     </div>
 
     <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 20px 0 0 0;">
