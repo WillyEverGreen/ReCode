@@ -7,7 +7,6 @@ import {
   RefreshCw,
   LogOut,
   FileText,
-  CheckCircle,
   AlertCircle,
   Lock,
   ArrowLeft,
@@ -99,7 +98,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       } else {
         setError(data.error || 'Invalid password');
       }
-    } catch (err) {
+    } catch {
       setError('Connection error. Is the server running?');
     } finally {
       setLoading(false);
@@ -196,7 +195,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       } else {
         setCacheMessage('❌ ' + (data.error || 'Failed to clear cache'));
       }
-    } catch (err) {
+    } catch {
       setCacheMessage('❌ Connection error');
     } finally {
       setCacheClearing(false);
@@ -223,7 +222,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       } else {
         setCacheMessage('❌ ' + (data.error || 'Failed to sync cache'));
       }
-    } catch (err) {
+    } catch {
       setCacheMessage('❌ Connection error');
     } finally {
       setCacheClearing(false);

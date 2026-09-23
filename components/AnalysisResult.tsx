@@ -114,44 +114,46 @@ ${markdown}
         <div className="flex-1 overflow-y-auto p-8 custom-markdown bg-[#0a0d12]">
           <ReactMarkdown
             components={{
-              h1: ({ node, ...props }) => (
+              h1: ({ node: _node, ...props }) => (
                 <h1
                   className="text-2xl font-bold text-[#c4a66a] mt-8 mb-4 border-b border-gray-800/50 pb-2"
                   {...props}
                 />
               ),
-              h2: ({ node, ...props }) => (
+              h2: ({ node: _node, ...props }) => (
                 <h2
                   className="text-xl font-semibold text-[#c4a66a] mt-6 mb-3"
                   {...props}
                 />
               ),
-              h3: ({ node, ...props }) => (
+              h3: ({ node: _node, ...props }) => (
                 <h3
                   className="text-lg font-medium text-gray-200 mt-4 mb-2"
                   {...props}
                 />
               ),
-              p: ({ node, ...props }) => (
+              p: ({ node: _node, ...props }) => (
                 <p className="text-gray-400 mb-4 leading-relaxed" {...props} />
               ),
-              ul: ({ node, ...props }) => (
+              ul: ({ node: _node, ...props }) => (
                 <ul
                   className="list-disc list-outside ml-6 mb-4 text-gray-400 space-y-1"
                   {...props}
                 />
               ),
-              ol: ({ node, ...props }) => (
+              ol: ({ node: _node, ...props }) => (
                 <ol
                   className="list-decimal list-outside ml-6 mb-4 text-gray-400 space-y-1"
                   {...props}
                 />
               ),
-              li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-              strong: ({ node, ...props }) => (
+              li: ({ node: _node, ...props }) => (
+                <li className="pl-1" {...props} />
+              ),
+              strong: ({ node: _node, ...props }) => (
                 <strong className="font-bold text-gray-200" {...props} />
               ),
-              code: ({ node, className, children, ...props }) => {
+              code: ({ node: _node, className, children, ...props }) => {
                 const match = /language-(\w+)/.exec(className || '');
                 const isInline = !match && !String(children).includes('\n');
                 return isInline ? (
@@ -175,7 +177,7 @@ ${markdown}
                   </div>
                 );
               },
-              blockquote: ({ node, ...props }) => (
+              blockquote: ({ node: _node, ...props }) => (
                 <blockquote
                   className="border-l-4 border-[#c4a66a]/50 pl-4 italic text-gray-500 my-4"
                   {...props}

@@ -1,8 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Mail, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import AppLogo from './Logo-With-Name cropped.png';
-
-type PolicyType = 'privacy' | 'terms' | 'refunds' | 'shipping' | 'contact';
 
 interface PolicyPageProps {
   type: string;

@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Crown,
 } from 'lucide-react';
-import ProBadge from './ProBadge';
 
 interface DashboardProps {
   questions: SavedQuestion[];
@@ -85,8 +84,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             Your Dashboard is Empty
           </h2>
           <p className="text-gray-400 mt-2 max-w-md text-sm sm:text-base px-4">
-            Start adding your LeetCode solutions. We'll organize them by Data
-            Structure and Pattern automatically.
+            Start adding your LeetCode solutions. We&apos;ll organize them by
+            Data Structure and Pattern automatically.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full px-4 sm:w-auto">
@@ -185,7 +184,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {filteredQuestions.length === 0 && searchQuery && (
         <div className="text-center py-12 text-gray-500">
           <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No questions found for "{searchQuery}"</p>
+          <p>No questions found for &ldquo;{searchQuery}&rdquo;</p>
           <button
             onClick={() => setSearchQuery('')}
             className="text-yellow-500 hover:text-yellow-400 mt-2 text-sm"

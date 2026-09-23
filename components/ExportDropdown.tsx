@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Download,
-  FileText,
-  File,
-  ChevronDown,
-  ChevronRight,
-  Crown,
-} from 'lucide-react';
+import { Download, Crown } from 'lucide-react';
 import {
   exportAsMarkdown,
   exportAsPDF,

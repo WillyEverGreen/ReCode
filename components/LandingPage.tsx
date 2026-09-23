@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import React, { useRef, useState, useLayoutEffect } from 'react';
+import { motion, useInView } from 'framer-motion';
 import { gsap } from 'gsap';
 import {
   Code2,
@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Star,
   Users,
-  Shield,
   ArrowRight,
   Zap,
   BookOpen,
@@ -25,15 +24,9 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
-  const { scrollYProgress } = useScroll();
   const heroRef = useRef<HTMLDivElement>(null);
   const h1Ref = useRef<HTMLHeadingElement>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
-
-  const handleSocialLogin = (provider: string) => {
-    console.log(`${provider} login clicked`);
-    // Add your OAuth logic here
-  };
 
   // GSAP Hero Animation
   useLayoutEffect(() => {
@@ -218,7 +211,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         2
                       </div>
                       <div className="text-gray-500 pl-2 sm:pl-4 md:pl-8 break-words w-full">
-                        // AI extracting patterns...
+                        {'// AI extracting patterns...'}
                       </div>
                     </div>
 
@@ -240,7 +233,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                       </div>
                       <div className="pl-4 sm:pl-8 md:pl-16 w-full break-all sm:break-normal">
                         <span className="text-blue-400">complexity:</span>{' '}
-                        <span className="text-green-400">"O(n log n)"</span>
+                        <span className="text-green-400">
+                          &quot;O(n log n)&quot;
+                        </span>
                         <span className="text-gray-400">,</span>
                       </div>
                     </div>
@@ -252,7 +247,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                       </div>
                       <div className="pl-4 sm:pl-8 md:pl-16 w-full break-all sm:break-normal">
                         <span className="text-blue-400">pattern:</span>{' '}
-                        <span className="text-green-400">"Sliding Window"</span>
+                        <span className="text-green-400">
+                          &quot;Sliding Window&quot;
+                        </span>
                         <span className="text-gray-400">,</span>
                       </div>
                     </div>
@@ -265,9 +262,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                       <div className="pl-4 sm:pl-8 md:pl-16 w-full break-words">
                         <span className="text-blue-400">edgeCases:</span>{' '}
                         <span className="text-gray-400">[</span>
-                        <span className="text-yellow-400">'Empty'</span>
+                        <span className="text-yellow-400">
+                          &apos;Empty&apos;
+                        </span>
                         <span className="text-gray-400">,</span>{' '}
-                        <span className="text-yellow-400">'Single'</span>
+                        <span className="text-yellow-400">
+                          &apos;Single&apos;
+                        </span>
                         <span className="text-gray-400">]</span>
                       </div>
                     </div>
@@ -314,6 +315,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
 
       {/* Product Preview - ReCode in Action */}
       <ProductPreviewSection />
+
+      {/* Testimonials - Social Proof */}
+      <TestimonialsSection />
 
       {/* Pricing - Clean Comparison */}
       <PricingSection onGetStarted={onGetStarted} />
@@ -687,7 +691,7 @@ const TestimonialsSection = () => {
                 ))}
               </div>
               <p className="text-gray-300 mb-6 leading-relaxed">
-                "{testimonial.quote}"
+                &ldquo;{testimonial.quote}&rdquo;
               </p>
               <div>
                 <div className="font-semibold">{testimonial.author}</div>
