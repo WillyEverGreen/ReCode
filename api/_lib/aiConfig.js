@@ -21,7 +21,7 @@ const NVIDIA_TIMEOUT_MS = 180000; // 180 seconds
  */
 export async function getAIConfig(task) {
   const model = process.env.NVIDIA_MODEL || NVIDIA_MODEL;
-  const apiKey = process.env.NVIDIA_API_KEY;
+  const apiKey = process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY;
 
   if (!apiKey) {
     throw new Error(

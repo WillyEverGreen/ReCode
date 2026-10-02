@@ -27,7 +27,8 @@ import {
 const AI_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const AI_MODEL =
   process.env.NVIDIA_MODEL || 'meta/llama-3.2-11b-vision-instruct';
-const AI_API_KEY = process.env.NVIDIA_API_KEY;
+const AI_API_KEY =
+  process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY;
 
 // Lazy-load Redis (for serverless - env vars may not be available at module load)
 let redis = null;

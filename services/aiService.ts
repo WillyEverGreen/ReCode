@@ -9,8 +9,7 @@ let analyzeInFlight = false;
 // API base URL - empty in production for Vercel serverless (relative /api routes)
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-// NVIDIA NIM API Configuration (OpenAI-compatible)
-const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+// AI Model Configuration
 const NVIDIA_MODEL =
   import.meta.env.VITE_NVIDIA_MODEL || 'meta/llama-3.2-11b-vision-instruct';
 
@@ -414,13 +413,19 @@ Return ONLY valid JSON, no markdown fences.`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
-    const response = await fetch(NVIDIA_API_URL, {
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/ai/analyze`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
-      },
+      headers,
       body: JSON.stringify({
+        type: 'reconsideration',
         model: NVIDIA_MODEL,
         messages: [
           {
@@ -432,7 +437,6 @@ Return ONLY valid JSON, no markdown fences.`;
         ],
         max_tokens: 400,
         temperature: 0.3,
-        stream: false,
       }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout));
@@ -549,12 +553,6 @@ export const analyzeSubmission = async (
     throw new Error('Analysis already in progress. Please wait.');
   }
 
-  if (!import.meta.env.VITE_NVIDIA_API_KEY) {
-    throw new Error(
-      'API Key is missing. Set VITE_NVIDIA_API_KEY in your environment.'
-    );
-  }
-
   analyzeInFlight = true;
 
   try {
@@ -596,14 +594,20 @@ Return ONLY valid JSON, no markdown fences.`;
       const timeout = setTimeout(() => controller.abort(), 30000);
 
       try {
-        // Call NVIDIA NIM API (OpenAI-compatible format)
-        const response = await fetch(NVIDIA_API_URL, {
+        const token = localStorage.getItem('token');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Call backend API (handles NVIDIA NIM securely with server-side API key and no CORS issues)
+        const response = await fetch(`${API_BASE_URL}/api/ai/analyze`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
-          },
+          headers,
           body: JSON.stringify({
+            type: 'analysis',
             model: NVIDIA_MODEL,
             messages: [
               {
@@ -618,7 +622,6 @@ Return ONLY valid JSON, no markdown fences.`;
             ],
             max_tokens: 8192,
             temperature: 0.5 + attempt * 0.1, // Slightly vary temperature on retries
-            stream: false,
           }),
           signal: controller.signal,
         }).finally(() => clearTimeout(timeout));
@@ -631,7 +634,9 @@ Return ONLY valid JSON, no markdown fences.`;
             errorData
           );
           throw new Error(
-            errorData.error?.message || `NVIDIA API error: ${response.status}`
+            errorData.error ||
+              errorData.message ||
+              `NVIDIA API error: ${response.status}`
           );
         }
 

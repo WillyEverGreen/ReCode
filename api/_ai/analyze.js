@@ -1,33 +1,60 @@
 import { getAIConfig } from '../_lib/aiConfig.js';
+import { handleCors } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
+  if (handleCors(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { code, language, problemUrl, type } = req.body;
-
-  if (!code) {
-    return res.status(400).json({ error: 'Code is required' });
-  }
+  const {
+    code,
+    language = 'python',
+    problemUrl,
+    type,
+    messages: incomingMessages,
+    prompt,
+    systemPrompt,
+    max_tokens,
+    temperature,
+    model: requestedModel,
+  } = req.body || {};
 
   try {
     const task = type === 'reconsideration' ? 'reasoning' : 'coding';
     const config = await getAIConfig(task);
+    const model = requestedModel || config.model;
 
     let messages = [];
 
-    if (type === 'reconsideration') {
-      // Reconsideration: a second-pass complexity analysis when engine disagrees
+    if (Array.isArray(incomingMessages) && incomingMessages.length > 0) {
+      messages = incomingMessages;
+    } else if (prompt) {
       messages = [
         {
           role: 'system',
           content:
-            'You are a world-class algorithm complexity expert. Analyze code rigorously and return ONLY valid JSON.',
+            systemPrompt ||
+            'You are a DSA revision assistant. Return concise, structured JSON only. Do not include any text outside the JSON.',
         },
         {
           role: 'user',
-          content: `Reconsider the time and space complexity of this ${language} code.
+          content: prompt,
+        },
+      ];
+    } else if (code) {
+      if (type === 'reconsideration') {
+        // Reconsideration: a second-pass complexity analysis when engine disagrees
+        messages = [
+          {
+            role: 'system',
+            content:
+              'You are a world-class algorithm complexity expert. Analyze code rigorously and return ONLY valid JSON.',
+          },
+          {
+            role: 'user',
+            content: `Reconsider the time and space complexity of this ${language} code.
 
 CODE:
 \`\`\`${language.toLowerCase()}
@@ -40,14 +67,14 @@ Return ONLY this JSON (no markdown fences):
   "finalSpaceComplexity": "O(...)",
   "reasoning": "2-3 sentence rigorous explanation citing specific code constructs"
 }`,
-        },
-      ];
-    } else {
-      // Main code analysis — produces all fields the frontend displays
-      messages = [
-        {
-          role: 'system',
-          content: `You are an expert DSA code reviewer and educator. Analyze submitted code deeply and return structured JSON that covers:
+          },
+        ];
+      } else {
+        // Main code analysis — produces all fields the frontend displays
+        messages = [
+          {
+            role: 'system',
+            content: `You are an expert DSA code reviewer and educator. Analyze submitted code deeply and return structured JSON that covers:
 - What the code does and what problem it solves
 - Exact complexity analysis with clear reasoning
 - Key DSA patterns used
@@ -56,10 +83,10 @@ Return ONLY this JSON (no markdown fences):
 - Inline logic walkthrough for the trickiest part
 
 Always return ONLY valid JSON. Never truncate. Never use placeholder text like "...".`,
-        },
-        {
-          role: 'user',
-          content: `Analyze this ${language} code submission:
+          },
+          {
+            role: 'user',
+            content: `Analyze this ${language} code submission:
 
 \`\`\`${language.toLowerCase()}
 ${code}
@@ -107,16 +134,27 @@ Return ONLY this JSON (no markdown fences, no extra text):
   ],
   "improvementMarkdown": "## Suggestions\\n\\n1. **Improvement 1**: [description]\\n2. **Improvement 2**: [description]\\n\\n## Already Well Done\\n- [What the submitted code already does correctly]"
 }`,
-        },
-      ];
+          },
+        ];
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ error: 'Code, messages, or prompt is required' });
     }
+
+    const maxTokens = Math.min(parseInt(max_tokens) || 8192, 8192);
+    const temp =
+      typeof temperature === 'number'
+        ? Math.max(0, Math.min(temperature, 1.0))
+        : 0.2;
 
     // Call NVIDIA NIM
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeout);
 
     console.log(
-      `[NVIDIA] Sending analyze request: task=${task}, model=${config.model}`
+      `[NVIDIA] Sending analyze request: task=${task}, model=${model}`
     );
 
     const response = await fetch(`${config.baseURL}/chat/completions`, {
@@ -126,10 +164,10 @@ Return ONLY this JSON (no markdown fences, no extra text):
         Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
-        model: config.model,
+        model,
         messages,
-        temperature: 0.2,
-        max_tokens: 4096,
+        temperature: temp,
+        max_tokens: maxTokens,
         stream: false,
       }),
       signal: controller.signal,
@@ -140,7 +178,14 @@ Return ONLY this JSON (no markdown fences, no extra text):
     if (!response.ok) {
       const errText = await response.text();
       console.error(`[NVIDIA] Error: ${response.status} ${errText}`);
-      throw new Error(`AI Provider Error: ${response.status}`);
+      let parsedError = errText;
+      try {
+        const jsonErr = JSON.parse(errText);
+        parsedError = jsonErr.error?.message || jsonErr.message || errText;
+      } catch {}
+      return res.status(response.status).json({
+        error: parsedError || `AI Provider Error: ${response.status}`,
+      });
     }
 
     const data = await response.json();
@@ -152,7 +197,9 @@ Return ONLY this JSON (no markdown fences, no extra text):
         '[NVIDIA] Unexpected response structure:',
         JSON.stringify(data).slice(0, 300)
       );
-      throw new Error('Invalid response format from AI provider');
+      return res.status(502).json({
+        error: 'Invalid response format from AI provider',
+      });
     }
   } catch (error) {
     console.error('[NVIDIA] AI Analyze Error:', error);

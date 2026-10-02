@@ -14,8 +14,11 @@ import paymentWebhookHandler from './_payment/webhook.js';
 import githubCallbackHandler from './_auth/github/callback.js';
 import googleCallbackHandler from './_auth/google/callback.js';
 import { connectDB } from './_lib/mongodb.js';
+import { handleCors } from './_lib/auth.js';
 
 export default async function handler(req, res) {
+  if (handleCors(req, res)) return;
+
   // Parse the route from the request URL
   const path = req.url.split('?')[0]; // Remove query params
   const segments = path.split('/').filter(Boolean);
