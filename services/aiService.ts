@@ -241,6 +241,8 @@ const createCacheKey = (input: string): string => {
 };
 
 // Intelligent error mapper for user-friendly messages
+type CoreLogic = Record<string, unknown>;
+
 const mapAIError = (error: unknown): Error => {
   const message = (error as { message?: string } | null)?.message || '';
 
@@ -828,8 +830,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
             // LAYER 6: Pattern → Complexity Hard Map (FINAL AUTHORITY)
             // This MUST be the absolute last complexity decision
-            const coreLogicObj = result.coreLogic as
-              Record<string, unknown> | undefined;
+            const coreLogicObj = result.coreLogic as CoreLogic | undefined;
             if (
               coreLogicObj &&
               typeof coreLogicObj === 'object' &&
