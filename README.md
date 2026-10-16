@@ -1,45 +1,22 @@
 <div align="center">
-  <img src="./components/Logo-With-Name%20cropped.png" alt="ReCode Logo" width="400"/>
-  <br/><br/>
-  <p><strong>Transform your raw DSA submissions into beautifully structured, exam-ready revision cards and code portfolios.</strong></p>
-  <p>
-    <img src="https://img.shields.io/badge/NVIDIA_NIM-Powered-76b900?style=for-the-badge&logo=nvidia&logoColor=white"/>
-    <img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=white"/>
-    <img src="https://img.shields.io/badge/TypeScript-5.8-3178c6?style=for-the-badge&logo=typescript&logoColor=white"/>
-    <img src="https://img.shields.io/badge/MongoDB-Mongoose-47a248?style=for-the-badge&logo=mongodb&logoColor=white"/>
-    <img src="https://img.shields.io/badge/Vercel-Serverless-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
-  </p>
+
+<img src="./components/Logo-With-Name%20cropped.png" alt="ReCode logo" width="380" />
+
+**Turn raw DSA submissions into structured, exam-ready revision cards and code portfolios.**
+
+<a href="https://recode.sbs"><img src="https://img.shields.io/badge/Live_Demo-Open_the_app-2ea44f?style=for-the-badge" alt="Live demo" /></a>
+
+<img src="https://img.shields.io/badge/NVIDIA_NIM-Powered-76b900?style=flat-square&logo=nvidia&logoColor=white" />
+<img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white" />
+<img src="https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square&logo=typescript&logoColor=white" />
+<img src="https://img.shields.io/badge/MongoDB-Mongoose-47a248?style=flat-square&logo=mongodb&logoColor=white" />
+<img src="https://img.shields.io/badge/Vercel-Serverless-000000?style=flat-square&logo=vercel&logoColor=white" />
+
+<br/><br/>
+
+<img src="docs/screenshot.png" width="860" alt="ReCode screenshot" />
+
 </div>
-
----
-
-## ✨ Screenshots & UI Preview
-
-<details>
-<summary><strong>📸 Desktop & Mobile App Previews</strong> — click to expand</summary>
-
-<br/>
-
-### 🖥️ Desktop Dashboard & Revision Hub
-
-_View and search your solved problems, track progression tiers, and access AI-generated solutions._
-<img src="./components/dashboard-preview.png" alt="ReCode Desktop Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;"/>
-
-### 📊 Deep Analysis Panel
-
-_Visualize space/time complexity metrics, step-by-step logic breakdown, edge cases, and code improvement suggestions._
-<img src="./components/dashboard-preview-2.png" alt="ReCode Analytics & Cache Panel" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;"/>
-
-### 📱 Premium Mobile Experience
-
-_Practice, review, and track your revision on the go with a fully responsive layout._
-
-<p align="center">
-  <img src="./components/mobile-preview-1.png" alt="ReCode Mobile Code Entry" width="48%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-right: 2%;"/>
-  <img src="./components/mobile-preview-2.png" alt="ReCode Mobile Solution Detail" width="48%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"/>
-</p>
-
-</details>
 
 ---
 
@@ -58,7 +35,7 @@ _Practice, review, and track your revision on the go with a fully responsive lay
 ## 🗺️ Architecture & Data Flow
 
 <details>
-<summary><strong>⚙️ System Architecture</strong> — click to expand</summary>
+<summary><strong>⚙️ System Architecture</strong>: click to expand</summary>
 
 <br/>
 
