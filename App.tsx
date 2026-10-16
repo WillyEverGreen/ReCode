@@ -18,6 +18,7 @@ import {
   SavedQuestion,
   ViewState,
   UserSettings,
+  User,
 } from './types';
 import { analyzeSubmission } from './services/aiService';
 import {
@@ -35,7 +36,7 @@ const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(
     localStorage.getItem('token')
   );
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<
     'login' | 'signup' | 'forgot-password'
   >('login');
@@ -153,6 +154,8 @@ const App: React.FC = () => {
     } else {
       setShowLanding(true);
     }
+    // Refetch only when the auth token changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -178,7 +181,9 @@ const App: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         // Map _id to id
-        const mappedQuestions = data.map((q: any) => ({ ...q, id: q._id }));
+        const mappedQuestions = data.map(
+          (q: SavedQuestion & { _id: string }) => ({ ...q, id: q._id })
+        );
         setQuestions(mappedQuestions);
       }
     } catch (err) {
@@ -187,7 +192,7 @@ const App: React.FC = () => {
   };
 
   // --- Handlers ---
-  const handleLogin = (newToken: string, newUser: any) => {
+  const handleLogin = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
@@ -234,7 +239,7 @@ const App: React.FC = () => {
       ]);
       setSelectedQuestionId(savedQuestion._id);
       setView('detail');
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to analyze submission');
     } finally {
       setIsAnalyzing(false);

@@ -36,7 +36,7 @@ export interface AIAnalysisResult {
   // Granular Content Fields
   problemOverview: string; // Summary ONLY
   testCases: string | string[]; // Markdown of test cases
-  coreLogic: string | string[] | Record<string, any>; // Pattern, Trick, Approach, Why it works
+  coreLogic: string | string[] | Record<string, unknown>; // Pattern, Trick, Approach, Why it works
   edgeCases: string | string[]; // Toggleable section
   syntaxNotes: string | string[]; // Toggleable section
   improvementMarkdown: string; // Suggestions + Polished Code
@@ -51,6 +51,13 @@ export interface SavedQuestion
   extends Omit<SubmissionData, 'title' | 'language'>, AIAnalysisResult {
   id: string;
   timestamp: number;
+  approach?: string;
+  explanation?: string;
+  patternName?: string;
+  trick?: string;
+  approachSteps?: string;
+  whyItWorks?: string;
+  highYieldEdgeCases?: string[];
 }
 
 export type ViewState = 'dashboard' | 'add' | 'detail' | 'solution' | 'pricing';

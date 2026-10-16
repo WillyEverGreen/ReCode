@@ -209,7 +209,7 @@ const GetSolution: React.FC = () => {
       setActiveApproach('optimal');
       // Save to history
       saveToHistory(questionName.trim(), selectedLanguage, result);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to generate solution');
     } finally {
       setIsLoading(false);
@@ -256,7 +256,16 @@ const GetSolution: React.FC = () => {
         strong: ({ node: _node, ...props }) => (
           <strong className="font-bold text-white" {...props} />
         ),
-        code({ node: _node, className: _className, children, ...props }: any) {
+        code({
+          node: _node,
+          className: _className,
+          children,
+          ...props
+        }: React.HTMLAttributes<HTMLElement> & {
+          node?: unknown;
+          className?: string;
+          children?: React.ReactNode;
+        }) {
           const isInline = !String(children).includes('\n');
           if (isInline) {
             return (
@@ -292,6 +301,10 @@ const GetSolution: React.FC = () => {
   );
 
   const currentApproach = getCurrentApproach();
+  const approachNotes = currentApproach as typeof currentApproach & {
+    complexityNote?: string;
+    complexityMismatchNote?: string;
+  };
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
@@ -601,25 +614,23 @@ const GetSolution: React.FC = () => {
                 </div>
 
                 {/* Complexity Note - Only shown when explaining missing approaches or why brute=optimal */}
-                {(currentApproach as any).complexityNote && (
+                {approachNotes.complexityNote && (
                   <div className="mb-4 bg-gradient-to-r from-amber-500/5 to-transparent border-l-4 border-amber-500/50 p-3 rounded-r-lg">
                     <p className="text-sm text-amber-100/90 leading-relaxed flex items-start gap-2">
                       <span className="text-amber-400">💡</span>
-                      <span>{(currentApproach as any).complexityNote}</span>
+                      <span>{approachNotes.complexityNote}</span>
                     </p>
                   </div>
                 )}
 
                 {/* Complexity Mismatch Note - Shown when engine corrected LLM's TC/SC */}
-                {(currentApproach as any).complexityMismatchNote && (
+                {approachNotes.complexityMismatchNote && (
                   <div className="mb-4 bg-gradient-to-r from-blue-500/5 to-transparent border-l-4 border-blue-500/50 p-3 rounded-r-lg">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="text-sm text-blue-100/90 leading-relaxed">
                         <MarkdownRenderer
-                          content={
-                            (currentApproach as any).complexityMismatchNote
-                          }
+                          content={approachNotes.complexityMismatchNote}
                         />
                       </div>
                     </div>

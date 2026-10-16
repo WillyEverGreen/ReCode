@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import type { User } from '../../types';
+import { logger } from '../../utils/logger';
+import { getGoogleOAuth } from '../../utils/googleAuth';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import AppLogo from '../Logo-With-Name cropped.png';
@@ -33,7 +36,7 @@ const GitHubIcon = () => (
 );
 
 interface LoginProps {
-  onLogin: (token: string, user: any) => void;
+  onLogin: (token: string, user: User) => void;
   onSwitchToSignup: () => void;
   onForgotPassword: () => void;
   initialError?: string;
@@ -74,7 +77,7 @@ const Login: React.FC<LoginProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
       onLogin(data.token, data.user);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -91,7 +94,7 @@ const Login: React.FC<LoginProps> = ({
     setOauthLoading('google');
     setError('');
     try {
-      if (!(window as any).google?.accounts?.oauth2) {
+      if (!window.google?.accounts?.oauth2) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://accounts.google.com/gsi/client';
@@ -106,11 +109,11 @@ const Login: React.FC<LoginProps> = ({
         });
       }
       await new Promise((r) => setTimeout(r, 100));
-      (window as any).google.accounts.oauth2
+      getGoogleOAuth()
         .initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: 'email profile',
-          callback: async (response: any) => {
+          callback: async (response: GoogleTokenResponse) => {
             if (response.error) {
               // User cancelled = access_denied, don't show error
               if (response.error !== 'access_denied') {
@@ -139,14 +142,14 @@ const Login: React.FC<LoginProps> = ({
                 );
               }
               onLogin(data.token, data.user);
-            } catch (err: any) {
+            } catch (err) {
               setError(err.message);
             } finally {
               setOauthLoading(null);
             }
           },
-          error_callback: (error: any) => {
-            console.log(
+          error_callback: (error: GoogleErrorResponse) => {
+            logger.debug(
               '[GOOGLE AUTH] User cancelled or popup blocked:',
               error
             );
@@ -161,7 +164,7 @@ const Login: React.FC<LoginProps> = ({
           },
         })
         .requestAccessToken();
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
       setOauthLoading(null);
     }

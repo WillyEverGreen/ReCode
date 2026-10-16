@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
+import { logger } from '../utils/logger';
 import { X, Sparkles, Zap, FileText, BookOpen, Shield } from 'lucide-react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-}
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -101,7 +96,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         theme: {
           color: '#EAB308', // Yellow color matching your theme
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayPaymentResponse) {
           try {
             // Verify payment
             const verifyResponse = await fetch(
@@ -129,7 +124,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
             }
 
             // Success!
-            console.log('[PAYMENT] Payment successful!', verifyData);
+            logger.debug('[PAYMENT] Payment successful!', verifyData);
             setIsProcessing(false);
 
             // Call success callback
@@ -140,7 +135,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
             // Close modal and refresh page
             onClose();
             window.location.reload(); // Refresh to update user plan
-          } catch (err: any) {
+          } catch (err) {
             console.error('[PAYMENT] Verification error:', err);
             setError(err.message || 'Payment verification failed');
             setIsProcessing(false);
@@ -155,7 +150,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-    } catch (err: any) {
+    } catch (err) {
       console.error('[PAYMENT] Error:', err);
       setError(err.message || 'Failed to initiate payment');
       setIsProcessing(false);

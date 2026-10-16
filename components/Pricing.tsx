@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { Crown, Sparkles, Check, ArrowRight, Loader2 } from 'lucide-react';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const Pricing: React.FC = () => {
@@ -92,7 +86,7 @@ const Pricing: React.FC = () => {
         theme: {
           color: '#EAB308',
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayPaymentResponse) {
           try {
             // Verify payment
             const verifyResponse = await fetch(
@@ -127,7 +121,7 @@ const Pricing: React.FC = () => {
             setTimeout(() => {
               window.location.reload();
             }, 2000);
-          } catch (err: any) {
+          } catch (err) {
             setError(err.message || 'Payment verification failed');
             setIsProcessing(false);
           }
@@ -141,7 +135,7 @@ const Pricing: React.FC = () => {
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to initiate payment');
       setIsProcessing(false);
     }

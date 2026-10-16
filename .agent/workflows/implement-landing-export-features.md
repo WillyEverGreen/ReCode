@@ -7,6 +7,7 @@ description: Implement Landing Page Updates, Export Features, FAQ, and Mobile Re
 ## Phase 1: Landing Page Pro Features Highlight ✅
 
 ### Tasks:
+
 1. Update Features Section:
    - Add "Unlimited AI Analysis" with Crown badge
    - Add "Advanced Complexity Engine" with Crown badge
@@ -25,19 +26,22 @@ description: Implement Landing Page Updates, Export Features, FAQ, and Mobile Re
 ## Phase 2: Export Features (PDF/Markdown) ✅
 
 ### Add to QuestionDetail.tsx (Add Solution Results):
+
 - Add Export Dropdown button (PDF, Markdown, Text)
 - Generate formatted content with:
-  * Problem title
-  * Code snippet
-  * Complexity analysis
-  * Fast recall checklist
-  * AI suggestions
+  - Problem title
+  - Code snippet
+  - Complexity analysis
+  - Fast recall checklist
+  - AI suggestions
 
 ### Add to GetSolution.tsx (Get Solution Results):
+
 - Add Export button for each approach
 - Include all three approaches (brute, better, optimal)
 
 ### Implementation:
+
 ```typescript
 // Use jsPDF for PDF generation
 // Use markdown-it or direct string formatting for Markdown
@@ -46,19 +50,17 @@ description: Implement Landing Page Updates, Export Features, FAQ, and Mobile Re
 ## Phase 3: Mobile Responsiveness Audit ✅
 
 ### Components to Fix:
+
 1. **LandingPage.tsx**:
    - Hero section: Stack buttons vertically on mobile
    - Features grid: 1 column on mobile, 2 on tablet, 3 on desktop
    - FAQ: Full width on mobile
-   
 2. **Dashboard.tsx**:
    - Question cards: Full width on mobile
    - Search bar: Full width on mobile
-   
 3. **QuestionDetail.tsx**:
    - Code blocks: Horizontal scroll on mobile
    - Tabs: Scrollable horizontal on mobile
-   
 4. **GetSolution.tsx**:
    - Approach cards: Stack vertically on mobile
    - Code editor: Full width, scroll
@@ -76,6 +78,7 @@ description: Implement Landing Page Updates, Export Features, FAQ, and Mobile Re
 - [ ] Verify pricing info is accurate everywhere
 
 ## Files to Modify:
+
 - `components/LandingPage.tsx`
 - `components/QuestionDetail.tsx`
 - `components/GetSolution.tsx`

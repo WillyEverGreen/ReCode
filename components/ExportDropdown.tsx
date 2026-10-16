@@ -5,9 +5,10 @@ import {
   exportAsPDF,
   exportAsText,
 } from '../utils/exportUtils';
+import type { ExportData } from '../utils/exportUtils';
 
 interface ExportDropdownProps {
-  data: any; // Using any for brevity since we're passing through
+  data: ExportData;
   className?: string;
   isOpen?: boolean;
   onToggle?: (open: boolean) => void;

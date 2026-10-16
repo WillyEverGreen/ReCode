@@ -62,7 +62,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
         setSuccessMessage(null);
         setStep('otp');
       }, 2000);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Network error. Please check your connection.');
     } finally {
       setIsLoading(false);
@@ -109,7 +109,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
         setSuccessMessage(null);
         setStep('password');
       }, 1000);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to verify OTP. Please try again.');
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onLogin }) => {
       setTimeout(() => {
         onLogin();
       }, 2000);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Network error. Please check your connection.');
     } finally {
       setIsLoading(false);

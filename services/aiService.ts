@@ -1,4 +1,5 @@
 import { SubmissionData, AIAnalysisResult, SolutionResult } from '../types';
+import { logger } from '../utils/logger';
 
 // Import Complexity Analysis Engine (for validating/correcting AI output)
 import { getCorrectedComplexity } from '../utils/complexityEngine.js';
@@ -240,8 +241,8 @@ const createCacheKey = (input: string): string => {
 };
 
 // Intelligent error mapper for user-friendly messages
-const mapAIError = (error: any): Error => {
-  const message = error?.message || '';
+const mapAIError = (error: unknown): Error => {
+  const message = (error as { message?: string } | null)?.message || '';
 
   // Friendly daily-limit messaging that nudges upgrade
   if (message.includes('Daily limit reached')) {
@@ -479,7 +480,7 @@ Return ONLY valid JSON, no markdown fences.`;
       finalSC: parsed.finalSpaceComplexity,
       reasoning: parsed.reasoning,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[LLM RECONSIDER] Error:', error.message);
     return null;
   }
@@ -514,7 +515,7 @@ export const analyzeSubmission = async (
   const cacheKey = createCacheKey(data.code + (data.problemUrl || ''));
   const cached = analysisCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log('[CACHE HIT] Returning cached analysis result');
+    logger.debug('[CACHE HIT] Returning cached analysis result');
     return cached.value;
   }
 
@@ -545,7 +546,7 @@ export const analyzeSubmission = async (
       console.warn('[USAGE] Could not check limit:', limitError);
     }
   } else {
-    console.log('[USAGE] Skipping usage limit check in development mode');
+    logger.debug('[USAGE] Skipping usage limit check in development mode');
   }
 
   // Now check in-flight guard
@@ -587,7 +588,7 @@ Return ONLY valid JSON, no markdown fences.`;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      console.log(`[NVIDIA] Attempt ${attempt}/${MAX_RETRIES}...`);
+      logger.debug(`[NVIDIA] Attempt ${attempt}/${MAX_RETRIES}...`);
 
       // Add 30s timeout to prevent hung requests
       const controller = new AbortController();
@@ -684,7 +685,7 @@ Return ONLY valid JSON, no markdown fences.`;
               result = JSON.parse(
                 text.slice(0, lastBrace + 1)
               ) as AIAnalysisResult;
-              console.log('[NVIDIA] Recovered from truncated JSON');
+              logger.debug('[NVIDIA] Recovered from truncated JSON');
             } catch {
               lastError = new Error('Failed to parse response');
               continue; // Retry
@@ -725,7 +726,7 @@ Return ONLY valid JSON, no markdown fences.`;
               corrected.timeComplexity
             );
             if (amortizedTC !== corrected.timeComplexity) {
-              console.log(
+              logger.debug(
                 `[LAYER 2] Amortized override: ${corrected.timeComplexity} → ${amortizedTC}`
               );
               corrected.timeComplexity = amortizedTC;
@@ -734,7 +735,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
             // LAYER 3: Recursion Explosion Detection
             if (detectRecursiveExplosion(data.code)) {
-              console.log(`[LAYER 3] Recursive explosion detected → O(2^n)`);
+              logger.debug(`[LAYER 3] Recursive explosion detected → O(2^n)`);
               corrected.timeComplexity = 'O(2^n)';
               corrected.timeComplexityReason =
                 'Tree recursion with multiple recursive calls per invocation';
@@ -744,7 +745,7 @@ Return ONLY valid JSON, no markdown fences.`;
             // LAYER 4: Space Complexity Truth Guard (UNCONDITIONAL)
             const forcedSC = detectSpaceUsage(data.code);
             if (forcedSC && forcedSC !== result.spaceComplexity) {
-              console.log(
+              logger.debug(
                 `[LAYER 4] Space truth enforced: ${result.spaceComplexity} → ${forcedSC}`
               );
               corrected.spaceComplexity = forcedSC;
@@ -754,7 +755,7 @@ Return ONLY valid JSON, no markdown fences.`;
             }
 
             if (corrected.corrected) {
-              console.log(
+              logger.debug(
                 `[COMPLEXITY ENGINE] Detected mismatch: TC=${result.timeComplexity} → ${corrected.timeComplexity}, SC=${result.spaceComplexity} → ${corrected.spaceComplexity}`
               );
 
@@ -782,7 +783,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
                 if (llmFinalTC === originalTC && llmFinalSC === originalSC) {
                   // LLM maintains position - TRUST LLM
-                  console.log(
+                  logger.debug(
                     `[LLM RECONSIDER] Trusting LLM's decision: ${reconsideration.finalTC}/${reconsideration.finalSC}`
                   );
                   result.timeComplexity = reconsideration.finalTC;
@@ -791,7 +792,7 @@ Return ONLY valid JSON, no markdown fences.`;
                   result.spaceComplexityReason = reconsideration.reasoning;
                 } else if (llmFinalTC === engineTC && llmFinalSC === engineSC) {
                   // LLM agrees with engine
-                  console.log(
+                  logger.debug(
                     `[LLM RECONSIDER] LLM agreed with engine: ${corrected.timeComplexity}/${corrected.spaceComplexity}`
                   );
                   result.timeComplexity = corrected.timeComplexity;
@@ -800,7 +801,7 @@ Return ONLY valid JSON, no markdown fences.`;
                   result.spaceComplexityReason = reconsideration.reasoning;
                 } else {
                   // LLM provides new answer - trust it
-                  console.log(
+                  logger.debug(
                     `[LLM RECONSIDER] LLM provided new analysis: ${reconsideration.finalTC}/${reconsideration.finalSC}`
                   );
                   result.timeComplexity = reconsideration.finalTC;
@@ -810,7 +811,7 @@ Return ONLY valid JSON, no markdown fences.`;
                 }
               } else {
                 // Failed to get reconsideration - use engine values as fallback
-                console.log(`[LLM RECONSIDER] Failed, using engine values`);
+                logger.debug(`[LLM RECONSIDER] Failed, using engine values`);
                 result.timeComplexity = corrected.timeComplexity;
                 result.spaceComplexity = corrected.spaceComplexity;
                 if (corrected.timeComplexityReason)
@@ -820,7 +821,7 @@ Return ONLY valid JSON, no markdown fences.`;
                     corrected.spaceComplexityReason;
               }
             } else {
-              console.log(
+              logger.debug(
                 `[COMPLEXITY ENGINE] SOURCE=LLM   | Using AI-provided TC/SC without override (TC=${result.timeComplexity}, SC=${result.spaceComplexity})`
               );
             }
@@ -828,19 +829,18 @@ Return ONLY valid JSON, no markdown fences.`;
             // LAYER 6: Pattern → Complexity Hard Map (FINAL AUTHORITY)
             // This MUST be the absolute last complexity decision
             const coreLogicObj = result.coreLogic as
-              | Record<string, any>
-              | undefined;
+              Record<string, unknown> | undefined;
             if (
               coreLogicObj &&
               typeof coreLogicObj === 'object' &&
               coreLogicObj.Pattern
             ) {
               const finalTC = applyPatternOverride(
-                coreLogicObj.Pattern,
+                String(coreLogicObj.Pattern),
                 result.timeComplexity
               );
               if (finalTC !== result.timeComplexity) {
-                console.log(`[FINAL OVERRIDE] Pattern enforces ${finalTC}`);
+                logger.debug(`[FINAL OVERRIDE] Pattern enforces ${finalTC}`);
                 result.timeComplexity = finalTC;
                 result.timeComplexityReason = `Guaranteed by ${coreLogicObj.Pattern} invariant`;
               }
@@ -859,7 +859,7 @@ Return ONLY valid JSON, no markdown fences.`;
 
         // Cache the result
         analysisCache.set(cacheKey, { value: result, timestamp: Date.now() });
-        console.log('[CACHE STORE] Cached analysis result');
+        logger.debug('[CACHE STORE] Cached analysis result');
 
         // Increment usage counter (non-blocking)
         incrementUsage('addSolution');
@@ -925,7 +925,7 @@ export const generateSolution = async (
     }
 
     if (data.fromCache) {
-      console.log(
+      logger.debug(
         `[${data.data.tier?.toUpperCase() || 'CACHE'} HIT] Solution served from cache`
       );
     }

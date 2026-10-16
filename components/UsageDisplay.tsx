@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { logger } from '../utils/logger';
 import {
   Sparkles,
   FileText,
@@ -65,7 +66,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ className = '' }) => {
   // Listen for custom event to refresh usage immediately after API calls
   useEffect(() => {
     const handleUsageUpdate = () => {
-      console.log('[UsageDisplay] Refreshing usage...');
+      logger.debug('[UsageDisplay] Refreshing usage...');
       fetchUsage();
     };
     window.addEventListener('usage-updated', handleUsageUpdate);

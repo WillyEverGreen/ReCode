@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf';
+import { logger } from './logger';
 import complexityEngine from './complexityEngine.js';
 
-interface ExportData {
+export interface ExportData {
   title: string;
   code?: string;
   language?: string;
@@ -23,7 +24,7 @@ interface ExportData {
   whyItWorks?: string;
   highYieldEdgeCases?: string[];
   syntaxNotes?: string[];
-  coreLogic?: string | Record<string, any>;
+  coreLogic?: string | string[] | Record<string, unknown>;
 }
 
 /**
@@ -76,7 +77,7 @@ export const exportAsMarkdown = (data: ExportData): void => {
           scReason = analysis.spaceComplexityReason;
         }
       } catch (e) {
-        console.log('[EXPORT] Could not analyze complexity:', e);
+        logger.debug('[EXPORT] Could not analyze complexity:', e);
       }
     }
 
@@ -101,7 +102,7 @@ export const exportAsMarkdown = (data: ExportData): void => {
     Object.entries(coreData).forEach(([key, val]) => {
       markdown += `### ${key.charAt(0).toUpperCase() + key.slice(1)}\n`;
       if (Array.isArray(val)) {
-        val.forEach((item: any) => (markdown += `- ${item}\n`));
+        val.forEach((item: unknown) => (markdown += `- ${item}\n`));
       } else {
         markdown += `${val}\n`;
       }
@@ -183,7 +184,7 @@ export const exportAsMarkdown = (data: ExportData): void => {
  */
 export const exportAsPDF = (data: ExportData): void => {
   try {
-    console.log('[EXPORT] Starting premium PDF generation...', data.title);
+    logger.debug('[EXPORT] Starting premium PDF generation...', data.title);
     const pdf = new jsPDF();
     let yPos = 20;
     const lineHeight = 6.5; // Slightly increased for better readability
@@ -378,7 +379,7 @@ export const exportAsPDF = (data: ExportData): void => {
       Object.entries(coreData).forEach(([key, val]) => {
         addSubsectionHeader(key.charAt(0).toUpperCase() + key.slice(1));
         if (Array.isArray(val)) {
-          val.forEach((item: any) => addBullet(String(item)));
+          val.forEach((item: unknown) => addBullet(String(item)));
         } else {
           addBodyText(String(val), 0);
         }
@@ -553,7 +554,7 @@ export const exportAsText = (data: ExportData): void => {
     Object.entries(coreData).forEach(([key, val]) => {
       text += `${key.toUpperCase()}:\n`;
       if (Array.isArray(val)) {
-        val.forEach((item: any) => (text += `- ${item}\n`));
+        val.forEach((item: unknown) => (text += `- ${item}\n`));
       } else {
         text += `${val}\n`;
       }

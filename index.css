@@ -7,26 +7,26 @@
    ============================================ */
 :root {
   /* Background colors (darkest to lightest) */
-  --bg-base: #0b0f19;        /* Page background */
-  --bg-card: #111318;        /* Card/Panel background */
-  --bg-elevated: #161a24;    /* Elevated surfaces */
-  --bg-input: #0d1117;       /* Input fields */
-  --bg-hover: #1a1f2e;       /* Hover states */
+  --bg-base: #0b0f19; /* Page background */
+  --bg-card: #111318; /* Card/Panel background */
+  --bg-elevated: #161a24; /* Elevated surfaces */
+  --bg-input: #0d1117; /* Input fields */
+  --bg-hover: #1a1f2e; /* Hover states */
 
   /* Accent colors */
-  --accent-primary: #CA8A04;  /* Gold/Yellow - primary accent */
-  --accent-hover: #EAB308;    /* Lighter gold for hover */
-  --accent-muted: #A16207;    /* Darker gold for pressed */
+  --accent-primary: #ca8a04; /* Gold/Yellow - primary accent */
+  --accent-hover: #eab308; /* Lighter gold for hover */
+  --accent-muted: #a16207; /* Darker gold for pressed */
 
   /* Text colors */
-  --text-primary: #e5e7eb;    /* Primary text */
-  --text-secondary: #9ca3af;  /* Secondary text */
-  --text-muted: #6b7280;      /* Muted/disabled text */
+  --text-primary: #e5e7eb; /* Primary text */
+  --text-secondary: #9ca3af; /* Secondary text */
+  --text-muted: #6b7280; /* Muted/disabled text */
 
   /* Border colors */
-  --border-default: #1f2937;  /* Default borders */
-  --border-hover: #374151;    /* Hover borders */
-  --border-accent: rgba(230, 200, 136, 0.3);  /* Accent borders */
+  --border-default: #1f2937; /* Default borders */
+  --border-hover: #374151; /* Hover borders */
+  --border-accent: rgba(230, 200, 136, 0.3); /* Accent borders */
 
   /* Status colors */
   --status-success: #10b981;

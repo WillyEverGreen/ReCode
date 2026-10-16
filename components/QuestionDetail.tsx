@@ -22,17 +22,25 @@ import {
 } from 'lucide-react';
 import ExportDropdown from './ExportDropdown';
 
+// Export helpers expect arrays, but saved questions may hold a newline-separated string
+const toList = (value?: string | string[]): string[] | undefined =>
+  value === undefined
+    ? undefined
+    : Array.isArray(value)
+      ? value
+      : value.split('\n').filter(Boolean);
+
 // Helper to render markdown with syntax highlighting
 const MarkdownRenderer = ({
   content,
 }: {
-  content: string | string[] | Record<string, any>;
+  content: string | string[] | Record<string, unknown>;
 }) => {
   // Handle array content by joining with newlines
   let markdownContent = '';
 
   // Helper: Normalize list items and remove explicit numbering/bold wrappers
-  const formatListItem = (item: any) => {
+  const formatListItem = (item: unknown) => {
     const clean = String(item)
       // Remove any leading list marker like "- ", "* ", "1. ", "• "
       .replace(/^[\s•]*(?:[-*]\s+|\d+\.\s+|•\s*)/, '')
@@ -61,34 +69,34 @@ const MarkdownRenderer = ({
   return (
     <ReactMarkdown
       components={{
-        h2: ({ _node, ...props }) => (
+        h2: ({ node: _node, ...props }) => (
           <h2
             className="text-xl font-semibold text-[#e6c888] mt-8 mb-4 border-b border-gray-800 pb-2 flex items-center gap-2"
             {...props}
           />
         ),
-        h3: ({ _node, ...props }) => (
+        h3: ({ node: _node, ...props }) => (
           <h3 className="text-lg font-medium text-white mt-6 mb-3" {...props} />
         ),
-        p: ({ _node, ...props }) => (
+        p: ({ node: _node, ...props }) => (
           <p className="text-[#cccccc] mb-4 leading-loose" {...props} />
         ),
-        ul: ({ _node, ...props }) => (
+        ul: ({ node: _node, ...props }) => (
           <ul
             className="list-disc ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
             {...props}
           />
         ),
-        ol: ({ _node, ...props }) => (
+        ol: ({ node: _node, ...props }) => (
           <ol
             className="list-decimal ml-6 mb-4 text-[#cccccc] space-y-2 leading-relaxed"
             {...props}
           />
         ),
-        strong: ({ _node, ...props }) => (
+        strong: ({ node: _node, ...props }) => (
           <strong className="font-bold text-white" {...props} />
         ),
-        code({ _node, className, children, ...props }) {
+        code({ node: _node, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');
           const isInline = !match && !String(children).includes('\n');
 
@@ -146,7 +154,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
   onUpdateSettings,
   onBack,
   onDelete,
-  _onUpdateQuestion,
+  onUpdateQuestion: _onUpdateQuestion,
   isPro,
   onUpgrade,
 }) => {
@@ -325,8 +333,8 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 timeComplexityReason: question.timeComplexityReason,
                 spaceComplexity: question.spaceComplexity,
                 spaceComplexityReason: question.spaceComplexityReason,
-                revisionNotes: question.revisionNotes,
-                edgeCases: question.edgeCases,
+                revisionNotes: toList(question.revisionNotes),
+                edgeCases: toList(question.edgeCases),
                 approach:
                   typeof question.approach === 'string'
                     ? question.approach
@@ -335,13 +343,13 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({
                 pattern: question.pattern,
                 dsaCategory: question.dsaCategory,
                 problemOverview: question.problemOverview,
-                testCases: question.testCases,
+                testCases: toList(question.testCases),
                 patternName: question.patternName,
                 trick: question.trick,
                 approachSteps: question.approachSteps,
                 whyItWorks: question.whyItWorks,
-                highYieldEdgeCases: question.highYieldEdgeCases,
-                syntaxNotes: question.syntaxNotes,
+                highYieldEdgeCases: toList(question.highYieldEdgeCases),
+                syntaxNotes: toList(question.syntaxNotes),
                 coreLogic: question.coreLogic,
               }}
               isOpen={showExport}

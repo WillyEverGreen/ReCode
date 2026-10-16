@@ -11,3 +11,7 @@ yarn.lock
 .git
 .env
 .env.local
+
+utils/*.json
+metadata.json
+scripts/temp_utils/V2_INTEGRATION_GUIDE.js

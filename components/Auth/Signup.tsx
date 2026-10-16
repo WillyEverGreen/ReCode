@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import type { User as UserType } from '../../types';
+import { logger } from '../../utils/logger';
+import { getGoogleOAuth } from '../../utils/googleAuth';
 import { Mail, Lock, User, ArrowRight, Loader2, KeyRound } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import AppLogo from '../Logo-With-Name cropped.png';
@@ -33,7 +36,7 @@ const GitHubIcon = () => (
 );
 
 interface SignupProps {
-  onSignup: (token: string, user: any) => void;
+  onSignup: (token: string, user: UserType) => void;
   onSwitchToLogin: () => void;
   initialError?: string;
 }
@@ -84,7 +87,7 @@ const Signup: React.FC<SignupProps> = ({
           ? `${data.message} (Dev OTP: ${data.devOtp})`
           : data.message || 'OTP sent to your email'
       );
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -104,7 +107,7 @@ const Signup: React.FC<SignupProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Verification failed');
       onSignup(data.token, data.user);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ const Signup: React.FC<SignupProps> = ({
     setOauthLoading('google');
     setError('');
     try {
-      if (!(window as any).google?.accounts?.oauth2) {
+      if (!window.google?.accounts?.oauth2) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://accounts.google.com/gsi/client';
@@ -136,11 +139,11 @@ const Signup: React.FC<SignupProps> = ({
         });
       }
       await new Promise((r) => setTimeout(r, 100));
-      (window as any).google.accounts.oauth2
+      getGoogleOAuth()
         .initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: 'email profile',
-          callback: async (response: any) => {
+          callback: async (response: GoogleTokenResponse) => {
             if (response.error) {
               if (response.error !== 'access_denied') {
                 setError(
@@ -167,14 +170,14 @@ const Signup: React.FC<SignupProps> = ({
                 );
               }
               onSignup(data.token, data.user);
-            } catch (err: any) {
+            } catch (err) {
               setError(err.message);
             } finally {
               setOauthLoading(null);
             }
           },
-          error_callback: (error: any) => {
-            console.log(
+          error_callback: (error: GoogleErrorResponse) => {
+            logger.debug(
               '[GOOGLE AUTH] User cancelled or popup blocked:',
               error
             );
@@ -187,7 +190,7 @@ const Signup: React.FC<SignupProps> = ({
           },
         })
         .requestAccessToken();
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
       setOauthLoading(null);
     }
